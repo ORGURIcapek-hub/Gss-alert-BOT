@@ -1,1 +1,98 @@
+-- 1. ตารางเก็บข้อมูลผู้ใช้งาน (Users / Profiles)
+-- อ้างอิงจาก Entity ด้านบนสุดที่เก็บข้อมูล รหัส, ชื่อ-นามสกุล, ตำแหน่ง
+CREATE TABLE Users (
+    user_id VARCHAR(50) PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    position VARCHAR(100),
+    department VARCHAR(100),
+    role VARCHAR(20) DEFAULT 'user', -- 'admin', 'manager', 'user'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
+-- 2. ตารางเก็บข้อมูล OKR หลัก (OKRs)
+-- อ้างอิงจาก Entity "OKR" ทางด้านซ้ายของแผนภาพ
+CREATE TABLE OKRs (
+    okr_id VARCHAR(50) PRIMARY KEY,
+    okr_title VARCHAR(255) NOT NULL,
+    okr_type VARCHAR(50), -- ประเภทโครงการ/OKR
+    year INT NOT NULL,
+    quarter VARCHAR(2), -- Q1, Q2, Q3, Q4
+    status VARCHAR(50) DEFAULT 'Draft',
+    created_by VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES Users(user_id) ON DELETE SET NULL
+);
+
+-- 3. ตารางเก็บรายละเอียดโครงการย่อย (Projects / Results)
+-- อ้างอิงจาก Entity "รายละเอียดโครงการ" และ "Result" บริเวณตรงกลาง
+CREATE TABLE Projects (
+    project_id VARCHAR(50) PRIMARY KEY,
+    okr_id VARCHAR(50),
+    project_name VARCHAR(255) NOT NULL,
+    project_type VARCHAR(100), -- ประเภทโครงการ
+    description TEXT,
+    start_date DATE,
+    end_date DATE,
+    head_of_project VARCHAR(50), -- หัวหน้าผู้รับผิดชอบโครงการ
+    progress_percentage DECIMAL(5,2) DEFAULT 0.00,
+    status VARCHAR(50) DEFAULT 'In Progress',
+    FOREIGN KEY (okr_id) REFERENCES OKRs(okr_id) ON DELETE CASCADE,
+    FOREIGN KEY (head_of_project) REFERENCES Users(user_id) ON DELETE SET NULL
+);
+
+-- 4. ตารางรายชื่อผู้รับผิดชอบในโครงการ (Project Assignees)
+-- อ้างอิงจาก Entity "รายชื่อผู้รับผิดชอบในโครงการ" (Many-to-Many ระหว่าง User และ Project)
+CREATE TABLE Project_Assignees (
+    project_id VARCHAR(50),
+    user_id VARCHAR(50),
+    assigned_role VARCHAR(100), -- บทบาทในโครงการ (เช่น ผู้ช่วย, ผู้ดำเนินการหลัก)
+    assigned_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (project_id, user_id),
+    FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+-- 5. ตารางหลักฐานการดำเนินงาน (Evidences)
+-- อ้างอิงจาก Entity "หลักฐานการดำเนินงาน" ด้านล่างของแผนภาพ
+CREATE TABLE Evidences (
+    evidence_id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id VARCHAR(50),
+    uploaded_by VARCHAR(50),
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL, -- ลิงก์หรือที่เก็บไฟล์
+    upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    description TEXT, -- รายละเอียดหลักฐาน
+    FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES Users(user_id) ON DELETE SET NULL
+);
+
+-- 6. ตารางระบบรายงานและแจ้งเตือน (Reports / Notifications)
+-- อ้างอิงจากโครงสร้างด้านล่างที่แตกออกเป็นระบบรายงานสำหรับบุคคลต่างๆ (เช่น ผู้บริหาร, พนักงานทั่วไป)
+CREATE TABLE Reports (
+    report_id INT AUTO_INCREMENT PRIMARY KEY,
+    report_type VARCHAR(100), -- เช่น 'Executive Summary', 'User Progress', 'OKR Dashboard'
+    generated_for VARCHAR(50), -- user_id ที่เรียกดูรายงาน
+    report_data JSON, -- เก็บข้อมูลสรุปในรูปแบบ JSON เพื่อความยืดหยุ่น
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (generated_for) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+CREATE TABLE Projects (
+    project_id VARCHAR(50) PRIMARY KEY,
+    okr_id VARCHAR(50),
+    project_name VARCHAR(255) NOT NULL,
+    project_type VARCHAR(100), -- ประเภทโครงการ
+    description TEXT,
+
+    -- เพิ่ม Field ใหม่ตามที่ต้องการ
+    main_objective TEXT, -- เป้าหมายหลักของโครงการ
+    sub_objective TEXT,  -- เป้าหมายย่อยที่รองลงมาจากเป้าหมายหลัก
+
+    start_date DATE,
+    end_date DATE,
+    head_of_project VARCHAR(50), -- หัวหน้าผู้รับผิดชอบโครงการ
+    progress_percentage DECIMAL(5,2) DEFAULT 0.00,
+    status VARCHAR(50) DEFAULT 'In Progress',
+    FOREIGN KEY (okr_id) REFERENCES OKRs(okr_id) ON DELETE CASCADE,
+    FOREIGN KEY (head_of_project) REFERENCES Users(user_id) ON DELETE SET NULL
+);
