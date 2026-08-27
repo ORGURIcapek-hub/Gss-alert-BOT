@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบติดตามOKR คณะวิทยาศาสตร์</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #3b82f6;
+            --sidebar: #0f172a;
+            --bg-light: #f8fafc;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --white: #ffffff;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            --hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; }
+        body { background-color: var(--bg-light); color: var(--text-dark); overflow-x: hidden; }
+
+        /* ================= LOGIN PAGE ================= */
+        #login-page {
+            display: flex; height: 100vh; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            position: relative; overflow: hidden;
+        }
+        .login-card {
+            background: var(--white); padding: 50px 40px; border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            width: 100%; max-width: 450px; text-align: center; z-index: 10;
+        }
+        .login-card h2 { color: var(--primary); margin-bottom: 25px; font-weight: 700; font-size: 24px; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 15px; color: var(--text-dark); }
+        .input-group input, .input-group select {
+            width: 100%; padding: 12px 15px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 15px; transition: border-color 0.3s;
+        }
+        .input-group input:focus, .input-group select:focus { border-color: var(--secondary); outline: none; }
+        
+        .btn-login {
+            width: 100%; padding: 14px; background: var(--success); color: white; border: none; border-radius: 8px; 
+            font-size: 18px; cursor: pointer; transition: all 0.3s ease; margin-top: 5px; font-weight: 600;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+        }
+        .btn-login:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4); }
+
+        /* ================= DASHBOARD PAGE ================= */
+        #dashboard-page { display: none; height: 100vh; flex-direction: row; }
+        
+        /* Sidebar */
+        .sidebar { width: 280px; background: var(--sidebar); color: var(--white); display: flex; flex-direction: column; transition: all 0.3s; flex-shrink: 0;}
+        .sidebar-header { padding: 25px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-header i { font-size: 28px; color: var(--secondary); }
+        .sidebar-header h2 { font-size: 18px; font-weight: 700; line-height: 1.2; }
+        .sidebar-header h2 span { font-size: 12px; font-weight: 400; color: var(--text-light); }
+        
+        .user-profile { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .user-profile div.avatar { 
+            width: 75px; height: 75px; background: linear-gradient(135deg, var(--secondary), #60a5fa); 
+            border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; 
+            color: white; font-size: 32px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 3px solid rgba(255,255,255,0.2);
+        }
+        .user-profile h3 { font-size: 18px; margin-bottom: 5px; font-weight: 600; }
+        .user-profile p { font-size: 13px; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; display: inline-block; }
+        
+        .nav-menu { list-style: none; padding: 20px 0; flex-grow: 1; }
+        .nav-menu li { padding: 15px 25px; cursor: pointer; display: flex; align-items: center; gap: 15px; transition: all 0.2s; font-size: 15px; font-weight: 500; color: #cbd5e1; }
+        .nav-menu li:hover { background: rgba(255,255,255,0.05); color: white; padding-left: 30px; }
+        .nav-menu li.active { background: linear-gradient(90deg, rgba(59,130,246,0.15) 0%, transparent 100%); border-left: 4px solid var(--secondary); color: white; }
+        .nav-menu li i { font-size: 18px; width: 20px; text-align: center; }
+
+        /* Main Content */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-light); position: relative;}
+        
+        .header { background: var(--white); padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 15px;}
+        .header-title { display: flex; align-items: center; gap: 15px; }
+        .header-title h1 { font-size: 22px; color: var(--primary); font-weight: 700; }
+        
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;}
+        .header-actions select { padding: 10px 15px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Prompt'; font-size: 14px; background: #f8fafc; cursor: pointer; outline: none; transition: 0.3s; }
+        .header-actions select:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        
+        .btn-logout { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 9px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center;}
+        .btn-logout:hover { background: var(--danger); color: white; }
+
+        .dashboard-body { padding: 40px; max-width: 1600px; margin: 0 auto; width: 100%; }
+        
+        /* Summary Cards */
+        .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 40px; }
+        .card { 
+            background: var(--white); padding: 25px; border-radius: 12px; 
+            box-shadow: var(--card-shadow); border-left: 5px solid var(--primary);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .card:hover { transform: translateY(-8px); box-shadow: var(--hover-shadow); }
+        .card-icon { position: absolute; top: 25px; right: 25px; font-size: 32px; opacity: 0.15; transition: 0.3s; }
+        .card:hover .card-icon { transform: scale(1.1); opacity: 0.25; }
+        
+        .card.card-blue { border-left-color: var(--secondary); }
+        .card.card-blue .card-icon { color: var(--secondary); }
+        .card.card-green { border-left-color: var(--success); }
+        .card.card-green .card-icon { color: var(--success); }
+        .card.card-red { border-left-color: var(--danger); }
+        .card.card-red .card-icon { color: var(--danger); }
+        
+        .card p { font-size: 15px; color: var(--text-light); margin-bottom: 10px; font-weight: 600; }
+        .card h2 { font-size: 42px; margin-bottom: 8px; color: var(--text-dark); font-weight: 700; line-height: 1; transition: 0.3s; }
+        .card span { font-size: 14px; color: #64748b; display: flex; align-items: center; gap: 5px; }
+
+        /* Charts Section */
+        .charts-container { display: grid; grid-template-columns: 1fr 2fr; gap: 25px; margin-bottom: 40px; }
+        .chart-box { background: var(--white); padding: 30px; border-radius: 12px; box-shadow: var(--card-shadow); transition: all 0.3s ease; }
+        .chart-box h3 { font-size: 18px; margin-bottom: 25px; color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px;}
+        .canvas-container { position: relative; height: 300px; width: 100%; display: flex; justify-content: center; align-items: center; }
+
+        /* Table Section */
+        .table-container { background: var(--white); padding: 30px; border-radius: 12px; box-shadow: var(--card-shadow); margin-bottom: 40px; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
+        .table-header h3 { font-size: 18px; color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
+        th, td { text-align: left; padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
+        th { color: var(--text-light); font-weight: 600; background: #f8fafc; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
+        
+        .progress-wrapper { display: flex; align-items: center; gap: 12px; }
+        .progress-bar-bg { flex-grow: 1; max-width: 150px; height: 10px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; border-radius: 10px; }
+        .progress-text { font-weight: 600; width: 45px; text-align: right; }
+        
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+        .status-progress { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .status-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+        .table-avatar { display: flex; align-items: center; gap: 10px; }
+        .table-avatar .circle { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-light); color: var(--primary); display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 12px; border: 1px solid #cbd5e1; }
+        
+        .section-label { display: flex; align-items: center; gap: 10px; margin: 10px 0 20px; }
+        .section-label .badge-exec { background: var(--primary); color: white; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; }
+        .section-label h2 { font-size: 18px; color: var(--text-dark); font-weight: 700; }
+
+        @media (max-width: 900px) {
+            .summary-cards { grid-template-columns: repeat(2, 1fr); }
+            .charts-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ================= LOGIN PAGE ================= -->
+    <div id="login-page">
+        <div class="login-card">
+            <div style="font-size: 48px; color: var(--primary); margin-bottom: 10px;"><i class="fa-solid fa-chart-line"></i></div>
+            <h2>ระบบติดตามOKR<br><span style="font-size: 16px; font-weight: 400; color: var(--text-light);">คณะวิทยาศาสตร์</span></h2>
+            
+            <div class="input-group">
+                <label>เข้าสู่ระบบในฐานะ (Role)</label>
+                <select id="role-select">
+                    <option value="executive">ผู้บริหาร (Executive / Dean View)</option>
+                    <option value="head_okr">หัวหน้า OKR (Project Owner)</option>
+                    <option value="general">อาจารย์ทั่วไป (General Staff)</option>
+                    <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>รหัสประจำตัวบุคลากร (เว้นว่างหรือใส่อะไรก็ได้)</label>
+                <input type="text" id="login-id" placeholder="ระบุรหัสพนักงาน...">
+            </div>
+            <div class="input-group">
+                <label>รหัสผ่าน (เว้นว่างหรือใส่อะไรก็ได้)</label>
+                <input type="password" id="login-password" placeholder="••••••••">
+            </div>
+            <button type="button" class="btn-login" onclick="doLogin()">เข้าสู่ระบบ</button>
+        </div>
+    </div>
+
+    <!-- ================= MAIN LAYOUT ================= -->
+    <div id="dashboard-page">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-database"></i>
+                <h2>ระบบติดตามOKR<br><span>คณะวิทยาศาสตร์</span></h2>
+            </div>
+            <div class="user-profile">
+                <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
+                <h3 id="display-name">ดร. สมเกียรติ วิทยา</h3>
+                <p id="display-role">คณบดีคณะวิทยาศาสตร์</p>
+            </div>
+            <ul class="nav-menu">
+                <li class="active" onclick="switchTab('dashboard')" id="nav-dashboard"><i class="fa-solid fa-chart-pie"></i> ภาพรวม (Dashboard)</li>
+                <li onclick="switchTab('projects')" id="nav-projects"><i class="fa-solid fa-folder-open"></i> โครงการทั้งหมด</li>
+            </ul>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="header">
+                <div class="header-title">
+                    <i class="fa-solid fa-chart-line" style="font-size: 24px; color: var(--secondary);"></i>
+                    <h1 id="page-title">ภาพรวมความคืบหน้า OKR และ งบประมาณ</h1>
+                </div>
+                <div class="header-actions">
+                    <select id="filter-year" onchange="updateDashboardData()">
+                        <option value="2569">ปีการศึกษา 2569</option>
+                        <option value="2568" selected>ปีการศึกษา 2568</option>
+                    </select>
+                    <select id="filter-month" onchange="updateDashboardData()">
+                        <option value="all">-- ทุกเดือน --</option>
+                        <option value="1">มกราคม</option>
+                        <option value="2">กุมภาพันธ์</option>
+                        <option value="3">มีนาคม</option>
+                        <option value="4">เมษายน</option>
+                        <option value="5">พฤษภาคม</option>
+                        <option value="6">มิถุนายน</option>
+                        <option value="7">กรกฎาคม</option>
+                        <option value="8">สิงหาคม</option>
+                        <option value="9">กันยายน</option>
+                        <option value="10">ตุลาคม</option>
+                        <option value="11">พฤศจิกายน</option>
+                        <option value="12">ธันวาคม</option>
+                    </select>
+                    <select id="filter-dept" onchange="updateDashboardData()">
+                        <option value="all">-- ทุกภาควิชา --</option>
+                        <option value="computer">ภาควิชาคอมพิวเตอร์</option>
+                        <option value="chemistry">ภาควิชาเคมี</option>
+                    </select>
+                    <button class="btn-logout" onclick="doLogout()" title="ออกจากระบบ"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                </div>
+            </div>
+
+            <!-- Dashboard Body -->
+            <div class="dashboard-body" id="view-dashboard">
+                <div class="summary-cards">
+                    <div class="card card-blue">
+                        <i class="fa-solid fa-chart-column card-icon"></i>
+                        <div>
+                            <p>ความคืบหน้าโดยรวม</p>
+                            <h2 id="sum-progress">92.0%</h2>
+                        </div>
+                        <span id="sum-progress-sub">บรรลุเป้าหมายตามแผน</span>
+                    </div>
+                    <div class="card card-blue">
+                        <i class="fa-solid fa-list-check card-icon"></i>
+                        <div>
+                            <p>เป้าหมาย OKR ทั้งหมด</p>
+                            <h2><span id="sum-target">28</span> <span style="font-size: 18px; font-weight: normal; color: var(--text-light);">โครงการ</span></h2>
+                        </div>
+                        <span id="sum-target-sub">บรรลุแล้ว 25 | กำลังดำเนินการ 3</span>
+                    </div>
+                    <div class="card card-green">
+                        <i class="fa-solid fa-sack-dollar card-icon"></i>
+                        <div>
+                            <p>งบประมาณรวมทั้งสิ้น</p>
+                            <h2><span id="sum-budget">3.8</span> <span style="font-size: 18px; font-weight: normal; color: var(--text-light);">ลบ.</span></h2>
+                        </div>
+                        <span id="sum-budget-sub">เบิกจ่ายแล้ว 3.5 ลบ. (92%)</span>
+                    </div>
+                    <div class="card card-red">
+                        <i class="fa-solid fa-triangle-exclamation card-icon"></i>
+                        <div>
+                            <p>ดัชนีความเสี่ยง (Risk)</p>
+                            <h2 id="sum-risk" style="color: var(--success);">2.5%</h2>
+                        </div>
+                        <span id="sum-risk-sub">ความเสี่ยงต่ำมาก</span>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <h3><i class="fa-solid fa-circle-notch"></i> สัดส่วนสถานะโครงการ</h3>
+                        <div class="canvas-container"><canvas id="donutChart"></canvas></div>
+                    </div>
+                    <div class="chart-box">
+                        <h3><i class="fa-solid fa-chart-simple"></i> การใช้งบประมาณตามยุทธศาสตร์ (ล้านบาท)</h3>
+                        <div class="canvas-container"><canvas id="barChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- ============ EXECUTIVE VIEW EXTENSION (เฉพาะผู้บริหารเห็นเพิ่ม) ============ -->
+                <div id="exec-extra" style="display: none;">
+                    <div class="section-label">
+                        <span class="badge-exec"><i class="fa-solid fa-crown"></i> มุมมองผู้บริหารระดับสูง</span>
+                        <h2>วิเคราะห์เชิงลึกและข้อเสนอแนะเพื่อการตัดสินใจ</h2>
+                    </div>
+
+                    <div class="summary-cards" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="card card-blue">
+                            <i class="fa-solid fa-building-columns card-icon"></i>
+                            <div>
+                                <p>ภาควิชาที่กำกับดูแล</p>
+                                <h2>2 <span style="font-size: 18px; font-weight: normal; color: var(--text-light);">ภาควิชา</span></h2>
+                            </div>
+                            <span>คอมพิวเตอร์ และ เคมี</span>
+                        </div>
+                        <div class="card card-green">
+                            <i class="fa-solid fa-coins card-icon"></i>
+                            <div>
+                                <p>งบประมาณคงเหลือสุทธิ</p>
+                                <h2><span id="sum-remaining">0.3</span> <span style="font-size: 18px; font-weight: normal; color: var(--text-light);">ลบ.</span></h2>
+                            </div>
+                            <span id="sum-remaining-sub">อัตราการเบิกจ่ายเป็นไปตามไตรมาส</span>
+                        </div>
+                    </div>
+
+                    <div class="charts-container">
+                        <div class="chart-box">
+                            <h3><i class="fa-solid fa-chart-line"></i> แนวโน้มความคืบหน้ารายเดือน (ทั้งคณะ)</h3>
+                            <div class="canvas-container"><canvas id="trendChart"></canvas></div>
+                        </div>
+                        <div class="chart-box">
+                            <h3><i class="fa-solid fa-scale-balanced"></i> เปรียบเทียบความคืบหน้า vs งบที่ใช้ (%)</h3>
+                            <div class="canvas-container"><canvas id="compareChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h3><i class="fa-solid fa-table-list"></i> สรุปสถานะแยกตามภาควิชา</h3>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ภาควิชา</th>
+                                    <th>ความคืบหน้า</th>
+                                    <th>งบประมาณตั้งต้น</th>
+                                    <th>เบิกจ่ายจริง</th>
+                                    <th>คงเหลือ</th>
+                                    <th>ระดับความเสี่ยง</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dept-compare-body"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h3><i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i> โครงการที่ต้องติดตามด่วน (พร้อมวิเคราะห์คอขวด)</h3>
+                        </div>
+                        <div id="risk-project-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects Table Body -->
+            <div class="dashboard-body" id="view-projects" style="padding-top: 0; display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fa-solid fa-table"></i> รายการโครงการ OKR ทั้งหมด</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ชื่อโครงการ</th>
+                                <th>ผู้รับผิดชอบ</th>
+                                <th>ภาควิชา</th>
+                                <th>งบตั้งต้น</th>
+                                <th>เบิกจ่ายจริง</th>
+                                <th>ความคืบหน้า</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const mockAccounts = {
+            executive: { name: 'ดร. สมเกียรติ วิทยา', roleLabel: 'คณบดีคณะวิทยาศาสตร์' },
+            head_okr:  { name: 'ศ.ดร. นที ทองดี', roleLabel: 'หัวหน้า OKR ภาควิชา' },
+            general:   { name: 'อ. อนุภัทร', roleLabel: 'อาจารย์ประจำโครงการ' },
+            admin:     { name: 'ผู้ดูแลระบบ', roleLabel: 'Admin System' }
+        };
+
+        const mockSummaryData = {
+            '2569': {
+                'all':       { progress: '74.2%', target: 32, budget: 4.5, spentAmount: 3.12, risk: '12.5%', riskColor: 'var(--danger)', donut: [8, 20, 3, 1], bar: [1.8, 1.2, 0.6, 1.1, 0.4], trend: [5,10,18,25,33,40,47,54,60,66,70,74] },
+                'computer':  { progress: '85.0%', target: 12, budget: 1.2, spentAmount: 1.0, risk: '5.0%', riskColor: 'var(--warning)', donut: [5, 7, 0, 0], bar: [0.5, 0.4, 0.1, 0.2, 0.0], trend: [8,15,25,34,42,50,58,65,71,76,81,85] },
+                'chemistry': { progress: '65.5%', target: 15, budget: 2.0, spentAmount: 1.1, risk: '18.0%', riskColor: 'var(--danger)', donut: [2, 10, 3, 0], bar: [1.0, 0.5, 0.3, 0.2, 0.0], trend: [4,9,15,20,27,33,39,45,51,56,61,65] }
+            },
+            '2568': {
+                'all':       { progress: '92.0%', target: 28, budget: 3.8, spentAmount: 3.5, risk: '2.5%', riskColor: 'var(--success)', donut: [25, 3, 0, 0], bar: [1.5, 1.0, 0.5, 0.6, 0.2], trend: [10,20,30,40,50,60,68,75,81,86,90,92] },
+                'computer':  { progress: '98.0%', target: 10, budget: 1.0, spentAmount: 0.95, risk: '0.0%', riskColor: 'var(--success)', donut: [9, 1, 0, 0], bar: [0.4, 0.3, 0.1, 0.2, 0.0], trend: [12,22,33,44,55,65,74,82,88,92,95,98] },
+                'chemistry': { progress: '88.5%', target: 10, budget: 1.5, spentAmount: 1.3, risk: '5.0%', riskColor: 'var(--warning)', donut: [8, 2, 0, 0], bar: [0.6, 0.4, 0.2, 0.3, 0.0], trend: [8,16,25,34,43,52,60,67,74,79,84,88] }
+            }
+        };
+
+        const mockProjectsList = [
+            { id: 1, name: 'พัฒนานวัตกรรมผลิตภัณฑ์ชุมชน', head: 'ผศ.ดร. มาลี สุขใจ', deptCode: 'computer', deptName: 'คอมพิวเตอร์', year: '2569', month: '2', budget: '800,000 ฿', spent: '360,000 ฿ (45%)', progress: 40, status: 'กำลังดำเนินการ', statusClass: 'status-progress', icon: 'fa-spinner', bottleneck: 'ติดกระบวนการจัดซื้อจัดจ้างพัสดุ' },
+            { id: 2, name: 'ปรับปรุงห้องปฏิบัติการเคมีอัจฉริยะ', head: 'อ. ภาคภูมิ ศรีสวัสดิ์', deptCode: 'chemistry', deptName: 'เคมี', year: '2569', month: '1', budget: '2,000,000 ฿', spent: '1,960,000 ฿ (98%)', progress: 100, status: 'บรรลุเป้าหมาย', statusClass: 'status-success', icon: 'fa-check', bottleneck: '-' },
+            { id: 3, name: 'เพิ่มจำนวนนักศึกษาแลกเปลี่ยนต่างชาติ', head: 'รศ.ดร. วิทยา โลภานุวัตร', deptCode: 'all', deptName: 'ส่วนกลาง', year: '2569', month: '3', budget: '500,000 ฿', spent: '150,000 ฿ (30%)', progress: 15, status: 'ติดปัญหา/ล่าช้า', statusClass: 'status-danger', icon: 'fa-triangle-exclamation', bottleneck: 'รอการอนุมัติข้อตกลงจากมหาวิทยาลัยคู่ค้า' },
+            { id: 4, name: 'พัฒนาระบบ AI ตรวจจับข้อบกพร่องเครือข่าย', head: 'อ. อนุภัทร', deptCode: 'computer', deptName: 'คอมพิวเตอร์', year: '2568', month: '5', budget: '1,000,000 ฿', spent: '1,000,000 ฿ (100%)', progress: 100, status: 'บรรลุเป้าหมาย', statusClass: 'status-success', icon: 'fa-check', bottleneck: '-' },
+            { id: 5, name: 'วิจัยสารสกัดจากพืชสมุนไพรท้องถิ่น', head: 'ศ.ดร. นที ทองดี', deptCode: 'chemistry', deptName: 'เคมี', year: '2568', month: '8', budget: '1,200,000 ฿', spent: '1,100,000 ฿ (91%)', progress: 95, status: 'กำลังดำเนินการ', statusClass: 'status-progress', icon: 'fa-spinner', bottleneck: '-' }
+        ];
+
+        let donutChartInstance = null, barChartInstance = null;
+        let trendChartInstance = null, compareChartInstance = null;
+        let currentRole = 'executive';
+
+        function doLogin() {
+            const role = document.getElementById('role-select').value;
+            const account = mockAccounts[role] || mockAccounts['executive'];
+            currentRole = role;
+
+            // แสดงชื่อตาม Role ที่เลือกในหน้า Sidebar
+            document.getElementById('display-name').innerText = account.name;
+            document.getElementById('display-role').innerText = account.roleLabel;
+
+            // เงื่อนไข: ถ้าเป็นผู้บริหาร ให้แสดงกล่องข้อมูลเชิงลึก (exec-extra) แต่ถ้าไม่ใช่ให้ซ่อน
+            document.getElementById('exec-extra').style.display = (role === 'executive') ? 'block' : 'none';
+
+            // สลับหน้าจอจาก Login ไป Dashboard
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('dashboard-page').style.display = 'flex';
+
+            setTimeout(() => {
+                initCharts();
+                updateDashboardData();
+            }, 100);
+        }
+
+        function doLogout() {
+            document.getElementById('dashboard-page').style.display = 'none';
+            document.getElementById('login-page').style.display = 'flex';
+        }
+
+        function switchTab(tabId) {
+            document.getElementById('nav-dashboard').classList.remove('active');
+            document.getElementById('nav-projects').classList.remove('active');
+            if(tabId === 'dashboard') {
+                document.getElementById('nav-dashboard').classList.add('active');
+                document.getElementById('view-dashboard').style.display = 'block';
+                document.getElementById('view-projects').style.display = 'none';
+                document.getElementById('page-title').innerText = 'ภาพรวมความคืบหน้า OKR และ งบประมาณ';
+            } else {
+                document.getElementById('nav-projects').classList.add('active');
+                document.getElementById('view-dashboard').style.display = 'none';
+                document.getElementById('view-projects').style.display = 'block';
+                document.getElementById('page-title').innerText = 'รายชื่อโครงการทั้งหมด';
+                renderTable(document.getElementById('filter-year').value, document.getElementById('filter-dept').value, document.getElementById('filter-month').value);
+            }
+        }
+
+        function updateDashboardData() {
+            const year = document.getElementById('filter-year').value;
+            const dept = document.getElementById('filter-dept').value;
+            const month = document.getElementById('filter-month').value;
+            const data = mockSummaryData[year][dept];
+
+            document.getElementById('sum-progress').innerText = data.progress;
+            document.getElementById('sum-target').innerText = data.target;
+            document.getElementById('sum-budget').innerText = data.budget;
+            document.getElementById('sum-risk').innerText = data.risk;
+            document.getElementById('sum-risk').style.color = data.riskColor;
+
+            if (donutChartInstance && barChartInstance) {
+                donutChartInstance.data.datasets[0].data = data.donut;
+                donutChartInstance.update();
+                barChartInstance.data.datasets[0].data = data.bar;
+                barChartInstance.update();
+            }
+
+            renderTable(year, dept, month);
+
+            // อัปเดตข้อมูลเชิงลึกเฉพาะตอนที่เป็นผู้บริหาร
+            if (currentRole === 'executive') {
+                renderExecDashboard(year);
+            }
+        }
+
+        function renderTable(filterYear, filterDept, filterMonth) {
+            const tbody = document.getElementById('projects-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const filteredProjects = mockProjectsList.filter(p => {
+                return p.year === filterYear && 
+                       (filterDept === 'all' || p.deptCode === filterDept || p.deptCode === 'all') && 
+                       (filterMonth === 'all' || p.month === filterMonth || p.month === 'all');
+            });
+
+            if (filteredProjects.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color: #94a3b8;">ไม่มีข้อมูลโครงการตามเงื่อนไขนี้</td></tr>';
+                return;
+            }
+
+            filteredProjects.forEach(p => {
+                const avatarText = p.head.split(' ').pop().substring(0, 2);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 500; color: var(--primary);">${p.name}</td>
+                    <td><div class="table-avatar"><div class="circle">${avatarText}</div><span>${p.head}</span></div></td>
+                    <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${p.deptName}</span></td>
+                    <td>${p.budget}</td><td>${p.spent}</td>
+                    <td><div class="progress-wrapper"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${p.progress}%; background: var(--secondary);"></div></div> <span class="progress-text">${p.progress}%</span></div></td>
+                    <td><span class="status-badge ${p.statusClass}"><i class="fa-solid ${p.icon}"></i> ${p.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function initCharts() {
+            if (typeof Chart === 'undefined') return;
+            Chart.defaults.font.family = "'Prompt', sans-serif";
+
+            if (!donutChartInstance) {
+                const ctxDonut = document.getElementById('donutChart').getContext('2d');
+                donutChartInstance = new Chart(ctxDonut, {
+                    type: 'doughnut',
+                    data: { labels: ['บรรลุ', 'กำลังทำ', 'ล่าช้า', 'พัก'], datasets: [{ data: [], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+
+            if (!barChartInstance) {
+                const ctxBar = document.getElementById('barChart').getContext('2d');
+                barChartInstance = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: { labels: ['งานวิจัย', 'วิชาการ', 'บริการสังคม', 'พัฒนานิสิต', 'บริหาร'], datasets: [{ data: [], backgroundColor: '#3b82f6', borderRadius: 6 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            }
+        }
+
+        function renderExecDashboard(year) {
+            if (typeof Chart === 'undefined') return;
+            const overall = mockSummaryData[year]['all'];
+            const comp = mockSummaryData[year]['computer'];
+            const chem = mockSummaryData[year]['chemistry'];
+
+            document.getElementById('sum-remaining').innerText = (overall.budget - overall.spentAmount).toFixed(2);
+
+            if (!trendChartInstance) {
+                const ctxTrend = document.getElementById('trendChart').getContext('2d');
+                trendChartInstance = new Chart(ctxTrend, {
+                    type: 'line',
+                    data: { labels: ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'], datasets: [{ label: 'ความคืบหน้า (%)', data: overall.trend, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+                });
+            } else {
+                trendChartInstance.data.datasets[0].data = overall.trend;
+                trendChartInstance.update();
+            }
+
+            const compSpentPct = (comp.spentAmount / comp.budget * 100).toFixed(1);
+            const chemSpentPct = (chem.spentAmount / chem.budget * 100).toFixed(1);
+            if (!compareChartInstance) {
+                const ctxCompare = document.getElementById('compareChart').getContext('2d');
+                compareChartInstance = new Chart(ctxCompare, {
+                    type: 'bar',
+                    data: {
+                        labels: ['คอมพิวเตอร์', 'เคมี'],
+                        datasets: [
+                            { label: 'ความคืบหน้า (%)', data: [parseFloat(comp.progress), parseFloat(chem.progress)], backgroundColor: '#3b82f6', borderRadius: 6 },
+                            { label: 'งบที่ใช้ไป (%)', data: [compSpentPct, chemSpentPct], backgroundColor: '#f59e0b', borderRadius: 6 }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+                });
+            } else {
+                compareChartInstance.data.datasets[0].data = [parseFloat(comp.progress), parseFloat(chem.progress)];
+                compareChartInstance.data.datasets[1].data = [compSpentPct, chemSpentPct];
+                compareChartInstance.update();
+            }
+
+            document.getElementById('dept-compare-body').innerHTML = `
+                <tr><td style="font-weight:600; color:var(--primary);">คอมพิวเตอร์</td><td>${comp.progress}</td><td>${comp.budget} ลบ.</td><td>${comp.spentAmount} ลบ.</td><td>${(comp.budget - comp.spentAmount).toFixed(2)} ลบ.</td><td><span style="color:${comp.riskColor}; font-weight:600;">${comp.risk}</span></td></tr>
+                <tr><td style="font-weight:600; color:var(--primary);">เคมี</td><td>${chem.progress}</td><td>${chem.budget} ลบ.</td><td>${chem.spentAmount} ลบ.</td><td>${(chem.budget - chem.spentAmount).toFixed(2)} ลบ.</td><td><span style="color:${chem.riskColor}; font-weight:600;">${chem.risk}</span></td></tr>
+            `;
+
+            const riskList = mockProjectsList.filter(p => p.year === year && p.statusClass === 'status-danger');
+            const riskContainer = document.getElementById('risk-project-list');
+            if (riskList.length === 0) {
+                riskContainer.innerHTML = '<p style="color: var(--text-light); padding: 10px 0;">ยอดเยี่ยม! ไม่มีโครงการที่มีความเสี่ยงในเงื่อนไขเวลานี้</p>';
+            } else {
+                riskContainer.innerHTML = riskList.map(p => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid #f1f5f9;">
+                        <div>
+                            <div style="font-weight:600; color:var(--primary);">${p.name}</div>
+                            <div style="font-size:13px; color:var(--text-light); margin-top:2px;">${p.deptName} • ผู้รับผิดชอบ: ${p.head}</div>
+                            <div style="font-size:12px; color:var(--danger); margin-top:4px;"><i class="fa-solid fa-circle-exclamation"></i> <b>คอขวด/ปัญหา:</b> ${p.bottleneck}</div>
+                        </div>
+                        <span class="status-badge status-danger">คืบหน้า ${p.progress}%</span>
+                    </div>`).join('');
+            }
+        }
+    </script>
+</body>
+</html>
