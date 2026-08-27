@@ -1,98 +1,110 @@
+-- =================================================================
+-- สคริปต์ฐานข้อมูล: ระบบติดตาม OKR คณะวิทยาศาสตร์ (สำหรับ Supabase / PostgreSQL)
+-- =================================================================
+
+-- สร้างฟังก์ชัน Trigger สำหรับอัปเดต updated_at อัตโนมัติ
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 1. ตารางเก็บข้อมูลผู้ใช้งาน (Users / Profiles)
--- อ้างอิงจาก Entity ด้านบนสุดที่เก็บข้อมูล รหัส, ชื่อ-นามสกุล, ตำแหน่ง
-CREATE TABLE Users (
+CREATE TABLE IF NOT EXISTS Users (
     user_id VARCHAR(50) PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    password_hash VARCHAR(255),
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     position VARCHAR(100),
     department VARCHAR(100),
-    role VARCHAR(20) DEFAULT 'user', -- 'admin', 'manager', 'user'
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('admin', 'manager', 'user')),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. ตารางเก็บข้อมูล OKR หลัก (OKRs)
--- อ้างอิงจาก Entity "OKR" ทางด้านซ้ายของแผนภาพ
-CREATE TABLE OKRs (
+CREATE TABLE IF NOT EXISTS OKRs (
     okr_id VARCHAR(50) PRIMARY KEY,
     okr_title VARCHAR(255) NOT NULL,
     okr_type VARCHAR(50), -- ประเภทโครงการ/OKR
     year INT NOT NULL,
-    quarter VARCHAR(2), -- Q1, Q2, Q3, Q4
+    quarter VARCHAR(2) CHECK (quarter IN ('Q1', 'Q2', 'Q3', 'Q4')),
     status VARCHAR(50) DEFAULT 'Draft',
     created_by VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES Users(user_id) ON DELETE SET NULL
 );
 
--- 3. ตารางเก็บรายละเอียดโครงการย่อย (Projects / Results)
--- อ้างอิงจาก Entity "รายละเอียดโครงการ" และ "Result" บริเวณตรงกลาง
-CREATE TABLE Projects (
+-- 3. ตารางเก็บรายละเอียดโครงการย่อย (Projects)
+CREATE TABLE IF NOT EXISTS Projects (
     project_id VARCHAR(50) PRIMARY KEY,
     okr_id VARCHAR(50),
     project_name VARCHAR(255) NOT NULL,
     project_type VARCHAR(100), -- ประเภทโครงการ
     description TEXT,
+    main_objective TEXT, -- เป้าหมายหลักของโครงการ
+    sub_objective TEXT,  -- เป้าหมายย่อย
     start_date DATE,
     end_date DATE,
     head_of_project VARCHAR(50), -- หัวหน้าผู้รับผิดชอบโครงการ
-    progress_percentage DECIMAL(5,2) DEFAULT 0.00,
+    progress_percentage DECIMAL(5,2) DEFAULT 0.00 CHECK (progress_percentage BETWEEN 0 AND 100),
     status VARCHAR(50) DEFAULT 'In Progress',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (okr_id) REFERENCES OKRs(okr_id) ON DELETE CASCADE,
     FOREIGN KEY (head_of_project) REFERENCES Users(user_id) ON DELETE SET NULL
 );
 
 -- 4. ตารางรายชื่อผู้รับผิดชอบในโครงการ (Project Assignees)
--- อ้างอิงจาก Entity "รายชื่อผู้รับผิดชอบในโครงการ" (Many-to-Many ระหว่าง User และ Project)
-CREATE TABLE Project_Assignees (
+CREATE TABLE IF NOT EXISTS Project_Assignees (
     project_id VARCHAR(50),
     user_id VARCHAR(50),
-    assigned_role VARCHAR(100), -- บทบาทในโครงการ (เช่น ผู้ช่วย, ผู้ดำเนินการหลัก)
-    assigned_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    assigned_role VARCHAR(100), -- บทบาทในโครงการ
+    assigned_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (project_id, user_id),
     FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
 -- 5. ตารางหลักฐานการดำเนินงาน (Evidences)
--- อ้างอิงจาก Entity "หลักฐานการดำเนินงาน" ด้านล่างของแผนภาพ
-CREATE TABLE Evidences (
-    evidence_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS Evidences (
+    evidence_id SERIAL PRIMARY KEY,
     project_id VARCHAR(50),
     uploaded_by VARCHAR(50),
     file_name VARCHAR(255) NOT NULL,
-    file_path VARCHAR(500) NOT NULL, -- ลิงก์หรือที่เก็บไฟล์
-    upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    description TEXT, -- รายละเอียดหลักฐาน
+    file_path VARCHAR(500) NOT NULL,
+    upload_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    description TEXT,
     FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
     FOREIGN KEY (uploaded_by) REFERENCES Users(user_id) ON DELETE SET NULL
 );
 
--- 6. ตารางระบบรายงานและแจ้งเตือน (Reports / Notifications)
--- อ้างอิงจากโครงสร้างด้านล่างที่แตกออกเป็นระบบรายงานสำหรับบุคคลต่างๆ (เช่น ผู้บริหาร, พนักงานทั่วไป)
-CREATE TABLE Reports (
-    report_id INT AUTO_INCREMENT PRIMARY KEY,
-    report_type VARCHAR(100), -- เช่น 'Executive Summary', 'User Progress', 'OKR Dashboard'
-    generated_for VARCHAR(50), -- user_id ที่เรียกดูรายงาน
-    report_data JSON, -- เก็บข้อมูลสรุปในรูปแบบ JSON เพื่อความยืดหยุ่น
-    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+-- 6. ตารางระบบรายงานและแจ้งเตือน (Reports)
+CREATE TABLE IF NOT EXISTS Reports (
+    report_id SERIAL PRIMARY KEY,
+    report_type VARCHAR(100),
+    generated_for VARCHAR(50),
+    report_data JSONB, -- ใน PostgreSQL ใช้ JSONB ซึ่งมีประสิทธิภาพและการค้นหาที่ดีกว่า JSON
+    generated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (generated_for) REFERENCES Users(user_id) ON DELETE CASCADE
 );
-CREATE TABLE Projects (
-    project_id VARCHAR(50) PRIMARY KEY,
-    okr_id VARCHAR(50),
-    project_name VARCHAR(255) NOT NULL,
-    project_type VARCHAR(100), -- ประเภทโครงการ
-    description TEXT,
 
-    -- เพิ่ม Field ใหม่ตามที่ต้องการ
-    main_objective TEXT, -- เป้าหมายหลักของโครงการ
-    sub_objective TEXT,  -- เป้าหมายย่อยที่รองลงมาจากเป้าหมายหลัก
+-- 7. ติดตั้ง Trigger ให้ตารางต่าง ๆ เพื่อให้อัปเดต updated_at อัตโนมัติ
+DROP TRIGGER IF EXISTS trigger_update_users_updated_at ON Users;
+CREATE TRIGGER trigger_update_users_updated_at
+BEFORE UPDATE ON Users
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-    start_date DATE,
-    end_date DATE,
-    head_of_project VARCHAR(50), -- หัวหน้าผู้รับผิดชอบโครงการ
-    progress_percentage DECIMAL(5,2) DEFAULT 0.00,
-    status VARCHAR(50) DEFAULT 'In Progress',
-    FOREIGN KEY (okr_id) REFERENCES OKRs(okr_id) ON DELETE CASCADE,
-    FOREIGN KEY (head_of_project) REFERENCES Users(user_id) ON DELETE SET NULL
-);
+DROP TRIGGER IF EXISTS trigger_update_okrs_updated_at ON OKRs;
+CREATE TRIGGER trigger_update_okrs_updated_at
+BEFORE UPDATE ON OKRs
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_projects_updated_at ON Projects;
+CREATE TRIGGER trigger_update_projects_updated_at
+BEFORE UPDATE ON Projects
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
