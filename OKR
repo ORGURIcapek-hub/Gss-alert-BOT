@@ -25,6 +25,7 @@
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
+            --purple: #8b5cf6;
             --white: #ffffff;
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
             --hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
@@ -42,7 +43,7 @@
         .login-card {
             background: var(--white); padding: 45px 35px; border-radius: 20px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-            width: 100%; max-width: 440px; text-align: center; z-index: 10;
+            width: 100%; max-width: 460px; text-align: center; z-index: 10;
         }
         .login-icon {
             width: 70px; height: 70px; background: rgba(59, 130, 246, 0.1);
@@ -52,11 +53,13 @@
         .login-card h2 { color: var(--primary); margin-bottom: 20px; font-weight: 700; font-size: 24px; line-height: 1.3; }
         .input-group { margin-bottom: 18px; text-align: left; }
         .input-group label { display: block; margin-bottom: 7px; font-weight: 600; font-size: 14px; color: var(--text-dark); }
-        .input-group input, .input-group select {
+        .input-group input, .input-group select, .input-group textarea {
             width: 100%; padding: 12px 15px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px;
             font-family: 'Prompt'; transition: all 0.3s;
         }
-        .input-group input:focus, .input-group select:focus { border-color: var(--secondary); outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus { 
+            border-color: var(--secondary); outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); 
+        }
         
         .btn-login {
             width: 100%; padding: 13px; background: var(--primary); color: white; border: none; border-radius: 10px; 
@@ -90,12 +93,17 @@
         
         .nav-menu { list-style: none; padding: 20px 0; flex-grow: 1; }
         .nav-menu li {
-            padding: 14px 25px; cursor: pointer; display: flex; align-items: center; gap: 14px;
+            padding: 13px 25px; cursor: pointer; display: flex; align-items: center; gap: 14px;
             transition: all 0.2s; font-size: 14px; font-weight: 500; color: #cbd5e1;
         }
         .nav-menu li:hover { background: rgba(255,255,255,0.05); color: white; padding-left: 28px; }
         .nav-menu li.active { background: linear-gradient(90deg, rgba(59,130,246,0.2) 0%, transparent 100%); border-left: 4px solid var(--secondary); color: white; }
-        .nav-menu li i { font-size: 18px; width: 20px; text-align: center; }
+        .nav-menu li i { font-size: 17px; width: 20px; text-align: center; }
+
+        .nav-category {
+            padding: 15px 25px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+            color: #64748b; letter-spacing: 0.8px;
+        }
 
         /* Main Content */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-light); position: relative; }
@@ -148,6 +156,8 @@
         .card.card-green .card-icon { color: var(--success); }
         .card.card-red { border-left-color: var(--danger); }
         .card.card-red .card-icon { color: var(--danger); }
+        .card.card-purple { border-left-color: var(--purple); }
+        .card.card-purple .card-icon { color: var(--purple); }
         
         .card p { font-size: 13.5px; color: var(--text-light); margin-bottom: 8px; font-weight: 600; }
         .card h2 { font-size: 34px; margin-bottom: 6px; color: var(--text-dark); font-weight: 700; line-height: 1.1; }
@@ -176,7 +186,7 @@
         table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
         th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
         th { color: var(--text-light); font-weight: 600; background: #f8fafc; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-        tbody tr { transition: background 0.2s; cursor: pointer; }
+        tbody tr { transition: background 0.2s; }
         tbody tr:hover { background: #f8fafc; }
         
         .progress-wrapper { display: flex; align-items: center; gap: 10px; }
@@ -188,19 +198,58 @@
         .status-progress { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
         .status-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
         .status-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
 
         .table-avatar { display: flex; align-items: center; gap: 10px; }
         .table-avatar .circle { width: 30px; height: 30px; border-radius: 50%; background: #e0e7ff; color: var(--primary); display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 11px; }
         
         .btn-view-detail {
             background: #eff6ff; color: var(--secondary); border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px;
-            font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px;
         }
         .btn-view-detail:hover { background: var(--secondary); color: white; }
+
+        .btn-upload-evidence {
+            background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 6px 12px; border-radius: 6px;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-upload-evidence:hover { background: #10b981; color: white; }
+
+        .btn-action-primary {
+            background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-action-primary:hover { background: #1e40af; transform: translateY(-1px); }
+
+        .btn-toggle-perm {
+            padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid;
+            transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .perm-granted { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+        .perm-granted:hover { background: #a7f3d0; }
+        .perm-revoked { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        .perm-revoked:hover { background: #fecaca; }
 
         .section-label { display: flex; align-items: center; gap: 10px; margin: 10px 0 20px; }
         .section-label .badge-exec { background: var(--primary); color: white; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
         .section-label h2 { font-size: 17px; color: var(--text-dark); font-weight: 700; }
+
+        /* Form Grid */
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .form-full { grid-column: span 2; }
+
+        /* Checkbox Group */
+        .recipient-checkbox-group {
+            display: flex; flex-wrap: wrap; gap: 15px; background: #f8fafc; padding: 14px 18px;
+            border-radius: 10px; border: 1.5px solid #e2e8f0; margin-top: 5px;
+        }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500; cursor: pointer; }
+
+        /* Single Project Executive Dashboard Box */
+        .exec-proj-dashboard-card {
+            background: white; border-radius: 16px; padding: 28px; box-shadow: var(--card-shadow);
+            border: 1px solid #e2e8f0; margin-bottom: 25px;
+        }
 
         /* ================= MODAL ================= */
         .modal-overlay {
@@ -241,6 +290,8 @@
             .btn-toggle-menu { display: block; }
             .sidebar { position: fixed; left: -280px; height: 100vh; }
             .sidebar.active { left: 0; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-full { grid-column: span 1; }
         }
         @media (max-width: 600px) {
             .summary-cards { grid-template-columns: 1fr; }
@@ -260,17 +311,18 @@
             
             <form onsubmit="event.preventDefault(); doLogin();">
                 <div class="input-group">
-                    <label><i class="fa-solid fa-user-shield"></i> เข้าสู่ระบบในฐานะ (Role)</label>
+                    <label><i class="fa-solid fa-user-shield"></i> เข้าสู่ระบบในฐานะ (5 บทบาทตาม ER Diagram)</label>
                     <select id="role-select">
-                        <option value="executive">ผู้บริหาร (Executive / Dean View)</option>
-                        <option value="head_okr">หัวหน้า OKR (Project Owner)</option>
-                        <option value="general">อาจารย์ทั่วไป (General Staff)</option>
-                        <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                        <option value="head_okr" selected>อาจารย์หัวหน้า OKR (Project Leader) - แนบไฟล์รายงานส่งให้อาจารย์ & บุคลากร</option>
+                        <option value="teacher">อาจารย์ทั่วไป (Faculty Member) - ผู้รับผิดชอบร่วม & ดูกล่องเอกสาร</option>
+                        <option value="staff">บุคลากรทั่วไป (Staff / Support) - ดูกล่องเอกสารที่ได้รับ</option>
+                        <option value="executive">ผู้บริหาร (Executive / Dean View) - ดู Dashboard คณะ & ติดตามรายโครงการ</option>
+                        <option value="admin">ผู้ดูแลระบบ (Admin) - จัดการสิทธิ์ & ป้อน OKR</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label><i class="fa-solid fa-id-badge"></i> รหัสประจำตัวบุคลากร / Email</label>
-                    <input type="text" id="login-id" placeholder="เช่น user@science.ac.th">
+                    <input type="text" id="login-id" placeholder="เช่น head_okr@science.ac.th">
                 </div>
                 <div class="input-group">
                     <label><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
@@ -290,13 +342,54 @@
                 <h2>ระบบติดตาม OKR<br><span>คณะวิทยาศาสตร์</span></h2>
             </div>
             <div class="user-profile">
-                <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
-                <h3 id="display-name">ดร. สมเกียรติ วิทยา</h3>
-                <p id="display-role">คณบดีคณะวิทยาศาสตร์</p>
+                <div class="avatar"><i class="fa-solid fa-user" id="profile-icon"></i></div>
+                <h3 id="display-name">ชื่อผู้ใช้งาน</h3>
+                <p id="display-role">ตำแหน่ง / บทบาท</p>
             </div>
             <ul class="nav-menu">
-                <li class="active" onclick="switchTab('dashboard')" id="nav-dashboard"><i class="fa-solid fa-chart-pie"></i> ภาพรวม (Dashboard)</li>
+                <!-- เมนูเฉพาะผู้บริหาร (Executive Only Dashboard Section) -->
+                <div id="exec-menu-section" style="display: none;">
+                    <div class="nav-category">สำหรับผู้บริหาร (Executive Only)</div>
+                    <li class="active" onclick="switchTab('dashboard')" id="nav-dashboard"><i class="fa-solid fa-chart-pie"></i> ภาพรวมคณะ (Dashboard)</li>
+                    <li onclick="switchTab('exec-project-dashboards')" id="nav-exec-project-dashboards"><i class="fa-solid fa-gauge-high"></i> Dashboard ติดตามรายโครงการ</li>
+                </div>
+
+                <div class="nav-category">เมนูระบบ</div>
                 <li onclick="switchTab('projects')" id="nav-projects"><i class="fa-solid fa-folder-open"></i> โครงการทั้งหมด</li>
+                
+                <!-- เมนูเฉพาะอาจารย์หัวหน้า OKR (Head OKR Section) -->
+                <div id="head-okr-menu-section" style="display: none;">
+                    <div class="nav-category">สำหรับหัวหน้า OKR</div>
+                    <li onclick="switchTab('verify-evidence')" id="nav-verify-evidence"><i class="fa-solid fa-clipboard-check"></i> ตรวจสอบหลักฐาน OKR</li>
+                    <li onclick="switchTab('head-build-dashboard')" id="nav-head-build-dashboard"><i class="fa-solid fa-chart-column"></i> จัดทำ Dashboard ส่งผู้บริหาร</li>
+                    <li onclick="switchTab('head-share-reports')" id="nav-head-share-reports"><i class="fa-solid fa-paper-plane"></i> กระจายรายงานสู่ทีมงาน (Non-Exec)</li>
+                </div>
+
+                <!-- เมนูเฉพาะอาจารย์ทั่วไป (Teacher Section) -->
+                <div id="teacher-menu-section" style="display: none;">
+                    <div class="nav-category">สำหรับอาจารย์ผู้ร่วมงาน</div>
+                    <li onclick="switchTab('my-projects')" id="nav-my-projects"><i class="fa-solid fa-list-check"></i> โครงการที่ได้รับมอบหมาย</li>
+                    <li onclick="switchTab('upload-evidence')" id="nav-upload-evidence"><i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดหลักฐาน OKR</li>
+                </div>
+
+                <!-- กล่องรับเอกสาร & รายงานสำหรับอาจารย์ทั่วไป บุคลากร และหัวหน้า OKR อื่น (Inbox Shared Reports) -->
+                <div id="inbox-menu-section" style="display: none;">
+                    <div class="nav-category">เอกสารที่แชร์ภายในทีม</div>
+                    <li onclick="switchTab('inbox-shared-reports')" id="nav-inbox-shared-reports"><i class="fa-solid fa-inbox"></i> เอกสาร & รายงานที่ได้รับ</li>
+                </div>
+
+                <!-- เมนูกำหนดสิทธิ์ผู้รับผิดชอบโครงการ (Executive / Head OKR / Admin) -->
+                <div id="assign-menu-section" style="display: none;">
+                    <div class="nav-category">การมอบหมายโครงการ</div>
+                    <li onclick="switchTab('assign-roles')" id="nav-assign-roles"><i class="fa-solid fa-user-check"></i> กำหนดผู้รับผิดชอบ OKR</li>
+                </div>
+
+                <!-- เมนูเฉพาะแอดมิน (Admin Tools) -->
+                <div id="admin-menu-section" style="display: none;">
+                    <div class="nav-category">การจัดการของแอดมิน</div>
+                    <li onclick="switchTab('add-okr')" id="nav-add-okr"><i class="fa-solid fa-folder-plus"></i> ป้อนข้อมูล OKR เข้าระบบ</li>
+                    <li onclick="switchTab('permissions')" id="nav-permissions"><i class="fa-solid fa-user-shield"></i> จัดการสิทธิ์ & ผู้บริหาร</li>
+                </div>
             </ul>
         </div>
 
@@ -306,7 +399,7 @@
                 <div class="header-left">
                     <button class="btn-toggle-menu" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
                     <div class="header-title">
-                        <h1 id="page-title">ภาพรวมความคืบหน้า OKR และ งบประมาณ</h1>
+                        <h1 id="page-title">ระบบติดตามและประเมิน OKR</h1>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -339,16 +432,21 @@
                 </div>
             </div>
 
-            <!-- Dashboard View -->
+            <!-- ================= VIEW 1: EXECUTIVE MASTER DASHBOARD (เฉพาะผู้บริหารเห็น) ================= -->
             <div class="dashboard-body" id="view-dashboard">
+                <div class="section-label" style="margin-top:0;">
+                    <span class="badge-exec"><i class="fa-solid fa-crown"></i> สิทธิ์เฉพาะผู้บริหารระดับสูง</span>
+                    <h2>ภาพรวมความคืบหน้า OKR และ งบประมาณระดับคณะ</h2>
+                </div>
+
                 <div class="summary-cards">
                     <div class="card card-blue">
                         <i class="fa-solid fa-chart-column card-icon"></i>
                         <div>
-                            <p>ความคืบหน้าโดยรวม</p>
+                            <p>ความคืบหน้าภาพรวมทั้งคณะ</p>
                             <h2 id="sum-progress">92.0%</h2>
                         </div>
-                        <span id="sum-progress-sub">บรรลุเป้าหมายตามแผน</span>
+                        <span id="sum-progress-sub">บรรลุเป้าหมายตามแผนยุทธศาสตร์</span>
                     </div>
                     <div class="card card-blue">
                         <i class="fa-solid fa-list-check card-icon"></i>
@@ -387,72 +485,234 @@
                     </div>
                 </div>
 
-                <!-- ============ EXECUTIVE VIEW EXTENSION (เฉพาะผู้บริหารเห็น) ============ -->
-                <div id="exec-extra" style="display: none;">
-                    <div class="section-label">
-                        <span class="badge-exec"><i class="fa-solid fa-crown"></i> มุมมองผู้บริหารระดับสูง</span>
-                        <h2>วิเคราะห์เชิงลึกและข้อเสนอแนะเพื่อการตัดสินใจ</h2>
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <h3><i class="fa-solid fa-chart-line"></i> แนวโน้มความคืบหน้ารายเดือน (ทั้งคณะ)</h3>
+                        <div class="canvas-container"><canvas id="trendChart"></canvas></div>
+                    </div>
+                    <div class="chart-box">
+                        <h3><i class="fa-solid fa-scale-balanced"></i> เปรียบเทียบความคืบหน้า vs งบที่ใช้ (%)</h3>
+                        <div class="canvas-container"><canvas id="compareChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fa-solid fa-table-list"></i> สรุปสถานะแยกตามภาควิชา</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ภาควิชา</th>
+                                <th>ความคืบหน้า</th>
+                                <th>งบประมาณตั้งต้น</th>
+                                <th>เบิกจ่ายจริง</th>
+                                <th>คงเหลือ</th>
+                                <th>ระดับความเสี่ยง</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dept-compare-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 2: EXECUTIVE - PROJECT-BY-PROJECT DASHBOARDS ================= -->
+            <div class="dashboard-body" id="view-exec-project-dashboards" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-gauge-high" style="color:var(--primary);"></i> Dashboard ติดตามความคืบหน้ารายโครงการ (สร้างโดยอาจารย์หัวหน้า OKR)</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">ผู้บริหารสามารถเลือกดู Dashboard สรุปผลสัมฤทธิ์ของแต่ละโครงการ พร้อมให้การประเมินและสั่งการ</span>
+                        </div>
+                        <div class="table-toolbar">
+                            <label style="font-weight:600; font-size:13px;"><i class="fa-solid fa-filter"></i> เลือกโครงการ:</label>
+                            <select id="exec-dash-select-proj" class="status-filter" style="min-width:260px;" onchange="renderExecProjectDashboardView()">
+                                <!-- Dynamic project list -->
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="summary-cards" style="grid-template-columns: repeat(2, 1fr);">
-                        <div class="card card-blue">
-                            <i class="fa-solid fa-building-columns card-icon"></i>
-                            <div>
-                                <p>ภาควิชาที่กำกับดูแล</p>
-                                <h2>2 <span style="font-size: 16px; font-weight: normal; color: var(--text-light);">ภาควิชา</span></h2>
-                            </div>
-                            <span>คอมพิวเตอร์ และ เคมี</span>
-                        </div>
-                        <div class="card card-green">
-                            <i class="fa-solid fa-coins card-icon"></i>
-                            <div>
-                                <p>งบประมาณคงเหลือสุทธิ</p>
-                                <h2><span id="sum-remaining">0.30</span> <span style="font-size: 16px; font-weight: normal; color: var(--text-light);">ลบ.</span></h2>
-                            </div>
-                            <span id="sum-remaining-sub">อัตราการเบิกจ่ายเป็นไปตามเกณฑ์</span>
-                        </div>
-                    </div>
-
-                    <div class="charts-container">
-                        <div class="chart-box">
-                            <h3><i class="fa-solid fa-chart-line"></i> แนวโน้มความคืบหน้ารายเดือน (ทั้งคณะ)</h3>
-                            <div class="canvas-container"><canvas id="trendChart"></canvas></div>
-                        </div>
-                        <div class="chart-box">
-                            <h3><i class="fa-solid fa-scale-balanced"></i> เปรียบเทียบความคืบหน้า vs งบที่ใช้ (%)</h3>
-                            <div class="canvas-container"><canvas id="compareChart"></canvas></div>
-                        </div>
-                    </div>
-
-                    <div class="table-container">
-                        <div class="table-header">
-                            <h3><i class="fa-solid fa-table-list"></i> สรุปสถานะแยกตามภาควิชา</h3>
-                        </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ภาควิชา</th>
-                                    <th>ความคืบหน้า</th>
-                                    <th>งบประมาณตั้งต้น</th>
-                                    <th>เบิกจ่ายจริง</th>
-                                    <th>คงเหลือ</th>
-                                    <th>ระดับความเสี่ยง</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dept-compare-body"></tbody>
-                        </table>
-                    </div>
-
-                    <div class="table-container">
-                        <div class="table-header">
-                            <h3><i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i> โครงการที่ต้องติดตามด่วน (พร้อมวิเคราะห์คอขวด)</h3>
-                        </div>
-                        <div id="risk-project-list"></div>
+                    <div id="exec-single-dash-content">
+                        <!-- Rendered by JS -->
                     </div>
                 </div>
             </div>
 
-            <!-- Projects Table View -->
+            <!-- ================= VIEW 3: HEAD OKR - SHARE & BROADCAST REPORTS TO NON-EXECS (แนบไฟล์รายงานส่งให้ทีมงาน) ================= -->
+            <div class="dashboard-body" id="view-head-share-reports" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-share-nodes" style="color:var(--secondary);"></i> แนบไฟล์รายงานและส่งต่อข้อมูล OKR ให้ทีมงาน (Non-Executive)</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">กระจายเอกสารรายงานความก้าวหน้าไปยัง อาจารย์ทั่วไป, บุคลากรสนับสนุน, และอาจารย์หัวหน้า OKR ท่านอื่น</span>
+                        </div>
+                    </div>
+
+                    <form onsubmit="event.preventDefault(); submitBroadcastReport();">
+                        <div class="form-grid">
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-heading"></i> หัวข้อการแชร์เอกสาร / ชื่อรายงาน *</label>
+                                <input type="text" id="share-report-title" required placeholder="เช่น รายงานความก้าวหน้า OKR ไตรมาส 2 และแนวทางการดำเนินงานต่อ">
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-folder-open"></i> โครงการ OKR ที่เกี่ยวข้อง *</label>
+                                <select id="share-report-project" required>
+                                    <!-- Dynamic -->
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-file-arrow-up"></i> แนบไฟล์เอกสารรายงาน (PDF, Word, Excel, Slide) *</label>
+                                <input type="file" id="share-report-file" required>
+                            </div>
+
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-users"></i> กลุ่มผู้รับเอกสารปลายทาง (ส่งถึงทุกคนที่ไม่ใช่ผู้บริหาร) *</label>
+                                <div class="recipient-checkbox-group">
+                                    <label class="checkbox-item"><input type="checkbox" id="rec-teacher" checked> <i class="fa-solid fa-chalkboard-user"></i> อาจารย์ทั่วไป / ผู้รับผิดชอบร่วม</label>
+                                    <label class="checkbox-item"><input type="checkbox" id="rec-other-head" checked> <i class="fa-solid fa-user-graduate"></i> อาจารย์หัวหน้า OKR โครงการอื่น</label>
+                                    <label class="checkbox-item"><input type="checkbox" id="rec-staff" checked> <i class="fa-solid fa-users-gear"></i> บุคลากรทั่วไป / เจ้าหน้าที่สนับสนุน</label>
+                                </div>
+                            </div>
+
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-comment-dots"></i> ข้อความชี้แจง / สรุปสาระสำคัญประกอบรายงาน</label>
+                                <textarea id="share-report-message" rows="3" placeholder="ระบุข้อความหรือคำแนะนำเพิ่มเติมในการดำเนินงานให้ทีมงานทราบ..."></textarea>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                            <button type="reset" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:600;">ล้างฟอร์ม</button>
+                            <button type="submit" class="btn-action-primary"><i class="fa-solid fa-paper-plane"></i> Submit ส่งรายงานให้ทีมงานทุกคน</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ประวัติรายงานที่หัวหน้า OKR ได้กระจายออกไป -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> ประวัติรายงานและเอกสารที่กระจายสู่ทีมงาน</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>หัวข้อรายงาน</th>
+                                <th>โครงการ</th>
+                                <th>ไฟล์แนบ</th>
+                                <th>ผู้รับปลายทาง</th>
+                                <th>วันที่ส่ง</th>
+                                <th>การกระทำ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="broadcast-history-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 4: INBOX - SHARED REPORTS (กล่องรับรายงานสำหรับอาจารย์ทั่วไป/บุคลากร/หัวหน้า OKR) ================= -->
+            <div class="dashboard-body" id="view-inbox-shared-reports" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-inbox" style="color:var(--primary);"></i> เอกสาร & รายงาน OKR ที่ได้รับจากหัวหน้าโครงการ</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">รวบรวมไฟล์รายงาน สรุปผลสัมฤทธิ์ และคำชี้แจงที่อาจารย์หัวหน้า OKR กระจายให้ทีมงาน</span>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>หัวข้อเอกสาร / รายงาน</th>
+                                <th>โครงการ OKR</th>
+                                <th>อาจารย์หัวหน้า OKR ผู้ส่ง</th>
+                                <th>วันที่ได้รับ</th>
+                                <th>ไฟล์เอกสารแนบ</th>
+                                <th>คำชี้แจงประกอบ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inbox-reports-table-body">
+                            <!-- Dynamic inbox rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 5: HEAD OKR - BUILD & SUBMIT DASHBOARD ================= -->
+            <div class="dashboard-body" id="view-head-build-dashboard" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-chart-column" style="color:var(--secondary);"></i> จัดทำและส่งข้อมูล Dashboard โครงการให้ผู้บริหาร</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">รวบรวมตัวเลข % ความคืบหน้า, ผลสัมฤทธิ์ Key Results, และคอขวด เพื่อสร้าง Dashboard โชว์ในหน้าผู้บริหาร</span>
+                        </div>
+                    </div>
+
+                    <form onsubmit="event.preventDefault(); submitDashboardToExecutive();">
+                        <div class="form-grid">
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-folder-open"></i> เลือกโครงการ OKR ที่รับผิดชอบ *</label>
+                                <select id="head-dash-proj-select" required onchange="autoFillHeadDashboardBuilder()"></select>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-percent"></i> ความก้าวหน้าโครงการที่ประเมินได้ (%) *</label>
+                                <input type="number" id="head-dash-progress" min="0" max="100" required style="font-weight:700; color:var(--primary);">
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-circle-check"></i> สถานะโครงการปัจจุบัน</label>
+                                <select id="head-dash-status">
+                                    <option value="กำลังดำเนินการ">กำลังดำเนินการ (In Progress)</option>
+                                    <option value="บรรลุเป้าหมาย">บรรลุเป้าหมาย (Completed)</option>
+                                    <option value="ติดปัญหา/ล่าช้า">ติดปัญหา/ล่าช้า (Delayed / Problem)</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-list-check"></i> สรุปผลงานสำคัญตามตัวชี้วัด (Key Results Highlights) *</label>
+                                <textarea id="head-dash-highlights" rows="3" required placeholder="สรุปผลงานที่เสร็จสมบูรณ์จากหลักฐานของอาจารย์ผู้ร่วมงาน..."></textarea>
+                            </div>
+
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-triangle-exclamation"></i> ปัญหาคอขวด / สิ่งที่ต้องการให้ผู้บริหารช่วยสนับสนุน</label>
+                                <textarea id="head-dash-bottleneck" rows="2" placeholder="ระบุปัญหา หรือใส่ '-' หากดำเนินงานราบรื่น"></textarea>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                            <button type="submit" class="btn-action-primary"><i class="fa-solid fa-paper-plane"></i> ยืนยันและส่ง Dashboard ขึ้นระบบผู้บริหาร</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 6: HEAD OKR - VERIFY EVIDENCE ================= -->
+            <div class="dashboard-body" id="view-verify-evidence" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-clipboard-check" style="color: var(--secondary);"></i> ตรวจสอบหลักฐาน OKR จากอาจารย์ผู้รับผิดชอบ</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">ดึงหลักฐานที่อาจารย์ทั่วไปส่งเข้ามา ตรวจสอบไฟล์ และนำไปใช้ประเมิน % ใน Dashboard</span>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>โครงการ OKR</th>
+                                <th>ไฟล์หลักฐาน & คำอธิบาย</th>
+                                <th>ผู้ส่งหลักฐาน (อาจารย์ทั่วไป)</th>
+                                <th>วันที่ส่ง</th>
+                                <th>ประเมินความคืบหน้า (%)</th>
+                                <th>สถานะการตรวจ</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="verify-evidence-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 7: PROJECTS TABLE ================= -->
             <div class="dashboard-body" id="view-projects" style="display: none;">
                 <div class="table-container">
                     <div class="table-header">
@@ -471,7 +731,7 @@
                         <thead>
                             <tr>
                                 <th>ชื่อโครงการ</th>
-                                <th>ผู้รับผิดชอบ</th>
+                                <th>ผู้รับผิดชอบหลัก</th>
                                 <th>ภาควิชา</th>
                                 <th>งบตั้งต้น</th>
                                 <th>เบิกจ่ายจริง</th>
@@ -484,10 +744,241 @@
                     </table>
                 </div>
             </div>
+
+            <!-- ================= VIEW 8: TEACHER - MY ASSIGNED PROJECTS ================= -->
+            <div class="dashboard-body" id="view-my-projects" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> โครงการ OKR ที่ฉันได้รับมอบหมาย (My Assigned Projects)</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">โครงการที่คุณเป็นหัวหน้าหรือผู้ร่วมดำเนินงาน สามารถกดแก้ไขข้อมูลหรือส่งหลักฐานได้ที่นี่</span>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ชื่อโครงการ OKR</th>
+                                <th>บทบาทในโครงการ</th>
+                                <th>เป้าหมายย่อย (Sub Objective)</th>
+                                <th>ความก้าวหน้า</th>
+                                <th>สถานะ</th>
+                                <th>จัดการข้อมูล OKR</th>
+                            </tr>
+                        </thead>
+                        <tbody id="my-projects-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 9: TEACHER - UPLOAD EVIDENCE ================= -->
+            <div class="dashboard-body" id="view-upload-evidence" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-cloud-arrow-up" style="color: var(--success);"></i> อัปโหลดและแนบหลักฐาน OKR (Upload OKR Evidence)</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">ส่งหลักฐานผลงาน เช่น ใบตรวจรับงาน, รายงานผลการทดสอบ, เอกสารสิทธิบัตร, ภาพถ่ายกิจกรรม</span>
+                        </div>
+                    </div>
+
+                    <form onsubmit="event.preventDefault(); submitUploadEvidence();">
+                        <div class="form-grid">
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-folder-open"></i> เลือกโครงการ OKR ที่ต้องการส่งหลักฐาน *</label>
+                                <select id="upload-select-project" required></select>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-file"></i> เลือกไฟล์เอกสาร / หลักฐาน (PDF, PNG, JPG, DOCX) *</label>
+                                <input type="file" id="upload-file-input" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-heading"></i> ชื่อระบุเอกสาร (File Label) *</label>
+                                <input type="text" id="upload-file-label" placeholder="เช่น รายงานความก้าวหน้างวดที่ 2.pdf" required>
+                            </div>
+
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-comment-dots"></i> คำอธิบายหลักฐาน / ผลการดำเนินงานประกอบ</label>
+                                <textarea id="upload-description" rows="2" placeholder="อธิบายรายละเอียดเกี่ยวกับหลักฐานชิ้นนี้..."></textarea>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="reset" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:600;">ล้างค่า</button>
+                            <button type="submit" class="btn-action-primary"><i class="fa-solid fa-cloud-arrow-up"></i> ยืนยันการอัปโหลดหลักฐาน</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 10: ASSIGN ROLES ================= -->
+            <div class="dashboard-body" id="view-assign-roles" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-user-check" style="color: var(--success);"></i> มอบหมายและกำหนดผู้รับผิดชอบโครงการ OKR</h3>
+                            <span style="font-size: 13px; color: var(--text-light);" id="assign-role-subtitle"></span>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ชื่อโครงการ OKR</th>
+                                <th>ภาควิชา</th>
+                                <th>อาจารย์หัวหน้าโครงการ (Head)</th>
+                                <th>ผู้ร่วมดำเนินงาน (Assignees)</th>
+                                <th>การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assign-roles-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 11: ADMIN ADD OKR ================= -->
+            <div class="dashboard-body" id="view-add-okr" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fa-solid fa-folder-plus"></i> ป้อนและนำเข้าข้อมูล OKR / โครงการใหม่ (Admin Input)</h3>
+                        <span style="font-size: 13px; color: var(--text-light);">อ้างอิงความสัมพันธ์: Admin -> ป้อนข้อมูล OKR เข้าระบบ</span>
+                    </div>
+
+                    <form onsubmit="event.preventDefault(); submitNewOKR();">
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-bullseye"></i> ชื่อหัวข้อ OKR หลัก (OKR Title) *</label>
+                                <input type="text" id="new-okr-title" required placeholder="เช่น พัฒนายกระดับงานวิจัยและนวัตกรรมสู่สากล">
+                            </div>
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-layer-group"></i> ประเภทยุทธศาสตร์ / หมวดหมู่ OKR *</label>
+                                <select id="new-okr-type">
+                                    <option value="งานวิจัย">งานวิจัย</option>
+                                    <option value="วิชาการ">วิชาการ</option>
+                                    <option value="บริการสังคม">บริการสังคม</option>
+                                    <option value="พัฒนานิสิต">พัฒนานิสิต</option>
+                                    <option value="บริหารองค์กร">บริหารองค์กร</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-calendar"></i> ปีการศึกษา *</label>
+                                <select id="new-okr-year">
+                                    <option value="2569">2569</option>
+                                    <option value="2568">2568</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-clock"></i> ไตรมาส *</label>
+                                <select id="new-okr-quarter">
+                                    <option value="Q1">Q1 (ไตรมาส 1)</option>
+                                    <option value="Q2">Q2 (ไตรมาส 2)</option>
+                                    <option value="Q3">Q3 (ไตรมาส 3)</option>
+                                    <option value="Q4">Q4 (ไตรมาส 4)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-full" style="border-top: 1.5px dashed #e2e8f0; padding-top: 15px; margin-top: 5px;">
+                                <h4 style="color: var(--primary); margin-bottom: 15px; font-size: 15px;"><i class="fa-solid fa-diagram-project"></i> รายละเอียดโครงการย่อย (Project Details)</h4>
+                            </div>
+
+                            <div class="input-group form-full">
+                                <label><i class="fa-solid fa-pen"></i> ชื่อโครงการ (Project Name) *</label>
+                                <input type="text" id="new-project-name" required placeholder="ระบุชื่อโครงการ เช่น โครงการจัดตั้งศูนย์ทดสอบเคมีขั้นสูง">
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-flag"></i> วัตถุประสงค์หลัก (Main Objective)</label>
+                                <textarea id="new-main-obj" rows="2" placeholder="เป้าหมายหลักของโครงการ..."></textarea>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-list-check"></i> เป้าหมายย่อย (Sub Objective)</label>
+                                <textarea id="new-sub-obj" rows="2" placeholder="เป้าหมายย่อยที่รองลงมา..."></textarea>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-building"></i> ภาควิชาที่รับผิดชอบ *</label>
+                                <select id="new-dept">
+                                    <option value="computer">ภาควิชาคอมพิวเตอร์</option>
+                                    <option value="chemistry">ภาควิชาเคมี</option>
+                                    <option value="all">ส่วนกลางคณะ</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-user-tie"></i> มอบหมายอาจารย์หัวหน้าโครงการ (Head of Project) *</label>
+                                <select id="new-head">
+                                    <option value="ศ.ดร. นที ทองดี">ศ.ดร. นที ทองดี (ภาควิชาเคมี)</option>
+                                    <option value="ผศ.ดร. มาลี สุขใจ">ผศ.ดร. มาลี สุขใจ (ภาควิชาคอมพิวเตอร์)</option>
+                                    <option value="อ. ภาคภูมิ ศรีสวัสดิ์">อ. ภาคภูมิ ศรีสวัสดิ์ (ภาควิชาเคมี)</option>
+                                    <option value="อ. อนุภัทร ศรีวิไล">อ. อนุภัทร ศรีวิไล (ภาควิชาคอมพิวเตอร์)</option>
+                                    <option value="รศ.ดร. วิทยา โลภานุวัตร">รศ.ดร. วิทยา โลภานุวัตร (ส่วนกลาง)</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-coins"></i> งบประมาณตั้งต้น (บาท) *</label>
+                                <input type="number" id="new-budget" required placeholder="เช่น 1500000">
+                            </div>
+
+                            <div class="input-group">
+                                <label><i class="fa-solid fa-users"></i> ผู้ร่วมดำเนินงาน (Assignees)</label>
+                                <input type="text" id="new-assignees" placeholder="เช่น ดร. ชลธิชา, นายวีรพล">
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="reset" style="background: #f1f5f9; color: var(--text-dark); border: 1px solid #cbd5e1; padding: 10px 20px; border-radius: 8px; font-weight:600; cursor:pointer;">ล้างข้อมูล</button>
+                            <button type="submit" class="btn-action-primary"><i class="fa-solid fa-check"></i> บันทึกและป้อนเข้าระบบ</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 12: ADMIN PERMISSIONS ================= -->
+            <div class="dashboard-body" id="view-permissions" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="fa-solid fa-user-gear" style="color: var(--secondary);"></i> จัดการและกำหนดสิทธิ์ผู้บริหาร (Executive Access)</h3>
+                            <span style="font-size: 13px; color: var(--text-light);">อ้างอิงความสัมพันธ์: Admin -> ให้สิทธิ์ผู้บริหารเข้าระบบ / กำหนดลำดับตำแหน่ง</span>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>รหัสบุคลากร</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>ลำดับตำแหน่งผู้บริหาร</th>
+                                <th>ระดับสิทธิ์การเข้าถึง</th>
+                                <th>สถานะสิทธิ์</th>
+                                <th>การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exec-perm-body">
+                            <tr>
+                                <td><b>EX-001</b></td>
+                                <td>ดร. สมเกียรติ วิทยา</td>
+                                <td><span style="background:#eff6ff; color:var(--primary); padding:4px 10px; border-radius:15px; font-weight:600; font-size:12px;">คณบดีคณะวิทยาศาสตร์</span></td>
+                                <td>ดูข้อมูลภาพรวมและสั่งการทุกภาควิชา (Master Dashboard)</td>
+                                <td><span class="status-badge status-success"><i class="fa-solid fa-check"></i> เปิดใช้งาน</span></td>
+                                <td><button class="btn-toggle-perm perm-granted" onclick="togglePerm(this)"><i class="fa-solid fa-lock-open"></i> มีสิทธิ์เข้าถึง</button></td>
+                            </tr>
+                            <tr>
+                                <td><b>EX-002</b></td>
+                                <td>รศ.ดร. นภาพร ประเสริฐ</td>
+                                <td><span style="background:#eff6ff; color:var(--primary); padding:4px 10px; border-radius:15px; font-weight:600; font-size:12px;">รองคณบดีฝ่ายวิชาการ</span></td>
+                                <td>ดูข้อมูลภาพรวมและงานวิชาการ</td>
+                                <td><span class="status-badge status-success"><i class="fa-solid fa-check"></i> เปิดใช้งาน</span></td>
+                                <td><button class="btn-toggle-perm perm-granted" onclick="togglePerm(this)"><i class="fa-solid fa-lock-open"></i> มีสิทธิ์เข้าถึง</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- ================= PROJECT DETAIL MODAL ================= -->
+    <!-- ================= MODAL 1: PROJECT DETAILS ================= -->
     <div class="modal-overlay" id="projectModal" onclick="if(event.target===this) closeModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -508,7 +999,7 @@
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="detail-group">
-                        <label><i class="fa-solid fa-user-tie"></i> หัวหน้าโครงการ (Head)</label>
+                        <label><i class="fa-solid fa-user-tie"></i> หัวหน้าโครงการ (Head of Project)</label>
                         <div class="content-box" id="modalHead"></div>
                     </div>
                     <div class="detail-group">
@@ -540,11 +1031,13 @@
 
     <!-- ================= JAVASCRIPT ================= -->
     <script>
+        // ข้อมูลผู้ใช้งานจำลองทั้ง 5 บทบาทตาม ER Diagram
         const mockAccounts = {
-            executive: { name: 'ดร. สมเกียรติ วิทยา', roleLabel: 'คณบดีคณะวิทยาศาสตร์' },
-            head_okr:  { name: 'ศ.ดร. นที ทองดี', roleLabel: 'หัวหน้า OKR ภาควิชา' },
-            general:   { name: 'อ. อนุภัทร', roleLabel: 'อาจารย์ประจำโครงการ' },
-            admin:     { name: 'ผู้ดูแลระบบ', roleLabel: 'Admin System' }
+            head_okr:  { name: 'ศ.ดร. นที ทองดี', roleLabel: 'อาจารย์หัวหน้า OKR ภาควิชาเคมี', icon: 'fa-user-graduate' },
+            teacher:   { name: 'อ. อนุภัทร ศรีวิไล', roleLabel: 'อาจารย์ทั่วไป (พนักงานมหาวิทยาลัย)', icon: 'fa-chalkboard-user' },
+            staff:     { name: 'น.ส. ธนพร จันทร์เพ็ญ', roleLabel: 'บุคลากรทั่วไป (เจ้าหน้าที่สนับสนุน)', icon: 'fa-users-gear' },
+            executive: { name: 'ดร. สมเกียรติ วิทยา', roleLabel: 'คณบดีคณะวิทยาศาสตร์ (ผู้บริหารระดับสูง)', icon: 'fa-user-tie' },
+            admin:     { name: 'ผู้ดูแลระบบกลาง', roleLabel: 'Admin คณะวิทยาศาสตร์', icon: 'fa-user-gear' }
         };
 
         const mockSummaryData = {
@@ -567,7 +1060,7 @@
                 mainObjective: 'ยกระดับองค์ความรู้วิทยาศาสตร์สู่การเพิ่มมูลค่าผลิตภัณฑ์ชุมชนท้องถิ่นอย่างยั่งยืน',
                 subObjective: 'จัดอบรมถ่ายทอดเทคโนโลยี 4 ชุมชน และพัฒนาต้นแบบผลิตภัณฑ์แปรรูป 2 ชนิด',
                 head: 'ผศ.ดร. มาลี สุขใจ', 
-                assignees: ['อ. สิทธิชัย นวลละออ', 'น.ส. ธนพร จันทร์เพ็ญ (ผู้ช่วยวิจัย)'],
+                assignees: ['อ. สิทธิชัย นวลละออ', 'อ. อนุภัทร ศรีวิไล', 'น.ส. ธนพร จันทร์เพ็ญ'],
                 deptCode: 'computer', 
                 deptName: 'ภาควิชาคอมพิวเตอร์', 
                 year: '2569', 
@@ -579,7 +1072,8 @@
                 statusClass: 'status-progress', 
                 icon: 'fa-spinner', 
                 bottleneck: 'ติดกระบวนการจัดซื้อจัดจ้างพัสดุและอุปกรณ์ทดสอบ',
-                evidences: ['รายงานผลการอบรมชุมชน_ครั้งที่1.pdf', 'ภาพถ่ายกิจกรรมภาคสนาม.jpg']
+                evidences: ['รายงานผลการอบรมชุมชน_ครั้งที่1.pdf', 'ภาพถ่ายกิจกรรมภาคสนาม.jpg'],
+                execFeedback: 'เร่งรัดกระบวนการจัดซื้อพัสดุ และติดตามผลในไตรมาสถัดไป'
             },
             { 
                 id: 2, 
@@ -587,7 +1081,7 @@
                 mainObjective: 'สร้างมาตรฐานความปลอดภัยห้องปฏิบัติการระดับสากลและติดตั้งระบบ IoT มอนิเตอร์สารเคมี',
                 subObjective: 'ติดตั้งเซ็นเซอร์ตรวจวัดสารระเหย 8 จุด และปรับปรุงระบบระบายอากาศอัตโนมัติ',
                 head: 'อ. ภาคภูมิ ศรีสวัสดิ์', 
-                assignees: ['ผศ. ดารินทร์ สุวรรณ', 'นายเกียรติศักดิ์ เจริญพร (เจ้าหน้าที่ Lab)'],
+                assignees: ['ผศ. ดารินทร์ สุวรรณ', 'นายเกียรติศักดิ์ เจริญพร'],
                 deptCode: 'chemistry', 
                 deptName: 'ภาควิชาเคมี', 
                 year: '2569', 
@@ -599,7 +1093,8 @@
                 statusClass: 'status-success', 
                 icon: 'fa-check', 
                 bottleneck: '-',
-                evidences: ['ใบตรวจรับงานงวดสุดท้าย.pdf', 'คู่มือมาตรฐานความปลอดภัย_SmartLab.pdf']
+                evidences: ['ใบตรวจรับงานงวดสุดท้าย.pdf', 'คู่มือมาตรฐานความปลอดภัย_SmartLab.pdf'],
+                execFeedback: 'ยอดเยี่ยมมาก ผ่านเกณฑ์มาตรฐานสากล'
             },
             { 
                 id: 3, 
@@ -607,7 +1102,7 @@
                 mainObjective: 'ขยายความร่วมมือทางวิชาการและงานวิจัยร่วมกับมหาวิทยาลัยในภูมิภาคเอเชีย',
                 subObjective: 'ลงนาม MOU 3 สถาบัน และเปิดรับนักศึกษาแลกเปลี่ยนอย่างน้อย 15 คน',
                 head: 'รศ.ดร. วิทยา โลภานุวัตร', 
-                assignees: ['ดร. ชลธิชา วงศ์สว่าง', 'น.ส. กานดา รุ่งเรือง (งานวิเทศสัมพันธ์)'],
+                assignees: ['ดร. ชลธิชา วงศ์สว่าง', 'น.ส. กานดา รุ่งเรือง'],
                 deptCode: 'all', 
                 deptName: 'ส่วนกลางคณะ', 
                 year: '2569', 
@@ -619,15 +1114,16 @@
                 statusClass: 'status-danger', 
                 icon: 'fa-triangle-exclamation', 
                 bottleneck: 'รอการลงนามข้อตกลงและกระบวนการทำ Visa จากมหาวิทยาลัยคู่สัญญาต่างประเทศ',
-                evidences: ['ร่างเอกสารข้อตกลงMOU_Draft.docx']
+                evidences: ['ร่างเอกสารข้อตกลงMOU_Draft.docx'],
+                execFeedback: 'มอบหมายฝ่ายวิเทศสัมพันธ์ช่วยประสานสถานทูตเร่งด่วน'
             },
             { 
                 id: 4, 
                 name: 'พัฒนาระบบ AI ตรวจจับข้อบกพร่องเครือข่าย', 
                 mainObjective: 'เพิ่มเสถียรภาพระบบเครือข่ายอินเทอร์เน็ตของคณะฯ ด้วยโมเดล Machine Learning',
                 subObjective: 'ตรวจจับและแจ้งเตือน Network Anomaly ได้แบบ Real-time ภายใน 30 วินาที',
-                head: 'อ. อนุภัทร', 
-                assignees: ['นายปิยะพงษ์ แก้วมณี (โปรแกรมเมอร์)'],
+                head: 'อ. อนุภัทร ศรีวิไล', 
+                assignees: ['นายปิยะพงษ์ แก้วมณี'],
                 deptCode: 'computer', 
                 deptName: 'ภาควิชาคอมพิวเตอร์', 
                 year: '2568', 
@@ -639,7 +1135,8 @@
                 statusClass: 'status-success', 
                 icon: 'fa-check', 
                 bottleneck: '-',
-                evidences: ['รายงานผลการทดสอบระบบAI_Benchmark.pdf', 'URLระบบ_https://ai-network.science.ac.th']
+                evidences: ['รายงานผลการทดสอบระบบAI_Benchmark.pdf'],
+                execFeedback: 'เตรียมขยายผลใช้งานจริงทั่วทั้งมหาวิทยาลัย'
             },
             { 
                 id: 5, 
@@ -647,7 +1144,7 @@
                 mainObjective: 'ค้นพบและจดสิทธิบัตรสารออกฤทธิ์ทางชีวภาพจากสมุนไพรพื้นถิ่นเพื่อใช้ในเวชสำอาง',
                 subObjective: 'ทดสอบคุณสมบัติต้านอนุมูลอิสระและตีพิมพ์ในวารสารระดับ Q1 จำนวน 1 เรื่อง',
                 head: 'ศ.ดร. นที ทองดี', 
-                assignees: ['ดร. กฤษณา ชัยชนะ', 'นายวีรพล แสนสุข (นักศึกษา ป.เอก)'],
+                assignees: ['ดร. กฤษณา ชัยชนะ', 'อ. อนุภัทร ศรีวิไล', 'นายวีรพล แสนสุข'],
                 deptCode: 'chemistry', 
                 deptName: 'ภาควิชาเคมี', 
                 year: '2568', 
@@ -659,29 +1156,127 @@
                 statusClass: 'status-progress', 
                 icon: 'fa-spinner', 
                 bottleneck: '-',
-                evidences: ['เอกสารยื่นจดสิทธิบัตร_เลขที่รับ680123.pdf', 'Manuscript_Draft_Q1.pdf']
+                evidences: ['เอกสารยื่นจดสิทธิบัตร_เลขที่รับ680123.pdf'],
+                execFeedback: 'ผลงานเด่นชัด สนับสนุนเงินรางวัลตีพิมพ์ Q1'
             }
+        ];
+
+        let mockEvidenceSubmissions = [
+            {
+                id: 101,
+                projectId: 1,
+                projectName: 'พัฒนานวัตกรรมผลิตภัณฑ์ชุมชน',
+                fileName: 'รายงานผลการอบรมชุมชน_ครั้งที่1.pdf',
+                uploadedBy: 'อ. อนุภัทร ศรีวิไล (อาจารย์ทั่วไป)',
+                uploadDate: '27 ส.ค. 2568',
+                description: 'จัดอบรมถ่ายทอดเทคโนโลยีให้ 2 ชุมชนแรกเรียบร้อยแล้ว มีผู้เข้าร่วม 45 คน',
+                status: 'รอตรวจสอบ',
+                assessedProgress: 40
+            },
+            {
+                id: 102,
+                projectId: 5,
+                projectName: 'วิจัยสารสกัดจากพืชสมุนไพรท้องถิ่นเพื่อการแพทย์',
+                fileName: 'เอกสารยื่นจดสิทธิบัตร_เลขที่รับ680123.pdf',
+                uploadedBy: 'ดร. กฤษณา ชัยชนะ (อาจารย์ร่วมวิจัย)',
+                uploadDate: '26 ส.ค. 2568',
+                description: 'ยื่นคำขอจดสิทธิบัตรสารสกัดต่อกรมทรัพย์สินทางปัญญาเรียบร้อยแล้ว',
+                status: 'รอตรวจสอบ',
+                assessedProgress: 95
+            }
+        ];
+
+        // รายการเอกสารที่อาจารย์หัวหน้า OKR แนบส่งให้ทีมงาน (Non-Executive)
+        let mockSharedBroadcasts = [
+            {
+                id: 1,
+                title: 'รายงานสรุปความก้าวหน้าโครงการวิจัยสมุนไพร ไตรมาส 2',
+                projectName: 'วิจัยสารสกัดจากพืชสมุนไพรท้องถิ่นเพื่อการแพทย์',
+                sender: 'ศ.ดร. นที ทองดี (หัวหน้า OKR เคมี)',
+                fileName: 'รายงานสรุป_สารสกัดสมุนไพรQ2.pdf',
+                recipients: 'อาจารย์ทั่วไป, บุคลากรสนับสนุน, หัวหน้า OKR อื่น',
+                date: '27 ส.ค. 2568',
+                message: 'ส่งต่อรายงานสรุปผลการทดสอบสารสกัดให้ทีมงานทราบ เพื่อใช้ประกอบการยื่นขอจดสิทธิบัตรในขั้นตอนต่อไป'
+            },
+            {
+                id: 2,
+                title: 'แนวปฏิบัติและคู่มือการเบิกจ่ายงบประมาณโครงการ OKR',
+                projectName: 'ปรับปรุงห้องปฏิบัติการเคมีอัจฉริยะ (Smart Lab)',
+                sender: 'อ. ภาคภูมิ ศรีสวัสดิ์ (หัวหน้า OKR)',
+                fileName: 'คู่มือการเบิกจ่ายงบประมาณ_OKR68.pdf',
+                recipients: 'อาจารย์ทั่วไป, บุคลากรสนับสนุน',
+                date: '25 ส.ค. 2568',
+                message: 'ขอให้อาจารย์และเจ้าหน้าที่ผู้ร่วมโครงการตรวจสอบเอกสารใบเสร็จตามเกณฑ์ใหม่ในคู่มือนี้'
+            }
+        ];
+
+        const mockTeacherList = [
+            'ศ.ดร. นที ทองดี',
+            'ผศ.ดร. มาลี สุขใจ',
+            'อ. ภาคภูมิ ศรีสวัสดิ์',
+            'อ. อนุภัทร ศรีวิไล',
+            'รศ.ดร. วิทยา โลภานุวัตร',
+            'ผศ. ดารินทร์ สุวรรณ',
+            'ดร. ชลธิชา วงศ์สว่าง'
         ];
 
         let donutChartInstance = null, barChartInstance = null;
         let trendChartInstance = null, compareChartInstance = null;
-        let currentRole = 'executive';
+        let currentRole = 'head_okr';
+        let currentUserName = 'ศ.ดร. นที ทองดี';
 
         function doLogin() {
             const role = document.getElementById('role-select').value;
-            const account = mockAccounts[role] || mockAccounts['executive'];
+            const account = mockAccounts[role] || mockAccounts['head_okr'];
             currentRole = role;
+            currentUserName = account.name;
 
             document.getElementById('display-name').innerText = account.name;
             document.getElementById('display-role').innerText = account.roleLabel;
-            document.getElementById('exec-extra').style.display = (role === 'executive') ? 'block' : 'none';
+            
+            const profileIcon = document.getElementById('profile-icon');
+            profileIcon.className = 'fa-solid ' + account.icon;
+
+            // ควบคุมสิทธิ์การแสดงผลเมนูตาม Role
+            document.getElementById('exec-menu-section').style.display = (role === 'executive') ? 'block' : 'none';
+            document.getElementById('admin-menu-section').style.display = (role === 'admin') ? 'block' : 'none';
+            document.getElementById('assign-menu-section').style.display = (role === 'executive' || role === 'head_okr' || role === 'admin') ? 'block' : 'none';
+            document.getElementById('teacher-menu-section').style.display = (role === 'teacher') ? 'block' : 'none';
+            document.getElementById('head-okr-menu-section').style.display = (role === 'head_okr') ? 'block' : 'none';
+            // กล่องรับเอกสารแสดงให้ Non-Executive ทั้งหมด
+            document.getElementById('inbox-menu-section').style.display = (role !== 'executive' && role !== 'admin') ? 'block' : 'none';
+
+            if (role === 'executive') {
+                document.getElementById('assign-role-subtitle').innerText = 'มุมมองผู้บริหาร: กำหนดและแต่งตั้งอาจารย์หัวหน้าโครงการ OKR (Head of Project)';
+            } else if (role === 'head_okr') {
+                document.getElementById('assign-role-subtitle').innerText = 'มุมมองหัวหน้า OKR: มอบหมายอาจารย์ผู้รับผิดชอบโครงการร่วม (Assignees)';
+            } else {
+                document.getElementById('assign-role-subtitle').innerText = 'มุมมองผู้ดูแลระบบ: จัดการและมอบหมายผู้รับผิดชอบโครงการ OKR ทั้งหมด';
+            }
 
             document.getElementById('login-page').style.display = 'none';
             document.getElementById('dashboard-page').style.display = 'flex';
 
+            // นำทางหน้าเริ่มต้นตามบทบาท
+            if (role === 'executive') {
+                switchTab('dashboard');
+            } else if (role === 'head_okr') {
+                switchTab('head-share-reports');
+            } else if (role === 'teacher') {
+                switchTab('my-projects');
+            } else if (role === 'staff') {
+                switchTab('inbox-shared-reports');
+            } else if (role === 'admin') {
+                switchTab('add-okr');
+            } else {
+                switchTab('projects');
+            }
+
             setTimeout(() => {
-                initCharts();
-                updateDashboardData();
+                if (role === 'executive') {
+                    initCharts();
+                    updateDashboardData();
+                }
             }, 100);
         }
 
@@ -695,46 +1290,623 @@
         }
 
         function switchTab(tabId) {
-            document.getElementById('nav-dashboard').classList.remove('active');
-            document.getElementById('nav-projects').classList.remove('active');
-            if(tabId === 'dashboard') {
-                document.getElementById('nav-dashboard').classList.add('active');
+            document.querySelectorAll('.nav-menu li').forEach(li => li.classList.remove('active'));
+
+            document.getElementById('view-dashboard').style.display = 'none';
+            document.getElementById('view-projects').style.display = 'none';
+            document.getElementById('view-assign-roles').style.display = 'none';
+            document.getElementById('view-add-okr').style.display = 'none';
+            document.getElementById('view-permissions').style.display = 'none';
+            if (document.getElementById('view-exec-project-dashboards')) document.getElementById('view-exec-project-dashboards').style.display = 'none';
+            if (document.getElementById('view-head-build-dashboard')) document.getElementById('view-head-build-dashboard').style.display = 'none';
+            if (document.getElementById('view-head-share-reports')) document.getElementById('view-head-share-reports').style.display = 'none';
+            if (document.getElementById('view-inbox-shared-reports')) document.getElementById('view-inbox-shared-reports').style.display = 'none';
+            if (document.getElementById('view-verify-evidence')) document.getElementById('view-verify-evidence').style.display = 'none';
+            if (document.getElementById('view-my-projects')) document.getElementById('view-my-projects').style.display = 'none';
+            if (document.getElementById('view-upload-evidence')) document.getElementById('view-upload-evidence').style.display = 'none';
+
+            if (tabId === 'dashboard') {
+                if (currentRole !== 'executive') {
+                    alert('⚠️ สงวนสิทธิ์การดู Dashboard ภาพรวมคณะ เฉพาะตำแหน่งผู้บริหารเท่านั้น');
+                    return;
+                }
+                if (document.getElementById('nav-dashboard')) document.getElementById('nav-dashboard').classList.add('active');
                 document.getElementById('view-dashboard').style.display = 'block';
-                document.getElementById('view-projects').style.display = 'none';
-                document.getElementById('page-title').innerText = 'ภาพรวมความคืบหน้า OKR และ งบประมาณ';
-            } else {
+                document.getElementById('page-title').innerText = 'ภาพรวมความคืบหน้า OKR และ งบประมาณคณะ';
+            } else if (tabId === 'exec-project-dashboards') {
+                if (document.getElementById('nav-exec-project-dashboards')) document.getElementById('nav-exec-project-dashboards').classList.add('active');
+                document.getElementById('view-exec-project-dashboards').style.display = 'block';
+                document.getElementById('page-title').innerText = 'Dashboard ติดตามความก้าวหน้ารายโครงการ (Executive View)';
+                initExecProjectDashboardSelect();
+            } else if (tabId === 'head-share-reports') {
+                if (document.getElementById('nav-head-share-reports')) document.getElementById('nav-head-share-reports').classList.add('active');
+                document.getElementById('view-head-share-reports').style.display = 'block';
+                document.getElementById('page-title').innerText = 'แนบไฟล์รายงานและกระจายเอกสารสู่ทีมงาน (Non-Executive)';
+                initShareReportsView();
+            } else if (tabId === 'inbox-shared-reports') {
+                if (document.getElementById('nav-inbox-shared-reports')) document.getElementById('nav-inbox-shared-reports').classList.add('active');
+                document.getElementById('view-inbox-shared-reports').style.display = 'block';
+                document.getElementById('page-title').innerText = 'เอกสาร & รายงานที่ได้รับจากหัวหน้า OKR';
+                renderInboxReportsTable();
+            } else if (tabId === 'head-build-dashboard') {
+                if (document.getElementById('nav-head-build-dashboard')) document.getElementById('nav-head-build-dashboard').classList.add('active');
+                document.getElementById('view-head-build-dashboard').style.display = 'block';
+                document.getElementById('page-title').innerText = 'จัดทำและส่งข้อมูล Dashboard โครงการให้ผู้บริหาร';
+                initHeadDashboardBuilder();
+            } else if (tabId === 'verify-evidence') {
+                if (document.getElementById('nav-verify-evidence')) document.getElementById('nav-verify-evidence').classList.add('active');
+                document.getElementById('view-verify-evidence').style.display = 'block';
+                document.getElementById('page-title').innerText = 'ตรวจสอบหลักฐาน OKR จากอาจารย์ผู้รับผิดชอบ';
+                renderVerifyEvidenceTable();
+            } else if (tabId === 'my-projects') {
+                if (document.getElementById('nav-my-projects')) document.getElementById('nav-my-projects').classList.add('active');
+                document.getElementById('view-my-projects').style.display = 'block';
+                document.getElementById('page-title').innerText = 'โครงการ OKR ที่ฉันได้รับมอบหมาย';
+                renderMyProjectsTable();
+            } else if (tabId === 'upload-evidence') {
+                if (document.getElementById('nav-upload-evidence')) document.getElementById('nav-upload-evidence').classList.add('active');
+                document.getElementById('view-upload-evidence').style.display = 'block';
+                document.getElementById('page-title').innerText = 'อัปโหลดและแนบหลักฐาน OKR';
+                renderUploadEvidenceView();
+            } else if (tabId === 'projects') {
                 document.getElementById('nav-projects').classList.add('active');
-                document.getElementById('view-dashboard').style.display = 'none';
                 document.getElementById('view-projects').style.display = 'block';
                 document.getElementById('page-title').innerText = 'รายการโครงการ OKR ทั้งหมด';
                 filterProjectsTable();
+            } else if (tabId === 'assign-roles') {
+                if (document.getElementById('nav-assign-roles')) document.getElementById('nav-assign-roles').classList.add('active');
+                document.getElementById('view-assign-roles').style.display = 'block';
+                document.getElementById('page-title').innerText = 'กำหนดผู้รับผิดชอบโครงการ OKR';
+                renderAssignRolesTable();
+            } else if (tabId === 'add-okr') {
+                if (document.getElementById('nav-add-okr')) document.getElementById('nav-add-okr').classList.add('active');
+                document.getElementById('view-add-okr').style.display = 'block';
+                document.getElementById('page-title').innerText = 'ป้อนและนำเข้าข้อมูล OKR / โครงการใหม่';
+            } else if (tabId === 'permissions') {
+                if (document.getElementById('nav-permissions')) document.getElementById('nav-permissions').classList.add('active');
+                document.getElementById('view-permissions').style.display = 'block';
+                document.getElementById('page-title').innerText = 'จัดการสิทธิ์เข้าถึง & กำหนดผู้บริหาร';
             }
         }
 
-        function updateDashboardData() {
-            const year = document.getElementById('filter-year').value;
-            const dept = document.getElementById('filter-dept').value;
-            const month = document.getElementById('filter-month').value;
-            const data = mockSummaryData[year][dept] || mockSummaryData[year]['all'];
+        // ================= FUNCTION: หัวหน้า OKR กระจายรายงานสู่ทีมงาน (Non-Executive) =================
+        function initShareReportsView() {
+            const select = document.getElementById('share-report-project');
+            if (!select) return;
+            select.innerHTML = '';
 
-            document.getElementById('sum-progress').innerText = data.progress;
-            document.getElementById('sum-target').innerText = data.target;
-            document.getElementById('sum-budget').innerText = data.budget;
-            document.getElementById('sum-risk').innerText = data.risk;
-            document.getElementById('sum-risk').style.color = data.riskColor;
+            mockProjectsList.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.name;
+                opt.innerText = `[${p.deptName}] ${p.name}`;
+                select.appendChild(opt);
+            });
 
-            if (donutChartInstance && barChartInstance) {
-                donutChartInstance.data.datasets[0].data = data.donut;
-                donutChartInstance.update();
-                barChartInstance.data.datasets[0].data = data.bar;
-                barChartInstance.update();
+            renderBroadcastHistory();
+        }
+
+        function submitBroadcastReport() {
+            const title = document.getElementById('share-report-title').value.trim();
+            const projName = document.getElementById('share-report-project').value;
+            const fileInput = document.getElementById('share-report-file');
+            const fileName = fileInput.files[0] ? fileInput.files[0].name : 'เอกสารรายงาน_OKR.pdf';
+            const message = document.getElementById('share-report-message').value.trim();
+
+            const recipients = [];
+            if (document.getElementById('rec-teacher').checked) recipients.push('อาจารย์ทั่วไป');
+            if (document.getElementById('rec-other-head').checked) recipients.push('หัวหน้า OKR อื่น');
+            if (document.getElementById('rec-staff').checked) recipients.push('บุคลากรทั่วไป');
+
+            if (recipients.length === 0) {
+                alert('กรุณาเลือกกลุ่มผู้รับเอกสารอย่างน้อย 1 กลุ่ม');
+                return;
             }
 
+            const newBroadcast = {
+                id: Date.now(),
+                title: title,
+                projectName: projName,
+                sender: currentUserName + ' (หัวหน้า OKR)',
+                fileName: fileName,
+                recipients: recipients.join(', '),
+                date: 'วันนี้',
+                message: message || '-'
+            };
+
+            mockSharedBroadcasts.unshift(newBroadcast);
+
+            alert(`🎉 กระจายไฟล์รายงาน "${fileName}" เรียบร้อย!\n\nส่งถึงกลุ่ม: ${recipients.join(', ')}\n(ทุกคนที่ไม่ใช่ผู้บริหารสามารถเปิดดูและดาวน์โหลดเอกสารนี้ได้ทันทีในกล่องเอกสาร)`);
+
+            document.getElementById('share-report-title').value = '';
+            document.getElementById('share-report-file').value = '';
+            document.getElementById('share-report-message').value = '';
+
+            renderBroadcastHistory();
+        }
+
+        function renderBroadcastHistory() {
+            const tbody = document.getElementById('broadcast-history-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            mockSharedBroadcasts.forEach(b => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:600; color:var(--primary);">${b.title}</td>
+                    <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:12px;">${b.projectName}</span></td>
+                    <td><a href="javascript:void(0)" class="evidence-tag" onclick="alert('เปิดดูไฟล์: ${b.fileName}')"><i class="fa-solid fa-file-lines"></i> ${b.fileName}</a></td>
+                    <td><span style="font-size:12.5px; color:#475569;"><i class="fa-solid fa-users"></i> ${b.recipients}</span></td>
+                    <td style="font-size:13px; color:var(--text-light);">${b.date}</td>
+                    <td><button class="btn-view-detail" onclick="alert('ข้อความชี้แจง: ${b.message}')"><i class="fa-regular fa-comment"></i> คำชี้แจง</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ================= FUNCTION: กล่องรับเอกสาร & รายงานที่ได้รับ (Inbox Shared Reports) =================
+        function renderInboxReportsTable() {
+            const tbody = document.getElementById('inbox-reports-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (mockSharedBroadcasts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:35px; color:#94a3b8;"><i class="fa-solid fa-inbox" style="font-size:24px; margin-bottom:8px; display:block;"></i>ยังไม่มีเอกสารรายงานที่ส่งเข้ามา</td></tr>';
+                return;
+            }
+
+            mockSharedBroadcasts.forEach(b => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:600; color:var(--primary); max-width:250px;">
+                        ${b.title}
+                        <div style="font-size:12px; color:var(--text-light); font-weight:normal; margin-top:3px;">ส่งถึง: ${b.recipients}</div>
+                    </td>
+                    <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:500;">${b.projectName}</span></td>
+                    <td><div class="table-avatar"><div class="circle">OK</div><span>${b.sender}</span></div></td>
+                    <td style="font-size:13px; color:var(--text-light);">${b.date}</td>
+                    <td>
+                        <a href="javascript:void(0)" class="evidence-tag" onclick="alert('ดาวน์โหลดไฟล์: ${b.fileName}')"><i class="fa-solid fa-download"></i> ${b.fileName}</a>
+                    </td>
+                    <td style="max-width:240px; font-size:13px; color:#475569;">${b.message}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ================= FUNCTION: ผู้บริหารดู Dashboard แต่ละโครงการ =================
+        function initExecProjectDashboardSelect() {
+            const select = document.getElementById('exec-dash-select-proj');
+            if (!select) return;
+            select.innerHTML = '';
+
+            mockProjectsList.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.innerText = `[${p.deptName}] ${p.name} (คืบหน้า ${p.progress}%)`;
+                select.appendChild(opt);
+            });
+
+            renderExecProjectDashboardView();
+        }
+
+        function renderExecProjectDashboardView() {
+            const select = document.getElementById('exec-dash-select-proj');
+            const projId = parseInt(select.value) || 1;
+            const p = mockProjectsList.find(item => item.id === projId) || mockProjectsList[0];
+            const container = document.getElementById('exec-single-dash-content');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="exec-proj-dashboard-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <span style="background:var(--primary); color:white; font-size:12px; font-weight:600; padding:4px 10px; border-radius:15px;">${p.deptName} • ปี ${p.year}</span>
+                            <h2 style="color:var(--primary); margin-top:8px; font-size:22px;">${p.name}</h2>
+                            <p style="color:var(--text-light); font-size:14px; margin-top:4px;"><b>อาจารย์หัวหน้า OKR ผู้รายงาน:</b> ${p.head}</p>
+                        </div>
+                        <span class="status-badge ${p.statusClass}" style="font-size:14px; padding:8px 16px;"><i class="fa-solid ${p.icon}"></i> สถานะ: ${p.status}</span>
+                    </div>
+
+                    <div class="summary-cards" style="grid-template-columns: repeat(3, 1fr); margin-bottom:25px;">
+                        <div class="card card-blue" style="padding:16px;">
+                            <p>ความก้าวหน้าโครงการ</p>
+                            <h2 style="font-size:30px; color:${p.progress===100?'var(--success)':'var(--primary)'};">${p.progress}%</h2>
+                            <div class="progress-bar-bg" style="max-width:100%; height:8px; margin-top:8px;"><div class="progress-bar-fill" style="width:${p.progress}%; background:${p.progress===100?'var(--success)':'var(--secondary)'};"></div></div>
+                        </div>
+                        <div class="card card-green" style="padding:16px;">
+                            <p>งบประมาณตั้งต้น</p>
+                            <h2 style="font-size:26px;">${p.budget}</h2>
+                            <span style="color:var(--success);">เบิกจ่ายจริง: ${p.spent}</span>
+                        </div>
+                        <div class="card card-red" style="padding:16px;">
+                            <p>คอขวด / ปัญหาที่แจ้ง</p>
+                            <h2 style="font-size:16px; color:${p.bottleneck!=='-'?'var(--danger)':'var(--success)'}; margin-top:8px; font-weight:600;">${p.bottleneck}</h2>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:25px;">
+                        <div class="detail-group">
+                            <label><i class="fa-solid fa-bullseye"></i> วัตถุประสงค์หลัก (Main Objective)</label>
+                            <div class="content-box">${p.mainObjective}</div>
+                        </div>
+                        <div class="detail-group">
+                            <label><i class="fa-solid fa-list-check"></i> ผลสัมฤทธิ์ตามเป้าหมายย่อย (Key Results)</label>
+                            <div class="content-box">${p.subObjective}</div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group" style="margin-bottom:25px;">
+                        <label><i class="fa-solid fa-file-shield"></i> เอกสารหลักฐานที่หัวหน้า OKR ยืนยันแล้ว</label>
+                        <div style="margin-top:8px;">
+                            ${p.evidences && p.evidences.length > 0 ? p.evidences.map(f => `<a href="javascript:void(0)" class="evidence-tag" onclick="alert('เปิดดูไฟล์: ${f}')"><i class="fa-solid fa-file-pdf"></i> ${f}</a>`).join('') : '<span style="color:#94a3b8; font-size:13px;">ยังไม่มีไฟล์หลักฐานแนบ</span>'}
+                        </div>
+                    </div>
+
+                    <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:20px;">
+                        <h4 style="color:var(--primary); font-size:15px; margin-bottom:10px;"><i class="fa-solid fa-comment-pen"></i> ข้อสั่งการ / ข้อเสนอแนะการประเมินจากผู้บริหาร (Executive Feedback)</h4>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="exec-feedback-input-${p.id}" value="${p.execFeedback || ''}" placeholder="ใส่ข้อคิดเห็น หรือ สั่งการติดตามงานต่อโครงการนี้..." style="flex-grow:1; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; font-family:'Prompt';">
+                            <button class="btn-action-primary" onclick="saveExecFeedback(${p.id})"><i class="fa-solid fa-floppy-disk"></i> บันทึกข้อสั่งการ</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveExecFeedback(projId) {
+            const project = mockProjectsList.find(p => p.id === projId);
+            if (!project) return;
+
+            const input = document.getElementById(`exec-feedback-input-${projId}`);
+            project.execFeedback = input ? input.value : '';
+
+            alert(`✅ บันทึกข้อสั่งการและการประเมินของผู้บริหารสำหรับโครงการ "${project.name}" เรียบร้อยแล้ว!`);
+        }
+
+        // ================= FUNCTION: หัวหน้า OKR สร้าง Dashboard ส่งผู้บริหาร =================
+        function initHeadDashboardBuilder() {
+            const select = document.getElementById('head-dash-proj-select');
+            if (!select) return;
+            select.innerHTML = '';
+
+            const myProjects = mockProjectsList.filter(p => p.head.includes(currentUserName) || currentRole === 'head_okr');
+            const displayList = (myProjects.length > 0) ? myProjects : mockProjectsList;
+
+            displayList.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.innerText = `[${p.deptName}] ${p.name} (คืบหน้าปัจจุบัน ${p.progress}%)`;
+                select.appendChild(opt);
+            });
+
+            autoFillHeadDashboardBuilder();
+        }
+
+        function autoFillHeadDashboardBuilder() {
+            const select = document.getElementById('head-dash-proj-select');
+            if (!select || !select.value) return;
+            const p = mockProjectsList.find(item => item.id === parseInt(select.value));
+            if (!p) return;
+
+            document.getElementById('head-dash-progress').value = p.progress;
+            document.getElementById('head-dash-status').value = p.status;
+            document.getElementById('head-dash-highlights').value = `ผลสัมฤทธิ์ตามตัวชี้วัด: ${p.subObjective}`;
+            document.getElementById('head-dash-bottleneck').value = p.bottleneck;
+        }
+
+        function submitDashboardToExecutive() {
+            const select = document.getElementById('head-dash-proj-select');
+            const projId = parseInt(select.value);
+            const project = mockProjectsList.find(p => p.id === projId);
+            if (!project) return;
+
+            const newProgress = parseInt(document.getElementById('head-dash-progress').value) || 0;
+            const newStatus = document.getElementById('head-dash-status').value;
+            const highlights = document.getElementById('head-dash-highlights').value;
+            const bottleneck = document.getElementById('head-dash-bottleneck').value.trim() || '-';
+
+            project.progress = newProgress;
+            project.status = newStatus;
+            project.subObjective = highlights;
+            project.bottleneck = bottleneck;
+
+            if (newStatus === 'บรรลุเป้าหมาย' || newProgress === 100) {
+                project.statusClass = 'status-success';
+                project.icon = 'fa-check';
+            } else if (newStatus === 'ติดปัญหา/ล่าช้า') {
+                project.statusClass = 'status-danger';
+                project.icon = 'fa-triangle-exclamation';
+            } else {
+                project.statusClass = 'status-progress';
+                project.icon = 'fa-spinner';
+            }
+
+            alert(`🚀 จัดทำและส่งข้อมูล Dashboard โครงการ "${project.name}" ให้ผู้บริหารเรียบร้อยแล้ว!\n\nข้อมูลความคืบหน้านี้จะปรากฏในหน้า "Dashboard ติดตามรายโครงการ" ของผู้บริหารทันที`);
             filterProjectsTable();
+        }
 
-            if (currentRole === 'executive') {
-                renderExecDashboard(year);
+        // ================= FUNCTION: ตรวจสอบหลักฐาน OKR =================
+        function renderVerifyEvidenceTable() {
+            const tbody = document.getElementById('verify-evidence-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (mockEvidenceSubmissions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:35px; color:#94a3b8;"><i class="fa-solid fa-folder-check" style="font-size:24px; margin-bottom:8px; display:block;"></i>ยังไม่มีหลักฐานที่ส่งเข้ามาจากอาจารย์ผู้รับผิดชอบ</td></tr>';
+                return;
             }
+
+            mockEvidenceSubmissions.forEach(sub => {
+                const project = mockProjectsList.find(p => p.id === sub.projectId);
+                const currentProg = project ? project.progress : sub.assessedProgress;
+                const statusBadge = (sub.status === 'อนุมัติแล้ว')
+                    ? '<span class="status-badge status-success"><i class="fa-solid fa-circle-check"></i> ยืนยันแล้ว</span>'
+                    : '<span class="status-badge status-pending"><i class="fa-solid fa-hourglass-half"></i> รอการตรวจสอบ</span>';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:600; color:var(--primary); max-width:200px;">
+                        ${sub.projectName}
+                        <div style="font-size:12px; color:var(--text-light); font-weight:normal;">ปัจจุบันคืบหน้า: <b>${currentProg}%</b></div>
+                    </td>
+                    <td>
+                        <a href="javascript:void(0)" class="evidence-tag" onclick="alert('เปิดดูเอกสาร: ${sub.fileName}')"><i class="fa-solid fa-file-lines"></i> ${sub.fileName}</a>
+                        <div style="font-size:12.5px; color:#475569; margin-top:4px;">${sub.description || '-'}</div>
+                    </td>
+                    <td><span style="font-weight:500;">${sub.uploadedBy}</span></td>
+                    <td style="font-size:13px; color:var(--text-light);">${sub.uploadDate}</td>
+                    <td style="min-width:140px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="number" id="eval-progress-${sub.id}" min="0" max="100" value="${sub.assessedProgress}" style="width:70px; padding:6px 8px; border:1.5px solid #cbd5e1; border-radius:6px; font-weight:700; color:var(--primary); text-align:center;">
+                            <span style="font-weight:600; color:var(--primary);">%</span>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn-action-primary" style="padding:7px 14px; font-size:12px;" onclick="submitEvidenceAssessment(${sub.id})"><i class="fa-solid fa-check"></i> ยืนยันหลักฐาน</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function submitEvidenceAssessment(submissionId) {
+            const sub = mockEvidenceSubmissions.find(s => s.id === submissionId);
+            if (!sub) return;
+
+            const inputElem = document.getElementById(`eval-progress-${submissionId}`);
+            const assessedVal = inputElem ? parseInt(inputElem.value) : sub.assessedProgress;
+
+            sub.assessedProgress = assessedVal;
+            sub.status = 'อนุมัติแล้ว';
+
+            const project = mockProjectsList.find(p => p.id === sub.projectId);
+            if (project) {
+                project.progress = assessedVal;
+                if (!project.evidences) project.evidences = [];
+                if (!project.evidences.includes(sub.fileName)) project.evidences.push(sub.fileName);
+            }
+
+            alert(`🎉 ตรวจสอบและยืนยันหลักฐาน "${sub.fileName}" เรียบร้อย!\nพร้อมนำไปสรุปใน Dashboard โครงการเพื่อส่งต่อให้ผู้บริหาร`);
+            renderVerifyEvidenceTable();
+        }
+
+        // ================= FUNCTION: อาจารย์ทั่วไป =================
+        function renderMyProjectsTable() {
+            const tbody = document.getElementById('my-projects-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const myProjects = mockProjectsList.filter(p => 
+                p.head.includes(currentUserName) || 
+                p.assignees.some(a => a.includes(currentUserName))
+            );
+
+            if (myProjects.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 35px; color: #94a3b8;"><i class="fa-solid fa-list-check" style="font-size:24px; margin-bottom:8px; display:block;"></i>คุณยังไม่ได้รับมอบหมายโครงการในขณะนี้</td></tr>';
+                return;
+            }
+
+            myProjects.forEach(p => {
+                const isHead = p.head.includes(currentUserName);
+                const roleBadge = isHead 
+                    ? '<span style="background:#eff6ff; color:var(--primary); padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600;"><i class="fa-solid fa-user-tie"></i> หัวหน้าโครงการ</span>'
+                    : '<span style="background:#f1f5f9; color:var(--text-dark); padding:4px 8px; border-radius:6px; font-size:12px; font-weight:500;"><i class="fa-solid fa-user-group"></i> ผู้ร่วมดำเนินงาน</span>';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 600; color: var(--primary);">
+                        ${p.name}
+                        <div style="font-size:12px; color:var(--text-light); font-weight:normal; margin-top:3px;">${p.deptName} • ปี ${p.year}</div>
+                    </td>
+                    <td>${roleBadge}</td>
+                    <td style="max-width:280px; font-size:13px; color:#475569;">${p.subObjective}</td>
+                    <td>
+                        <div class="progress-wrapper">
+                            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${p.progress}%; background: ${p.progress === 100 ? 'var(--success)' : 'var(--secondary)'};"></div></div> 
+                            <span class="progress-text">${p.progress}%</span>
+                        </div>
+                    </td>
+                    <td><span class="status-badge ${p.statusClass}"><i class="fa-solid ${p.icon}"></i> ${p.status}</span></td>
+                    <td>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="btn-view-detail" onclick="openProjectModal(${p.id})"><i class="fa-regular fa-eye"></i> ดู</button>
+                            <button class="btn-upload-evidence" onclick="goToUploadEvidence(${p.id})"><i class="fa-solid fa-cloud-arrow-up"></i> ส่งหลักฐาน</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderUploadEvidenceView(targetProjId = null) {
+            const select = document.getElementById('upload-select-project');
+            if (!select) return;
+            select.innerHTML = '';
+
+            const myProjects = mockProjectsList.filter(p => 
+                p.head.includes(currentUserName) || 
+                p.assignees.some(a => a.includes(currentUserName))
+            );
+
+            const displayList = (myProjects.length > 0) ? myProjects : mockProjectsList;
+
+            displayList.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.innerText = `[${p.deptName}] ${p.name} (ปี ${p.year})`;
+                if (targetProjId && p.id === targetProjId) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            renderEvidenceHistory();
+        }
+
+        function goToUploadEvidence(projId) {
+            switchTab('upload-evidence');
+            renderUploadEvidenceView(projId);
+        }
+
+        function submitUploadEvidence() {
+            const projId = parseInt(document.getElementById('upload-select-project').value);
+            const fileLabel = document.getElementById('upload-file-label').value.trim();
+            const desc = document.getElementById('upload-description').value.trim();
+            const project = mockProjectsList.find(p => p.id === projId);
+
+            if (!project || !fileLabel) return;
+
+            mockEvidenceSubmissions.unshift({
+                id: Date.now(),
+                projectId: project.id,
+                projectName: project.name,
+                fileName: fileLabel,
+                uploadedBy: currentUserName,
+                uploadDate: 'วันนี้',
+                description: desc || 'ส่งหลักฐานความคืบหน้าโครงการ',
+                status: 'รอตรวจสอบ',
+                assessedProgress: project.progress
+            });
+
+            alert(`🎉 อัปโหลดไฟล์ "${fileLabel}" เข้าสู่โครงการ "${project.name}" สำเร็จ!\nหลักฐานถูกส่งไปยังอาจารย์หัวหน้า OKR เพื่อตรวจสอบแล้ว`);
+            
+            document.getElementById('upload-file-label').value = '';
+            document.getElementById('upload-file-input').value = '';
+            document.getElementById('upload-description').value = '';
+
+            renderEvidenceHistory();
+        }
+
+        function renderEvidenceHistory() {
+            const tbody = document.getElementById('evidence-history-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            let hasEvidence = false;
+            mockProjectsList.forEach(p => {
+                if (p.evidences && p.evidences.length > 0) {
+                    p.evidences.forEach(file => {
+                        hasEvidence = true;
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td style="font-weight:600; color:var(--primary);">${p.name}</td>
+                            <td><i class="fa-solid fa-file-pdf" style="color:var(--danger); margin-right:6px;"></i> ${file}</td>
+                            <td>${currentUserName}</td>
+                            <td>27 ส.ค. 2568</td>
+                            <td>
+                                <button class="btn-view-detail" onclick="alert('ดาวน์โหลดไฟล์: ${file}')"><i class="fa-solid fa-download"></i> ดาวน์โหลด</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            });
+
+            if (!hasEvidence) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:25px; color:#94a3b8;">ยังไม่มีประวัติการอัปโหลดไฟล์หลักฐาน</td></tr>';
+            }
+        }
+
+        // ================= FUNCTION: กำหนดผู้รับผิดชอบโครงการ =================
+        function renderAssignRolesTable() {
+            const tbody = document.getElementById('assign-roles-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            mockProjectsList.forEach(p => {
+                const tr = document.createElement('tr');
+                const headOptions = mockTeacherList.map(t => `<option value="${t}" ${t === p.head ? 'selected' : ''}>${t}</option>`).join('');
+                
+                tr.innerHTML = `
+                    <td style="font-weight:600; color:var(--primary);">${p.name}</td>
+                    <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:12px;">${p.deptName}</span></td>
+                    <td>
+                        <select id="head-select-${p.id}" style="padding:6px 10px; border-radius:6px; border:1.5px solid #cbd5e1; font-family:'Prompt'; font-size:13px; width:100%;" ${currentRole==='teacher'||currentRole==='staff'?'disabled':''}>
+                            ${headOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" id="assignees-input-${p.id}" value="${p.assignees.join(', ')}" placeholder="เช่น อ. สมชาย, น.ส. ธนพร" style="padding:6px 10px; border-radius:6px; border:1.5px solid #cbd5e1; font-family:'Prompt'; font-size:13px; width:100%;">
+                    </td>
+                    <td>
+                        <button class="btn-action-primary" style="padding:6px 14px; font-size:12px;" onclick="saveAssignment(${p.id})"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveAssignment(projId) {
+            const project = mockProjectsList.find(p => p.id === projId);
+            if (!project) return;
+
+            const newHead = document.getElementById(`head-select-${projId}`).value;
+            const newAssigneesText = document.getElementById(`assignees-input-${projId}`).value;
+
+            project.head = newHead;
+            project.assignees = newAssigneesText ? newAssigneesText.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
+
+            alert(`🎉 บันทึกการมอบหมายผู้รับผิดชอบโครงการ "${project.name}" เรียบร้อยแล้ว!`);
+            filterProjectsTable();
+        }
+
+        // ================= FUNCTION: ป้อนข้อมูล OKR =================
+        function submitNewOKR() {
+            const title = document.getElementById('new-okr-title').value;
+            const projectName = document.getElementById('new-project-name').value;
+            const mainObj = document.getElementById('new-main-obj').value;
+            const subObj = document.getElementById('new-sub-obj').value;
+            const deptCode = document.getElementById('new-dept').value;
+            const deptName = (deptCode === 'computer' ? 'ภาควิชาคอมพิวเตอร์' : (deptCode === 'chemistry' ? 'ภาควิชาเคมี' : 'ส่วนกลางคณะ'));
+            const head = document.getElementById('new-head').value;
+            const budgetNum = parseFloat(document.getElementById('new-budget').value) || 0;
+            const year = document.getElementById('new-okr-year').value;
+            const assigneesText = document.getElementById('new-assignees').value;
+
+            const newProject = {
+                id: mockProjectsList.length + 1,
+                name: projectName,
+                mainObjective: mainObj || title,
+                subObjective: subObj || '-',
+                head: head,
+                assignees: assigneesText ? assigneesText.split(',').map(s => s.trim()) : [],
+                deptCode: deptCode,
+                deptName: deptName,
+                year: year,
+                month: '1',
+                budget: budgetNum.toLocaleString() + ' ฿',
+                spent: '0 ฿ (0%)',
+                progress: 0,
+                status: 'กำลังดำเนินการ',
+                statusClass: 'status-progress',
+                icon: 'fa-spinner',
+                bottleneck: '-',
+                evidences: [],
+                execFeedback: ''
+            };
+
+            mockProjectsList.unshift(newProject);
+            alert(`🎉 ป้อนข้อมูลโครงการ "${projectName}" เข้าระบบฐานข้อมูล OKR เรียบร้อยแล้ว!`);
+            switchTab('projects');
         }
 
         function filterProjectsTable() {
@@ -785,6 +1957,37 @@
             });
         }
 
+        function updateDashboardData() {
+            const year = document.getElementById('filter-year').value;
+            const dept = document.getElementById('filter-dept').value;
+            const month = document.getElementById('filter-month').value;
+            const data = mockSummaryData[year][dept] || mockSummaryData[year]['all'];
+
+            const currentYearProjects = mockProjectsList.filter(p => p.year === year);
+            if (currentYearProjects.length > 0) {
+                const totalProgress = currentYearProjects.reduce((sum, p) => sum + p.progress, 0);
+                const avgProgress = (totalProgress / currentYearProjects.length).toFixed(1);
+                document.getElementById('sum-progress').innerText = avgProgress + '%';
+            } else {
+                document.getElementById('sum-progress').innerText = data.progress;
+            }
+
+            document.getElementById('sum-target').innerText = data.target;
+            document.getElementById('sum-budget').innerText = data.budget;
+            document.getElementById('sum-risk').innerText = data.risk;
+            document.getElementById('sum-risk').style.color = data.riskColor;
+
+            if (donutChartInstance && barChartInstance) {
+                donutChartInstance.data.datasets[0].data = data.donut;
+                donutChartInstance.update();
+                barChartInstance.data.datasets[0].data = data.bar;
+                barChartInstance.update();
+            }
+
+            filterProjectsTable();
+            if (currentRole === 'executive') renderExecDashboard(year);
+        }
+
         function openProjectModal(projectId) {
             const project = mockProjectsList.find(p => p.id === projectId);
             if (!project) return;
@@ -831,6 +2034,20 @@
             document.getElementById('projectModal').style.display = 'none';
         }
 
+        function togglePerm(btn) {
+            if (btn.classList.contains('perm-granted')) {
+                btn.classList.remove('perm-granted');
+                btn.classList.add('perm-revoked');
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> ระงับสิทธิ์ชั่วคราว';
+                alert('ระงับสิทธิ์การเข้าถึงของผู้บริหารรายนี้แล้ว');
+            } else {
+                btn.classList.remove('perm-revoked');
+                btn.classList.add('perm-granted');
+                btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> มีสิทธิ์เข้าถึง';
+                alert('เปิดใช้งานสิทธิ์การเข้าถึงของผู้บริหารเรียบร้อยแล้ว');
+            }
+        }
+
         function initCharts() {
             if (typeof Chart === 'undefined') return;
             Chart.defaults.font.family = "'Prompt', sans-serif";
@@ -859,8 +2076,6 @@
             const overall = mockSummaryData[year]['all'];
             const comp = mockSummaryData[year]['computer'];
             const chem = mockSummaryData[year]['chemistry'];
-
-            document.getElementById('sum-remaining').innerText = (overall.budget - overall.spentAmount).toFixed(2);
 
             if (!trendChartInstance) {
                 const ctxTrend = document.getElementById('trendChart').getContext('2d');
@@ -899,22 +2114,6 @@
                 <tr><td style="font-weight:600; color:var(--primary);">คอมพิวเตอร์</td><td>${comp.progress}</td><td>${comp.budget} ลบ.</td><td>${comp.spentAmount} ลบ.</td><td>${(comp.budget - comp.spentAmount).toFixed(2)} ลบ.</td><td><span style="color:${comp.riskColor}; font-weight:600;">${comp.risk}</span></td></tr>
                 <tr><td style="font-weight:600; color:var(--primary);">เคมี</td><td>${chem.progress}</td><td>${chem.budget} ลบ.</td><td>${chem.spentAmount} ลบ.</td><td>${(chem.budget - chem.spentAmount).toFixed(2)} ลบ.</td><td><span style="color:${chem.riskColor}; font-weight:600;">${chem.risk}</span></td></tr>
             `;
-
-            const riskList = mockProjectsList.filter(p => p.year === year && p.statusClass === 'status-danger');
-            const riskContainer = document.getElementById('risk-project-list');
-            if (riskList.length === 0) {
-                riskContainer.innerHTML = '<p style="color: var(--text-light); padding: 10px 0;"><i class="fa-solid fa-circle-check" style="color:var(--success);"></i> ยอดเยี่ยม! ไม่มีโครงการที่มีความเสี่ยงในเงื่อนไขเวลานี้</p>';
-            } else {
-                riskContainer.innerHTML = riskList.map(p => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid #f1f5f9;">
-                        <div>
-                            <div style="font-weight:600; color:var(--primary);">${p.name}</div>
-                            <div style="font-size:13px; color:var(--text-light); margin-top:2px;">${p.deptName} • ผู้รับผิดชอบ: ${p.head}</div>
-                            <div style="font-size:12px; color:var(--danger); margin-top:4px;"><i class="fa-solid fa-circle-exclamation"></i> <b>คอขวด/ปัญหา:</b> ${p.bottleneck}</div>
-                        </div>
-                        <span class="status-badge status-danger">คืบหน้า ${p.progress}%</span>
-                    </div>`).join('');
-            }
         }
 
         function exportPDF() {
