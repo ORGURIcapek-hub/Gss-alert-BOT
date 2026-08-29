@@ -2238,6 +2238,61 @@
         function exportPDF() {
             window.print();
         }
+    </script><!-- 1. ดึงไลบรารี Supabase ผ่าน CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // ==========================================
+        // 2. ตั้งค่าการเชื่อมต่อฐานข้อมูล Supabase
+        // ==========================================
+        
+        // นำ URL และ Key จากหน้า Project Settings -> API ของ Supabase มาใส่ตรงนี้
+        // เปลี่ยนจากการใช้ const supabase เป็นการกำหนดค่าให้กับตัวแปรกลาง หรือเปลี่ยนชื่อตัวแปร
+        const SUPABASE_URL = 'https://tlpwmowpozoccdzrvkow.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; 
+
+        // ใช้ window.supabase สร้าง client โดยไม่ต้องประกาศ const ซ้ำ
+        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ==========================================
+        // 3. ตัวอย่างโค้ดดึงข้อมูลจริงมาแทนที่ข้อมูลจำลอง (Mock Data)
+        // ==========================================
+
+        // ฟังก์ชันตัวอย่าง: ดึงข้อมูลโครงการ OKR ทั้งหมดจากฐานข้อมูลมาแสดงในตาราง
+        async function fetchProjectsFromDatabase() {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('Projects')
+            .select(`
+                project_id,
+                project_name,
+                main_objective,
+                progress_percentage,
+                status,
+                Users (first_name, last_name)
+            `);
+
+        if (error) throw error;
+        console.log("✅ ดึงข้อมูลสำเร็จ:", data);
+        
+    } catch (error) {
+        console.error("❌ เกิดข้อผิดพลาดในการดึงข้อมูล:", error.message);
+        alert("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+    }
+}
+                 
+                
+                // --- ส่วนนี้คือการนำข้อมูลจริงไปแทนที่ mockProjectsList ในโค้ดเดิมของคุณ ---
+                // นำ data ที่ได้ ไปเข้าฟังก์ชัน render ตารางที่คุณเขียนไว้แล้วได้เลย
+                // เช่น นำไปใส่ตัวแปร mockProjectsLis t
+
+        // ==========================================
+        // ฟังก์ชันอื่นๆ เดิมของคุณ (doLogin, switchTab, ฯลฯ) วางต่อจากตรงนี้ได้เลย...
+        // ==========================================
+        
+        // ทดสอบเรียกใช้งานดึงข้อมูลทันทีเมื่อเปิดหน้าเว็บ
+        // fetchProjectsFromDatabase();
+
     </script>
 </body>
 </html>
