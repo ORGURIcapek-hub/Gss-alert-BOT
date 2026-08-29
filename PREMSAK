@@ -1,5 +1,6 @@
 -- =================================================================
 -- สคริปต์ฐานข้อมูล: ระบบติดตาม OKR คณะวิทยาศาสตร์ (สำหรับ Supabase / PostgreSQL)
+-- สอดคล้องตามแผนภาพ ER Diagram ครบทุก Entity และ Attributes
 -- =================================================================
 
 -- สร้างฟังก์ชัน Trigger สำหรับอัปเดต updated_at อัตโนมัติ
@@ -12,45 +13,52 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 1. ตารางเก็บข้อมูลผู้ใช้งาน (Users / Profiles)
+-- รองรับทั้ง 5 บทบาทตาม ER Diagram พร้อม Attributes เฉพาะของแต่ละบทบาท
 CREATE TABLE IF NOT EXISTS Users (
-    user_id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) PRIMARY KEY,                             -- รหัสประจำตัว (อาจารย์ / ผู้บริหาร / บุคลากร)
     email VARCHAR(100) UNIQUE,
     password_hash VARCHAR(255),
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    position VARCHAR(100),
-    department VARCHAR(100),
-    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('admin', 'manager', 'user')),
+    first_name VARCHAR(100) NOT NULL,                            -- ชื่อ
+    last_name VARCHAR(100) NOT NULL,                             -- นามสกุล
+    position VARCHAR(100),                                       -- ตำแหน่งวิชาการ/ตำแหน่งงาน
+    department VARCHAR(100),                                     -- ภาควิชา/หน่วยงาน
+    role VARCHAR(20) DEFAULT 'teacher' CHECK (role IN ('admin', 'executive', 'head_okr', 'teacher', 'staff')),
+    admin_type VARCHAR(50),                                      -- ประเภท Admin (ตาม ER Diagram)
+    executive_level VARCHAR(50),                                 -- ลำดับตำแหน่งผู้บริหาร เช่น คณบดี, รองคณบดี (ตาม ER Diagram)
+    employment_status VARCHAR(50),                               -- สถานะอัตราจ้าง / พนักงานประจำ (ตาม ER Diagram)
+    management_order INT DEFAULT 1,                              -- ลำดับการจัดการงาน (ตาม ER Diagram)
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. ตารางเก็บข้อมูล OKR หลัก (OKRs)
+-- สำหรับป้อนและติดตามเป้าหมาย OKR ระดับคณะ/ภาควิชา
 CREATE TABLE IF NOT EXISTS OKRs (
     okr_id VARCHAR(50) PRIMARY KEY,
     okr_title VARCHAR(255) NOT NULL,
-    okr_type VARCHAR(50), -- ประเภทโครงการ/OKR
+    okr_type VARCHAR(50),                                        -- ประเภทโครงการ/OKR
     year INT NOT NULL,
     quarter VARCHAR(2) CHECK (quarter IN ('Q1', 'Q2', 'Q3', 'Q4')),
     status VARCHAR(50) DEFAULT 'Draft',
-    created_by VARCHAR(50),
+    created_by VARCHAR(50),                                      -- ผู้ป้อนข้อมูล (Admin / ผู้บริหาร)
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES Users(user_id) ON DELETE SET NULL
 );
 
 -- 3. ตารางเก็บรายละเอียดโครงการย่อย (Projects)
+-- เชื่อมโยงกับอาจารย์หัวหน้า OKR ผู้รับผิดชอบโครงการ
 CREATE TABLE IF NOT EXISTS Projects (
     project_id VARCHAR(50) PRIMARY KEY,
     okr_id VARCHAR(50),
     project_name VARCHAR(255) NOT NULL,
-    project_type VARCHAR(100), -- ประเภทโครงการ
+    project_type VARCHAR(100),                                   -- ประเภทโครงการ
     description TEXT,
-    main_objective TEXT, -- เป้าหมายหลักของโครงการ
-    sub_objective TEXT,  -- เป้าหมายย่อย
+    main_objective TEXT,                                         -- เป้าหมายหลักของโครงการ
+    sub_objective TEXT,                                          -- เป้าหมายย่อย
     start_date DATE,
     end_date DATE,
-    head_of_project VARCHAR(50), -- หัวหน้าผู้รับผิดชอบโครงการ
+    head_of_project VARCHAR(50),                                 -- อาจารย์หัวหน้า OKR ที่รับผิดชอบโครงการ
     progress_percentage DECIMAL(5,2) DEFAULT 0.00 CHECK (progress_percentage BETWEEN 0 AND 100),
     status VARCHAR(50) DEFAULT 'In Progress',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -59,11 +67,12 @@ CREATE TABLE IF NOT EXISTS Projects (
     FOREIGN KEY (head_of_project) REFERENCES Users(user_id) ON DELETE SET NULL
 );
 
--- 4. ตารางรายชื่อผู้รับผิดชอบในโครงการ (Project Assignees)
+-- 4. ตารางรายชื่อผู้รับผิดชอบในโครงการร่วม (Project Assignees)
+-- สอดคล้องกับความสัมพันธ์: "หัวหน้า OKR กำหนดผู้รับผิดชอบโครงการร่วม -> อาจารย์ทั่วไป"
 CREATE TABLE IF NOT EXISTS Project_Assignees (
     project_id VARCHAR(50),
-    user_id VARCHAR(50),
-    assigned_role VARCHAR(100), -- บทบาทในโครงการ
+    user_id VARCHAR(50),                                         -- อาจารย์ทั่วไป / ผู้ร่วมดำเนินงาน
+    assigned_role VARCHAR(100),                                  -- บทบาทในโครงการ เช่น ผู้ช่วยโครงการ, ผู้ร่วมวิจัย
     assigned_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (project_id, user_id),
     FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
@@ -74,7 +83,7 @@ CREATE TABLE IF NOT EXISTS Project_Assignees (
 CREATE TABLE IF NOT EXISTS Evidences (
     evidence_id SERIAL PRIMARY KEY,
     project_id VARCHAR(50),
-    uploaded_by VARCHAR(50),
+    uploaded_by VARCHAR(50),                                     -- ผู้ส่งหลักฐาน
     file_name VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
     upload_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -84,16 +93,17 @@ CREATE TABLE IF NOT EXISTS Evidences (
 );
 
 -- 6. ตารางระบบรายงานและแจ้งเตือน (Reports)
+-- สอดคล้องกับความสัมพันธ์: "บุคลากรทั่วไป / ผู้บริหาร ส่งและดูรายงานสรุป"
 CREATE TABLE IF NOT EXISTS Reports (
     report_id SERIAL PRIMARY KEY,
-    report_type VARCHAR(100),
-    generated_for VARCHAR(50),
-    report_data JSONB, -- ใน PostgreSQL ใช้ JSONB ซึ่งมีประสิทธิภาพและการค้นหาที่ดีกว่า JSON
+    report_type VARCHAR(100),                                    -- เช่น 'Executive Summary', 'Staff Progress'
+    generated_for VARCHAR(50),                                   -- ผู้เรียกดู/รับรายงาน
+    report_data JSONB,                                           -- ข้อมูลสรุปในรูปแบบ JSONB
     generated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (generated_for) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
--- 7. ติดตั้ง Trigger ให้ตารางต่าง ๆ เพื่อให้อัปเดต updated_at อัตโนมัติ
+-- 7. ติดตั้ง Trigger สำหรับอัปเดต updated_at อัตโนมัติ
 DROP TRIGGER IF EXISTS trigger_update_users_updated_at ON Users;
 CREATE TRIGGER trigger_update_users_updated_at
 BEFORE UPDATE ON Users
