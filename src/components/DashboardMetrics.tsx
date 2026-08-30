@@ -23,80 +23,80 @@ export function DashboardMetrics({ okrs, projects }: DashboardMetricsProps) {
   const spentPercent = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : '0'
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <div className="glass-card p-3.5 sm:p-5 relative overflow-hidden group">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             เป้าหมาย OKR
           </span>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-            <Target className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#003B71] flex items-center justify-center">
+            <Target className="w-5 h-5" />
           </div>
         </div>
-        <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5">
-          <span className="text-xl sm:text-3xl font-bold text-white tracking-tight">{okrs.length}</span>
-          <span className="text-[11px] sm:text-xs text-slate-400">เป้าหมาย</span>
+        <div className="mt-3 flex items-baseline gap-1.5">
+          <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{okrs.length}</span>
+          <span className="text-xs text-slate-500 font-semibold">เป้าหมาย</span>
         </div>
-        <div className="mt-1 text-[10px] sm:text-xs text-slate-400 truncate">
+        <div className="mt-1 text-xs text-slate-500 truncate font-medium">
           {totalProjects} โครงการ ({completedProjects} สำเร็จ)
         </div>
       </div>
 
-      <div className="glass-card p-3.5 sm:p-5 relative overflow-hidden group">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             ความก้าวหน้า
           </span>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5" />
           </div>
         </div>
-        <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5">
-          <span className="text-xl sm:text-3xl font-bold text-emerald-400 tracking-tight">{avgProgress}%</span>
+        <div className="mt-3 flex items-baseline gap-1.5">
+          <span className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">{avgProgress}%</span>
         </div>
-        <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+        <div className="mt-2 w-full bg-slate-100 rounded-full h-2 overflow-hidden">
           <div
-            className="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full transition-all duration-500"
+            className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
             style={{ width: `${Math.min(Number(avgProgress), 100)}%` }}
-          ></div>
+          />
         </div>
       </div>
 
-      <div className="glass-card p-3.5 sm:p-5 relative overflow-hidden group">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             งบประมาณ
           </span>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <DollarSign className="w-5 h-5" />
           </div>
         </div>
-        <div className="mt-2 sm:mt-3 flex items-baseline gap-1">
-          <span className="text-lg sm:text-2xl font-bold text-white tracking-tight">
+        <div className="mt-3 flex items-baseline gap-1">
+          <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             {(totalSpent / 1000000).toFixed(2)}
           </span>
-          <span className="text-[10px] sm:text-xs text-slate-400">/ {(totalBudget / 1000000).toFixed(1)} ลบ.</span>
+          <span className="text-xs text-slate-500 font-semibold">/ {(totalBudget / 1000000).toFixed(1)} ลบ.</span>
         </div>
-        <div className="mt-1 text-[10px] sm:text-xs text-indigo-300">
+        <div className="mt-1 text-xs text-purple-700 font-medium">
           เบิกจ่ายแล้ว <b>{spentPercent}%</b>
         </div>
       </div>
 
-      <div className="glass-card p-3.5 sm:p-5 relative overflow-hidden group">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             สถานะความเสี่ยง
           </span>
-          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ${delayedProjects > 0 ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
-            {delayedProjects > 0 ? <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" /> : <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${delayedProjects > 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+            {delayedProjects > 0 ? <AlertTriangle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
           </div>
         </div>
-        <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5">
-          <span className={`text-xl sm:text-3xl font-bold tracking-tight ${delayedProjects > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+        <div className="mt-3 flex items-baseline gap-1.5">
+          <span className={`text-2xl sm:text-3xl font-black tracking-tight ${delayedProjects > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
             {delayedProjects > 0 ? `${delayedProjects} โครงการ` : 'ปกติ'}
           </span>
         </div>
-        <div className="mt-1 text-[10px] sm:text-xs text-slate-400 truncate">
+        <div className="mt-1 text-xs text-slate-500 truncate font-medium">
           {delayedProjects > 0 ? 'พบโครงการที่ล่าช้า' : 'ทุกโครงการตามแผน'}
         </div>
       </div>

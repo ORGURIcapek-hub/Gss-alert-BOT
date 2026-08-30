@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ProjectWithHeadAndAssignees } from '@/types/database.types'
-import { FileCheck2, Download, Search, FileText, Calendar, Building2, User } from 'lucide-react'
+import { ProjectWithHeadAndAssignees, Evidence } from '@/types/database.types'
+import { FileCheck2, Download, Search, FolderGit2, Calendar, FileText } from 'lucide-react'
 
 interface EvidenceGalleryProps {
   projects: ProjectWithHeadAndAssignees[]
@@ -11,97 +11,107 @@ interface EvidenceGalleryProps {
 export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const allEvidences = projects.flatMap(p =>
-    (p.evidences || []).map(e => ({
-      ...e,
-      projectName: p.project_name,
-      department: p.department,
-      headName: p.head ? `${p.head.first_name} ${p.head.last_name}` : 'ไม่ระบุ'
-    }))
-  )
+  const allEvidences: { evidence: Evidence; project: ProjectWithHeadAndAssignees }[] = []
+  projects.forEach((p) => {
+    p.evidences?.forEach((e) => {
+      allEvidences.push({ evidence: e, project: p })
+    })
+  })
 
-  const filteredEvidences = allEvidences.filter(e =>
-    e.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (e.description && e.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    e.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.department.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredEvidences = allEvidences.filter((item) => {
+    return (
+      item.evidence.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.evidence.description && item.evidence.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      item.project.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.project.department.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  })
 
   return (
-    <div className="glass-panel rounded-2xl p-6 border border-white/10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <FileCheck2 className="w-5 h-5 text-emerald-400" />
-            คลังหลักฐานและเอกสารผลการดำเนินงาน (Evidences Vault)
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            รวบรวมไฟล์บทความวิจัย, ใบตอบรับ, รายงานการอบรม และเอกสารรับรอง OKR
-          </p>
+    <div className="space-y-6">
+      {/* Banner */}
+      <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex items-start gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-sky-200 flex-shrink-0 shadow-inner">
+          <FileCheck2 className="w-6 h-6" />
         </div>
-
-        <div className="relative min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="ค้นหาชื่อเอกสาร, โครงการ, ภาควิชา..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full glass-input rounded-xl pl-9 pr-3 py-2 text-xs placeholder:text-slate-500"
-          />
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#00A8B5] text-white">
+              Evidence Repository
+            </span>
+            <span className="text-xs text-sky-200">คลังเอกสารและหลักฐานผลงาน</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
+            คลังเอกสารหลักฐานผลสัมฤทธิ์ OKR
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
+            รวบรวมไฟล์หลักฐานความสำเร็จ, เอกสารรับรอง, และรายงานฉบับสมบูรณ์ของทุกโครงการ
+          </p>
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex-1 sm:max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="ค้นหาชื่อไฟล์, โครงการ, ภาควิชา..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
+          />
+        </div>
+
+        <span className="text-xs text-slate-500 font-semibold">
+          พบทั้งหมด <b>{filteredEvidences.length}</b> ไฟล์
+        </span>
+      </div>
+
+      {/* Grid */}
       {filteredEvidences.length === 0 ? (
-        <div className="py-16 text-center text-slate-400">
-          <FileText className="w-10 h-10 text-slate-500 mx-auto mb-2" />
-          <p className="text-sm">ไม่พบเอกสารหลักฐานตามคำค้นหา</p>
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 text-slate-400 shadow-sm">
+          <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+          <h3 className="text-base font-bold text-slate-700">ไม่พบเอกสารหลักฐาน</h3>
+          <p className="text-xs text-slate-500 mt-1">ยังไม่มีการอัปโหลดไฟล์ หรือคำค้นหาไม่ตรงกับรายการใด</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredEvidences.map((ev) => (
+          {filteredEvidences.map((item) => (
             <div
-              key={ev.evidence_id}
-              className="glass-card p-4 border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col justify-between group"
+              key={item.evidence.evidence_id}
+              className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-sky-300 hover:shadow-md transition-all space-y-3 flex flex-col justify-between"
             >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 text-slate-300">
-                    {ev.department.replace('ภาควิชา', '')}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-[#003B71] border border-sky-200">
+                    {item.project.department.replace('ภาควิชา', '')}
+                  </span>
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(item.evidence.upload_date).toLocaleDateString('th-TH')}
                   </span>
                 </div>
 
-                <h3 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug line-clamp-2">
-                  {ev.file_name}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
-                  {ev.description || 'เอกสารรายงานผลประกอบตัวชี้วัด OKR'}
-                </p>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1">
+                  {item.evidence.file_name}
+                </h4>
 
-                <div className="mt-3 pt-3 border-t border-white/5 space-y-1 text-[10px] text-slate-400">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Building2 className="w-3 h-3 text-slate-500" />
-                    <span className="truncate">{ev.projectName}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3 h-3 text-slate-500" />
-                    <span>{new Date(ev.upload_date).toLocaleDateString('th-TH')}</span>
-                  </div>
-                </div>
+                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                  {item.evidence.description || 'ไม่มีคำอธิบายระบุ'}
+                </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[10px] text-slate-500 font-mono">
-                  {ev.file_size ? `${(ev.file_size / (1024 * 1024)).toFixed(2)} MB` : 'PDF Document'}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] text-slate-500 truncate max-w-[140px]">
+                  {item.project.project_name}
                 </span>
+
                 <a
-                  href={ev.file_path}
+                  href={item.evidence.file_path}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-1 transition-all"
+                  className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#003B71] text-xs font-bold border border-sky-200 transition-colors flex items-center gap-1"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>ดาวน์โหลด</span>

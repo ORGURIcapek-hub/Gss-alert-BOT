@@ -45,7 +45,7 @@ export function ExecutiveAnalytics({ projects }: ExecutiveAnalyticsProps) {
     datasets: [
       {
         data: [completed, inProgress, delayed, onHold],
-        backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b', '#64748b'],
+        backgroundColor: ['#10b981', '#003B71', '#f59e0b', '#94a3b8'],
         borderWidth: 0,
         hoverOffset: 4
       }
@@ -73,13 +73,13 @@ export function ExecutiveAnalytics({ projects }: ExecutiveAnalyticsProps) {
       {
         label: 'ความก้าวหน้า (%)',
         data: deptProgress,
-        backgroundColor: '#0ea5e9',
+        backgroundColor: '#003B71',
         borderRadius: 6
       },
       {
         label: 'เบิกจ่าย (%)',
         data: deptSpentPct,
-        backgroundColor: '#f59e0b',
+        backgroundColor: '#00A8B5',
         borderRadius: 6
       }
     ]
@@ -92,12 +92,12 @@ export function ExecutiveAnalytics({ projects }: ExecutiveAnalyticsProps) {
         label: 'ความคืบหน้า (%)',
         data: [15, 28, 42, 50, 63, 71, 78, 84, 88, 92, 95, 98],
         borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
         fill: true,
         tension: 0.35,
         pointBackgroundColor: '#10b981',
         pointBorderColor: '#ffffff',
-        pointRadius: 3
+        pointRadius: 4
       }
     ]
   }
@@ -108,29 +108,29 @@ export function ExecutiveAnalytics({ projects }: ExecutiveAnalyticsProps) {
     plugins: {
       legend: {
         labels: {
-          color: '#cbd5e1',
-          font: { family: "'Google Sans', 'Plus Jakarta Sans', 'Prompt', sans-serif", size: 11 }
+          color: '#334155',
+          font: { family: "'Prompt', 'Sarabun', sans-serif", size: 11, weight: 'bold' as const }
         }
       }
     },
     scales: {
       x: {
-        ticks: { color: '#94a3b8', font: { family: "'Google Sans', 'Plus Jakarta Sans', 'Prompt', sans-serif", size: 10 } },
-        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        ticks: { color: '#64748b', font: { family: "'Prompt', 'Sarabun', sans-serif", size: 10 } },
+        grid: { color: 'rgba(0, 0, 0, 0.04)' }
       },
       y: {
         beginAtZero: true,
         max: 100,
-        ticks: { color: '#94a3b8', font: { family: "'Google Sans', 'Plus Jakarta Sans', 'Prompt', sans-serif", size: 10 } },
-        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        ticks: { color: '#64748b', font: { family: "'Prompt', 'Sarabun', sans-serif", size: 10 } },
+        grid: { color: 'rgba(0, 0, 0, 0.04)' }
       }
     }
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-      <div className="glass-card p-4 sm:p-5 flex flex-col">
-        <h3 className="text-xs sm:text-sm font-bold text-white mb-1">สัดส่วนสถานะโครงการ</h3>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
+        <h3 className="text-xs sm:text-sm font-bold text-slate-900 mb-1">สัดส่วนสถานะโครงการ</h3>
         <div className="h-56 sm:h-60 flex items-center justify-center">
           <Doughnut
             data={doughnutData}
@@ -140,7 +140,7 @@ export function ExecutiveAnalytics({ projects }: ExecutiveAnalyticsProps) {
               plugins: {
                 legend: {
                   position: 'bottom',
-                  labels: { color: '#cbd5e1', font: { family: "'Google Sans', 'Plus Jakarta Sans', 'Prompt', sans-serif", size: 10 } }
+                  labels: { color: '#334155', font: { family: "'Prompt', 'Sarabun', sans-serif", size: 11 } }
                 }
               },
               cutout: '70%'
@@ -149,15 +149,15 @@ export function ExecutiveAnalytics({ projects }: ExecutiveAnalyticsProps) {
         </div>
       </div>
 
-      <div className="glass-card p-4 sm:p-5 flex flex-col">
-        <h3 className="text-xs sm:text-sm font-bold text-white mb-1">ความก้าวหน้าและการเบิกจ่าย</h3>
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
+        <h3 className="text-xs sm:text-sm font-bold text-slate-900 mb-1">ความก้าวหน้าและการเบิกจ่าย</h3>
         <div className="h-56 sm:h-60">
           <Bar data={barData} options={chartOptions} />
         </div>
       </div>
 
-      <div className="glass-card p-4 sm:p-5 flex flex-col">
-        <h3 className="text-xs sm:text-sm font-bold text-white mb-1">แนวโน้มผลงานประจำปี</h3>
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
+        <h3 className="text-xs sm:text-sm font-bold text-slate-900 mb-1">แนวโน้มผลงานประจำปี</h3>
         <div className="h-56 sm:h-60">
           <Line data={lineData} options={chartOptions} />
         </div>

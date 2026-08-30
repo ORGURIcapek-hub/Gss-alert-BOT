@@ -1,9 +1,12 @@
-import { OKR, ProjectWithHeadAndAssignees, UserProfile } from '@/types/database.types'
+import { OKR, ProjectWithHeadAndAssignees, UserProfile, DashboardReport, NormalReport, ProjectAssignment, EvidenceSubmission, Evaluation } from '@/types/database.types'
 
 export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000001',
+    username: 'admin',
+    name: 'ผู้ดูแลระบบ ส่วนกลาง',
     email: 'admin@science.ac.th',
+    password: 'password123',
     first_name: 'ผู้ดูแลระบบ',
     last_name: 'ส่วนกลาง',
     position: 'ผู้ดูแลระบบเทคโนโลยีสารสนเทศ',
@@ -19,7 +22,10 @@ export const mockUsers: UserProfile[] = [
   },
   {
     user_id: '00000000-0000-0000-0000-000000000002',
+    username: 'dean',
+    name: 'ศ.ดร.ประสิทธิ์ พัฒนาวิทย์',
     email: 'dean@science.ac.th',
+    password: 'password123',
     first_name: 'ศ.ดร.ประสิทธิ์',
     last_name: 'พัฒนาวิทย์',
     position: 'คณบดีคณะวิทยาศาสตร์',
@@ -35,7 +41,10 @@ export const mockUsers: UserProfile[] = [
   },
   {
     user_id: '00000000-0000-0000-0000-000000000003',
+    username: 'vice.dean',
+    name: 'รศ.ดร.วิชัย เกียรติขจร',
     email: 'vice.dean@science.ac.th',
+    password: 'password123',
     first_name: 'รศ.ดร.วิชัย',
     last_name: 'เกียรติขจร',
     position: 'รองคณบดีฝ่ายวิชาการและวิจัย',
@@ -51,7 +60,10 @@ export const mockUsers: UserProfile[] = [
   },
   {
     user_id: '00000000-0000-0000-0000-000000000004',
+    username: 'head.cs',
+    name: 'ผศ.ดร.สมชาย ใจดี',
     email: 'head.cs@science.ac.th',
+    password: 'password123',
     first_name: 'ผศ.ดร.สมชาย',
     last_name: 'ใจดี',
     position: 'หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์',
@@ -67,7 +79,10 @@ export const mockUsers: UserProfile[] = [
   },
   {
     user_id: '00000000-0000-0000-0000-000000000005',
+    username: 'head.chem',
+    name: 'รศ.ดร.นภา สิริกุล',
     email: 'head.chem@science.ac.th',
+    password: 'password123',
     first_name: 'รศ.ดร.นภา',
     last_name: 'สิริกุล',
     position: 'หัวหน้าภาควิชาเคมี',
@@ -83,7 +98,10 @@ export const mockUsers: UserProfile[] = [
   },
   {
     user_id: '00000000-0000-0000-0000-000000000006',
+    username: 'teacher.cs1',
+    name: 'อ.ดร.กานดา สุขสมบัติ',
     email: 'teacher.cs1@science.ac.th',
+    password: 'password123',
     first_name: 'อ.ดร.กานดา',
     last_name: 'สุขสมบัติ',
     position: 'อาจารย์ประจำภาควิชา',
@@ -99,7 +117,10 @@ export const mockUsers: UserProfile[] = [
   },
   {
     user_id: '00000000-0000-0000-0000-000000000007',
+    username: 'teacher.chem1',
+    name: 'ผศ.ดร.อนันต์ แสงทอง',
     email: 'teacher.chem1@science.ac.th',
+    password: 'password123',
     first_name: 'ผศ.ดร.อนันต์',
     last_name: 'แสงทอง',
     position: 'อาจารย์ประจำภาควิชา',
@@ -115,7 +136,10 @@ export const mockUsers: UserProfile[] = [
   },
   {
     user_id: '00000000-0000-0000-0000-000000000008',
+    username: 'staff.plan',
+    name: 'น.ส.วิภาดา นโยบายดี',
     email: 'staff.plan@science.ac.th',
+    password: 'password123',
     first_name: 'น.ส.วิภาดา',
     last_name: 'นโยบายดี',
     position: 'เจ้าหน้าที่วิเคราะห์นโยบายและแผน',
@@ -313,6 +337,157 @@ export const mockProjects: ProjectWithHeadAndAssignees[] = [
         upload_date: '2024-09-28T14:20:00Z'
       }
     ]
+  }
+]
+
+export const mockDashboardReports: DashboardReport[] = [
+  {
+    dashboard_id: '40000000-0000-0000-0000-000000000001',
+    overall_okr_info: 'สรุปภาพรวมยุทธศาสตร์ OKR ภาควิชาวิทยาการคอมพิวเตอร์: ดำเนินโครงการ AI ด้านพันธุศาสตร์และศูนย์ Cloud Computing บรรลุผลสัมฤทธิ์ร้อยละ 90 มีการส่งมอบระบบต้นแบบและเตรียมตีพิมพ์วารสารสากล 2 ฉบับ พร้อมเปิดศูนย์ฝึกอบรมรองรับนิสิต 200 คนตามเป้าหมาย',
+    okr_head_evaluation_score: 92.5,
+    head_id: '00000000-0000-0000-0000-000000000004',
+    head_name: 'ผศ.ดร.สมชาย ใจดี',
+    academic_year: 2567,
+    created_at: '2024-08-15T10:00:00Z',
+    updated_at: '2024-08-15T10:00:00Z'
+  },
+  {
+    dashboard_id: '40000000-0000-0000-0000-000000000002',
+    overall_okr_info: 'สรุปภาพรวมยุทธศาสตร์ OKR ภาควิชาเคมี: ดำเนินโครงการตรวจวัดคุณภาพน้ำชุมชนสำเร็จครบถ้วน 100% ส่วนโครงการสังเคราะห์วัสดุนาโนคาร์บอนเพื่อกักเก็บพลังงานสะอาดคืบหน้า 72.5% รอส่งมอบสารเคมีนำเข้าเพื่อทดสอบขั้นตอนสุดท้าย',
+    okr_head_evaluation_score: 86.0,
+    head_id: '00000000-0000-0000-0000-000000000005',
+    head_name: 'รศ.ดร.นภา สิริกุล',
+    academic_year: 2567,
+    created_at: '2024-08-20T14:30:00Z',
+    updated_at: '2024-08-20T14:30:00Z'
+  }
+]
+
+export const mockNormalReports: NormalReport[] = [
+  {
+    report_id: '50000000-0000-0000-0000-000000000001',
+    project_id: '20000000-0000-0000-0000-000000000001',
+    project_name: 'โครงการพัฒนาระบบ AI สำหรับวิเคราะห์ข้อมูลจีโนมิกส์ทางการแพทย์',
+    project_details: 'รายงานสรุปความก้าวหน้าการพัฒนาระบบ AI และชุดทดสอบอัลกอริทึมในการวิเคราะห์ยีนกลายพันธุ์',
+    responsible_person_name: 'อ.ดร.กานดา สุขสมบัติ',
+    head_name: 'ผศ.ดร.สมชาย ใจดี',
+    project_outcome: 'โมเดล AI มีความแม่นยำ 94.2% และเตรียมยื่นตีพิมพ์ฉบับสมบูรณ์ในวารสาร IEEE',
+    initial_expected_outcome: 'ตีพิมพ์ในวารสารระดับ Q1 จำนวน 2 บทความ',
+    head_evaluation_score: 90.0,
+    team_evaluation_score: 88.5,
+    created_by: '00000000-0000-0000-0000-000000000004',
+    created_at: '2024-08-10T11:00:00Z',
+    updated_at: '2024-08-10T11:00:00Z'
+  },
+  {
+    report_id: '50000000-0000-0000-0000-000000000002',
+    project_id: '20000000-0000-0000-0000-000000000004',
+    project_name: 'โครงการตรวจวัดคุณภาพน้ำและสิ่งแวดล้อมชุมชนลุ่มน้ำภาคกลาง',
+    project_details: 'โครงการบริการวิชาการถ่ายทอดเทคโนโลยีการตรวจวัดสารเคมีในแหล่งน้ำแก่ผู้นำชุมชน',
+    responsible_person_name: 'ผศ.ดร.อนันต์ แสงทอง',
+    head_name: 'รศ.ดr.นภา สิริกุล',
+    project_outcome: 'ชุมชนเป้าหมาย 5 แห่งสามารถตรวจวิเคราะห์เบื้องต้นและบริหารจัดการน้ำได้จริง มีหนังสือตอบรับครบ 100%',
+    initial_expected_outcome: 'ชุมชนเป้าหมาย 5 แห่งสามารถตรวจวิเคราะห์เบื้องต้นและบริหารจัดการน้ำได้เอง',
+    head_evaluation_score: 98.0,
+    team_evaluation_score: 96.0,
+    created_by: '00000000-0000-0000-0000-000000000005',
+    created_at: '2024-08-25T09:15:00Z',
+    updated_at: '2024-08-25T09:15:00Z'
+  }
+]
+
+export const mockProjectAssignments: ProjectAssignment[] = [
+  {
+    assignment_id: '60000000-0000-0000-0000-000000000001',
+    project_id: '20000000-0000-0000-0000-000000000001',
+    user_id: '00000000-0000-0000-0000-000000000004',
+    role_type: 'Head',
+    assigned_by: '00000000-0000-0000-0000-000000000002',
+    created_at: '2024-01-10T00:00:00Z'
+  },
+  {
+    assignment_id: '60000000-0000-0000-0000-000000000002',
+    project_id: '20000000-0000-0000-0000-000000000001',
+    user_id: '00000000-0000-0000-0000-000000000006',
+    role_type: 'Member',
+    assigned_by: '00000000-0000-0000-0000-000000000004',
+    created_at: '2024-01-15T00:00:00Z'
+  },
+  {
+    assignment_id: '60000000-0000-0000-0000-000000000003',
+    project_id: '20000000-0000-0000-0000-000000000004',
+    user_id: '00000000-0000-0000-0000-000000000005',
+    role_type: 'Head',
+    assigned_by: '00000000-0000-0000-0000-000000000002',
+    created_at: '2024-01-10T00:00:00Z'
+  },
+  {
+    assignment_id: '60000000-0000-0000-0000-000000000004',
+    project_id: '20000000-0000-0000-0000-000000000004',
+    user_id: '00000000-0000-0000-0000-000000000007',
+    role_type: 'Member',
+    assigned_by: '00000000-0000-0000-0000-000000000005',
+    created_at: '2024-01-20T00:00:00Z'
+  }
+]
+
+export const mockEvidenceSubmissions: EvidenceSubmission[] = [
+  {
+    evidence_id: '30000000-0000-0000-0000-000000000001',
+    project_id: '20000000-0000-0000-0000-000000000001',
+    sender_id: '00000000-0000-0000-0000-000000000006',
+    file_name: 'ai_genomics_model_benchmark_report.pdf',
+    file_path: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    file_type: 'application/pdf',
+    submitted_at: '2024-09-15T10:30:00Z'
+  },
+  {
+    evidence_id: '30000000-0000-0000-0000-000000000002',
+    project_id: '20000000-0000-0000-0000-000000000001',
+    sender_id: '00000000-0000-0000-0000-000000000006',
+    file_name: 'lab_experiment_photo_validation.jpg',
+    file_path: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80',
+    file_type: 'image/jpeg',
+    submitted_at: '2024-09-20T16:45:00Z'
+  },
+  {
+    evidence_id: '30000000-0000-0000-0000-000000000004',
+    project_id: '20000000-0000-0000-0000-000000000004',
+    sender_id: '00000000-0000-0000-0000-000000000007',
+    file_name: 'water_quality_community_report_final.pdf',
+    file_path: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    file_type: 'application/pdf',
+    submitted_at: '2024-09-28T14:20:00Z'
+  }
+]
+
+export const mockEvaluations: Evaluation[] = [
+  {
+    eval_id: '70000000-0000-0000-0000-000000000001',
+    report_id: '50000000-0000-0000-0000-000000000001',
+    dashboard_id: null,
+    evaluator_id: '00000000-0000-0000-0000-000000000004',
+    head_score: 5,
+    team_score: 4,
+    created_at: '2024-08-15T12:00:00Z'
+  },
+  {
+    eval_id: '70000000-0000-0000-0000-000000000002',
+    report_id: '50000000-0000-0000-0000-000000000002',
+    dashboard_id: null,
+    evaluator_id: '00000000-0000-0000-0000-000000000005',
+    head_score: 5,
+    team_score: 5,
+    created_at: '2024-08-26T10:00:00Z'
+  },
+  {
+    eval_id: '70000000-0000-0000-0000-000000000003',
+    report_id: null,
+    dashboard_id: '40000000-0000-0000-0000-000000000001',
+    evaluator_id: '00000000-0000-0000-0000-000000000002',
+    head_score: 5,
+    team_score: null,
+    created_at: '2024-08-16T09:00:00Z'
   }
 ]
 

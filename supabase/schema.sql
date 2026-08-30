@@ -25,8 +25,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE public.users (
-    user_id UUID PRIMARY KEY,
+    user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username VARCHAR(100) UNIQUE,
+    name VARCHAR(200),
     email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL DEFAULT '123456',
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     position VARCHAR(100),
@@ -37,6 +40,68 @@ CREATE TABLE public.users (
     employment_status VARCHAR(50) DEFAULT 'Full-Time',
     management_order INT DEFAULT 1,
     avatar_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: Project_Assignments (Handles hierarchical role and member permissions)
+CREATE TABLE public.project_assignments (
+    assignment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID REFERENCES public.projects(project_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.users(user_id) ON DELETE CASCADE,
+    role_type VARCHAR(20) NOT NULL CHECK (role_type IN ('Head', 'Member')),
+    assigned_by UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS public."Project_Assignments" AS SELECT * FROM public.project_assignments WITH NO DATA;
+
+-- Table: Evidence_Submissions (Handles evidence file uploads with strict types)
+CREATE TABLE public.evidence_submissions (
+    evidence_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID REFERENCES public.projects(project_id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path TEXT NOT NULL,
+    file_type VARCHAR(100) NOT NULL,
+    submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS public."Evidence_Submissions" AS SELECT * FROM public.evidence_submissions WITH NO DATA;
+
+-- Table: Evaluations (Handles interactive 5-point evaluation ratings)
+CREATE TABLE public.evaluations (
+    eval_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    report_id UUID REFERENCES public.normal_reports(report_id) ON DELETE CASCADE,
+    dashboard_id UUID REFERENCES public.dashboard(dashboard_id) ON DELETE CASCADE,
+    evaluator_id UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
+    head_score INT NOT NULL CHECK (head_score BETWEEN 1 AND 5),
+    team_score INT CHECK (team_score BETWEEN 1 AND 5),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS public."Evaluations" AS SELECT * FROM public.evaluations WITH NO DATA;
+
+CREATE TABLE public.dashboard (
+    dashboard_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    overall_okr_info TEXT NOT NULL,
+    okr_head_evaluation_score DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    head_id UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
+    head_name VARCHAR(255),
+    academic_year INT DEFAULT 2567,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE public.normal_reports (
+    report_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID REFERENCES public.projects(project_id) ON DELETE SET NULL,
+    project_name VARCHAR(255) NOT NULL,
+    project_details TEXT,
+    responsible_person_name VARCHAR(255),
+    head_name VARCHAR(255),
+    project_outcome TEXT,
+    initial_expected_outcome TEXT,
+    head_evaluation_score DECIMAL(5,2) DEFAULT 0.00,
+    team_evaluation_score DECIMAL(5,2) DEFAULT 0.00,
+    created_by UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

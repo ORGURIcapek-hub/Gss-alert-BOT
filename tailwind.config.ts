@@ -9,49 +9,33 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        sdu: {
+          blue: '#003B71',
+          navy: '#00264D',
+          teal: '#00A8B5',
+          gold: '#F6C343',
+          light: '#F4F9FC',
+        },
         primary: {
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
           300: '#7dd3fc',
           400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          500: '#0284c7',
+          600: '#0369a1',
+          700: '#075985',
+          800: '#0c4a6e',
+          900: '#082f49',
         },
-        navy: {
-          800: '#111827',
-          850: '#0e1626',
-          900: '#0b1120',
-          950: '#070b14',
-        },
-        emerald: {
-          500: '#10b981',
-          600: '#059669',
-        },
-        amber: {
-          500: '#f59e0b',
-          600: '#d97706',
-        },
-        rose: {
-          500: '#f43f5e',
-          600: '#e11d48',
-        }
       },
       fontFamily: {
-        sans: ['"Google Sans"', '"Plus Jakarta Sans"', 'Prompt', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-      },
-      backdropBlur: {
-        xs: '2px',
+        sans: ['Prompt', 'Sarabun', 'Kanit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       boxShadow: {
-        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-        'glass-hover': '0 14px 40px 0 rgba(0, 0, 0, 0.45)',
-        'glow-primary': '0 0 25px rgba(14, 165, 233, 0.35)',
-        'glow-emerald': '0 0 25px rgba(16, 185, 129, 0.35)',
+        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+        'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+        'glow-primary': '0 0 20px rgba(2, 132, 199, 0.25)',
       }
     },
   },

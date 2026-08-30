@@ -5,13 +5,30 @@ import { UserProfile, UserRole } from '@/types/database.types'
 import { mockUsers } from '@/lib/mock-data'
 import { fetchUsers } from '@/lib/services/okr-service'
 
+interface LoginResult {
+  success: boolean
+  error?: string
+}
+
+interface RegisterData {
+  username: string
+  password?: string
+  name?: string
+  first_name?: string
+  last_name?: string
+  email: string
+  role?: UserRole
+  department?: string
+  position?: string
+}
+
 interface RoleContextType {
   currentUser: UserProfile | null
   allUsers: UserProfile[]
   currentRole: UserRole | null
   isAuthenticated: boolean
-  login: (email: string, role?: UserRole) => Promise<boolean>
-  quickLogin: (role: UserRole) => void
+  login: (identifier: string, password?: string) => Promise<LoginResult>
+  register: (userData: RegisterData) => Promise<LoginResult>
   switchUser: (userId: string) => void
   logout: () => void
   refreshUsers: () => Promise<void>
@@ -37,7 +54,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshUsers()
-    const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('okr_current_user_id') : null
+    const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_user_id') : null
     if (savedUserId) {
       const user = mockUsers.find(u => u.user_id === savedUserId)
       if (user) {
@@ -47,40 +64,60 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = async (email: string, fallbackRole?: UserRole): Promise<boolean> => {
-    const found = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase())
-    if (found) {
-      setCurrentUser(found)
-      setIsAuthenticated(true)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('okr_current_user_id', found.user_id)
-      }
-      return true
+  const login = async (identifier: string, password?: string): Promise<LoginResult> => {
+    const cleanId = identifier.trim().toLowerCase()
+    const foundUser = allUsers.find(u =>
+      u.email.trim().toLowerCase() === cleanId ||
+      (u.username && u.username.trim().toLowerCase() === cleanId)
+    )
+
+    if (!foundUser) {
+      return { success: false, error: 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ กรุณาตรวจสอบอีเมลหรือชื่อผู้ใช้งาน' }
     }
 
-    if (fallbackRole) {
-      const byRole = allUsers.find(u => u.role === fallbackRole)
-      if (byRole) {
-        setCurrentUser(byRole)
-        setIsAuthenticated(true)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('okr_current_user_id', byRole.user_id)
-        }
-        return true
-      }
+    const expectedPassword = foundUser.password || 'password123'
+    if (password !== undefined && password !== expectedPassword) {
+      return { success: false, error: 'รหัสผ่านไม่ถูกต้อง (Incorrect password)' }
     }
 
-    return false
+    setCurrentUser(foundUser)
+    setIsAuthenticated(true)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sdu_okr_user_id', foundUser.user_id)
+    }
+    return { success: true }
   }
 
-  const quickLogin = (role: UserRole) => {
-    const user = allUsers.find(u => u.role === role) || mockUsers.find(u => u.role === role)
-    if (user) {
-      setCurrentUser(user)
+  const register = async (userData: RegisterData): Promise<LoginResult> => {
+    try {
+      const cleanEmail = userData.email.trim().toLowerCase()
+      const cleanUsername = userData.username.trim().toLowerCase()
+      
+      const existing = allUsers.find(u =>
+        u.email.trim().toLowerCase() === cleanEmail ||
+        (u.username && u.username.trim().toLowerCase() === cleanUsername)
+      )
+
+      if (existing) {
+        return { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' }
+      }
+
+      const { registerUserRecord } = await import('@/lib/services/okr-service')
+      const newUser = await registerUserRecord({
+        ...userData,
+        email: cleanEmail,
+        username: cleanUsername
+      })
+
+      await refreshUsers()
+      setCurrentUser(newUser)
       setIsAuthenticated(true)
       if (typeof window !== 'undefined') {
-        localStorage.setItem('okr_current_user_id', user.user_id)
+        localStorage.setItem('sdu_okr_user_id', newUser.user_id)
       }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการลงทะเบียน' }
     }
   }
 
@@ -90,7 +127,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(found)
       setIsAuthenticated(true)
       if (typeof window !== 'undefined') {
-        localStorage.setItem('okr_current_user_id', found.user_id)
+        localStorage.setItem('sdu_okr_user_id', found.user_id)
       }
     }
   }
@@ -99,7 +136,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null)
     setIsAuthenticated(false)
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('okr_current_user_id')
+      localStorage.removeItem('sdu_okr_user_id')
     }
   }
 
@@ -111,7 +148,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         currentRole: currentUser ? currentUser.role : null,
         isAuthenticated,
         login,
-        quickLogin,
+        register,
         switchUser,
         logout,
         refreshUsers

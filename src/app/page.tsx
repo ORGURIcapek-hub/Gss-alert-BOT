@@ -16,6 +16,10 @@ import { ExecutiveWorkspace } from '@/components/workspaces/ExecutiveWorkspace'
 import { HeadOKRWorkspace } from '@/components/workspaces/HeadOKRWorkspace'
 import { TeacherWorkspace } from '@/components/workspaces/TeacherWorkspace'
 import { AdminWorkspace } from '@/components/workspaces/AdminWorkspace'
+import { CreateDashboardView } from '@/components/CreateDashboardView'
+import { CreateNormalReportView } from '@/components/CreateNormalReportView'
+import { NormalReportView } from '@/components/NormalReportView'
+import { HeadEvidenceView } from '@/components/HeadEvidenceView'
 import { useRole } from '@/components/RoleContext'
 import { fetchOKRs, fetchProjects } from '@/lib/services/okr-service'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
@@ -63,7 +67,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-navy-950 text-slate-100">
+    <div className="flex min-h-screen bg-white text-slate-900 font-sans">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -71,7 +75,7 @@ export default function HomePage() {
         onClose={() => setIsMobileMenuOpen(false)}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar bg-slate-50/50">
         <Header
           selectedYear={selectedYear}
           setSelectedYear={setSelectedYear}
@@ -83,7 +87,7 @@ export default function HomePage() {
           isRefreshing={isRefreshing}
         />
 
-        <div className="p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
           {activeTab === 'workspace' && (
             <>
               {currentRole === 'executive' && (
@@ -121,7 +125,7 @@ export default function HomePage() {
               )}
 
               {currentRole === 'staff' && (
-                <div className="space-y-5">
+                <div className="space-y-6">
                   <DashboardMetrics okrs={okrs} projects={projects} />
                   <ProjectTable
                     projects={projects}
@@ -133,8 +137,37 @@ export default function HomePage() {
             </>
           )}
 
+          {activeTab === 'create_dashboard' && currentRole === 'head_okr' && (
+            <CreateDashboardView
+              okrs={okrs}
+              projects={projects}
+              onSuccess={() => {
+                loadData()
+                setActiveTab('workspace')
+              }}
+            />
+          )}
+
+          {activeTab === 'create_normal_report' && currentRole === 'head_okr' && (
+            <CreateNormalReportView
+              projects={projects}
+              onSuccess={() => {
+                loadData()
+                setActiveTab('normal_reports')
+              }}
+            />
+          )}
+
+          {activeTab === 'team_evidences' && currentRole === 'head_okr' && (
+            <HeadEvidenceView projects={projects} />
+          )}
+
+          {activeTab === 'normal_reports' && (
+            <NormalReportView />
+          )}
+
           {activeTab === 'dashboard' && (
-            <div className="space-y-5">
+            <div className="space-y-6">
               <DashboardMetrics okrs={okrs} projects={projects} />
               <ProjectTable
                 projects={projects}
@@ -145,7 +178,7 @@ export default function HomePage() {
           )}
 
           {activeTab === 'analytics' && (
-            <div className="space-y-5">
+            <div className="space-y-6">
               <DashboardMetrics okrs={okrs} projects={projects} />
               <ExecutiveAnalytics projects={projects} />
             </div>
