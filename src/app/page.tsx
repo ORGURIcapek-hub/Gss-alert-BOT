@@ -22,10 +22,21 @@ import { HeadEvidenceView } from '@/components/HeadEvidenceView'
 import { useRole } from '@/components/RoleContext'
 import { fetchOKRs, fetchProjects } from '@/lib/services/okr-service'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
+import { SDULogo } from '@/components/SDULogo'
 
 export default function HomePage() {
-  const { currentUser, currentRole, isAuthenticated, allUsers } = useRole()
-  const [activeTab, setActiveTab] = useState('workspace')
+  const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers, refreshUsers } = useRole()
+  
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedTab = localStorage.getItem('sdu_okr_active_tab')
+        if (savedTab) return savedTab
+      } catch {}
+    }
+    return 'workspace'
+  })
+  const [isClientReady, setIsClientReady] = useState(false)
   const [selectedYear, setSelectedYear] = useState(2567)
   const [selectedQuarter, setSelectedQuarter] = useState('ALL')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -36,16 +47,43 @@ export default function HomePage() {
   const [selectedProject, setSelectedProject] = useState<ProjectWithHeadAndAssignees | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('sdu_okr_active_tab', tabId)
+      } catch {}
+    }
+  }
+
   const loadData = async () => {
     setIsRefreshing(true)
-    const [okrsData, projectsData] = await Promise.all([
-      fetchOKRs(selectedYear),
-      fetchProjects({ year: selectedYear })
-    ])
-    setOkrs(okrsData)
-    setProjects(projectsData)
-    setIsRefreshing(false)
+    try {
+      const [okrsData, projectsData] = await Promise.all([
+        fetchOKRs(selectedYear),
+        fetchProjects({ year: selectedYear }),
+        refreshUsers()
+      ])
+      setOkrs(okrsData)
+      setProjects(projectsData)
+    } catch (err) {
+      console.error('Failed to load data:', err)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
+
+  useEffect(() => {
+    setIsClientReady(true)
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('sdu_okr_active_tab')
+      if (savedTab) {
+        setActiveTab(savedTab)
+      } else if (currentRole === 'admin') {
+        handleTabChange('users')
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -54,11 +92,29 @@ export default function HomePage() {
   }, [selectedYear, isAuthenticated])
 
   useEffect(() => {
-    setActiveTab(currentRole === 'admin' ? 'users' : 'workspace')
-  }, [currentRole])
+    if (!isClientReady) return
+    if (currentRole === 'admin' && activeTab === 'workspace') {
+      handleTabChange('users')
+    }
+  }, [currentRole, isClientReady])
 
   const handleExportPDF = () => {
     window.print()
+  }
+
+  // If still checking authentication state from localStorage/backend, show smooth loading screen
+  if (isAuthLoading && !currentUser) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <SDULogo size="lg" textColor="light" showText={true} />
+          <div className="flex items-center gap-2.5 text-sky-200 text-xs font-semibold mt-3">
+            <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+            <span>กำลังโหลดข้อมูลระบบและเชื่อมต่อเซสชัน...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated || !currentUser) {
@@ -69,7 +125,7 @@ export default function HomePage() {
     <div className="flex min-h-screen bg-white text-slate-900 font-sans">
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />
@@ -133,7 +189,7 @@ export default function HomePage() {
               projects={projects}
               onSuccess={() => {
                 loadData()
-                setActiveTab('workspace')
+                handleTabChange('workspace')
               }}
             />
           )}
@@ -143,7 +199,7 @@ export default function HomePage() {
               projects={projects}
               onSuccess={() => {
                 loadData()
-                setActiveTab('normal_reports')
+                handleTabChange('normal_reports')
               }}
             />
           )}

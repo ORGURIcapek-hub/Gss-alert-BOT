@@ -27,6 +27,7 @@ interface RoleContextType {
   allUsers: UserProfile[]
   currentRole: UserRole | null
   isAuthenticated: boolean
+  isAuthLoading: boolean
   login: (identifier: string, password?: string) => Promise<LoginResult>
   register: (userData: RegisterData) => Promise<LoginResult>
   deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>
@@ -50,46 +51,104 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
     return mockUsers
   })
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUserId = localStorage.getItem('sdu_okr_user_id')
+        const rawDeleted = localStorage.getItem('sdu_okr_deleted_user_ids')
+        const deletedIds: string[] = rawDeleted ? JSON.parse(rawDeleted) : []
+        if (savedUserId && !deletedIds.includes(savedUserId)) {
+          const cachedUser = localStorage.getItem('sdu_okr_cached_user')
+          if (cachedUser) {
+            return JSON.parse(cachedUser)
+          }
+          const user = mockUsers.find(u => u.user_id === savedUserId)
+          if (user) return user
+        }
+      } catch {}
+    }
+    return null
+  })
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUserId = localStorage.getItem('sdu_okr_user_id')
+        const rawDeleted = localStorage.getItem('sdu_okr_deleted_user_ids')
+        const deletedIds: string[] = rawDeleted ? JSON.parse(rawDeleted) : []
+        return Boolean(savedUserId && !deletedIds.includes(savedUserId))
+      } catch {}
+    }
+    return false
+  })
+
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true)
 
   const refreshUsers = async () => {
-    const users = await fetchUsers()
-    setAllUsers(users)
-    if (currentUser) {
-      const updated = users.find(u => u.user_id === currentUser.user_id)
-      if (updated) {
-        setCurrentUser(updated)
-      } else {
-        // User was deleted
-        logout()
+    try {
+      const users = await fetchUsers()
+      setAllUsers(users)
+      if (currentUser) {
+        const updated = users.find(u => u.user_id === currentUser.user_id)
+        if (updated) {
+          setCurrentUser(updated)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sdu_okr_cached_user', JSON.stringify(updated))
+          }
+        }
       }
+    } catch (e) {
+      console.error('Failed to refresh users', e)
     }
   }
 
   useEffect(() => {
-    refreshUsers()
-    const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_user_id') : null
-    if (savedUserId) {
-      // Check if user was deleted
-      let isDeleted = false
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('sdu_okr_deleted_user_ids')
-          const deletedIds: string[] = raw ? JSON.parse(raw) : []
-          if (deletedIds.includes(savedUserId)) isDeleted = true
-        } catch {}
-      }
+    let isMounted = true
+    const initAuth = async () => {
+      try {
+        const users = await fetchUsers()
+        if (!isMounted) return
+        setAllUsers(users)
 
-      if (!isDeleted) {
-        const user = mockUsers.find(u => u.user_id === savedUserId)
-        if (user) {
-          setCurrentUser(user)
-          setIsAuthenticated(true)
+        const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_user_id') : null
+        if (savedUserId) {
+          const rawDeleted = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_deleted_user_ids') : null
+          const deletedIds: string[] = rawDeleted ? JSON.parse(rawDeleted) : []
+
+          if (!deletedIds.includes(savedUserId)) {
+            const foundInFetched = users.find(u => u.user_id === savedUserId)
+            if (foundInFetched) {
+              setCurrentUser(foundInFetched)
+              setIsAuthenticated(true)
+              localStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundInFetched))
+            } else {
+              const cached = localStorage.getItem('sdu_okr_cached_user')
+              if (cached) {
+                const parsed = JSON.parse(cached)
+                setCurrentUser(parsed)
+                setIsAuthenticated(true)
+              }
+            }
+          } else {
+            localStorage.removeItem('sdu_okr_user_id')
+            localStorage.removeItem('sdu_okr_cached_user')
+            setCurrentUser(null)
+            setIsAuthenticated(false)
+          }
         }
-      } else {
-        localStorage.removeItem('sdu_okr_user_id')
+      } catch (err) {
+        console.error('Error during initAuth', err)
+      } finally {
+        if (isMounted) {
+          setIsAuthLoading(false)
+        }
       }
+    }
+
+    initAuth()
+    return () => {
+      isMounted = false
     }
   }, [])
 
@@ -113,6 +172,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(true)
     if (typeof window !== 'undefined') {
       localStorage.setItem('sdu_okr_user_id', foundUser.user_id)
+      localStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundUser))
     }
     return { success: true }
   }
@@ -143,6 +203,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true)
       if (typeof window !== 'undefined') {
         localStorage.setItem('sdu_okr_user_id', newUser.user_id)
+        localStorage.setItem('sdu_okr_cached_user', JSON.stringify(newUser))
       }
       return { success: true }
     } catch (err: any) {
@@ -180,6 +241,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true)
       if (typeof window !== 'undefined') {
         localStorage.setItem('sdu_okr_user_id', found.user_id)
+        localStorage.setItem('sdu_okr_cached_user', JSON.stringify(found))
       }
     }
   }
@@ -189,6 +251,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false)
     if (typeof window !== 'undefined') {
       localStorage.removeItem('sdu_okr_user_id')
+      localStorage.removeItem('sdu_okr_cached_user')
+      localStorage.removeItem('sdu_okr_active_tab')
     }
   }
 
@@ -199,6 +263,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         allUsers,
         currentRole: currentUser ? currentUser.role : null,
         isAuthenticated,
+        isAuthLoading,
         login,
         register,
         deleteUser,
