@@ -27,16 +27,8 @@ import { SDULogo } from '@/components/SDULogo'
 export default function HomePage() {
   const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers, refreshUsers } = useRole()
   
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedTab = localStorage.getItem('sdu_okr_active_tab')
-        if (savedTab) return savedTab
-      } catch {}
-    }
-    return 'workspace'
-  })
-  const [isClientReady, setIsClientReady] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>('workspace')
   const [selectedYear, setSelectedYear] = useState(2567)
   const [selectedQuarter, setSelectedQuarter] = useState('ALL')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -74,36 +66,38 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    setIsClientReady(true)
+    setMounted(true)
     if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('sdu_okr_active_tab')
-      if (savedTab) {
-        setActiveTab(savedTab)
-      } else if (currentRole === 'admin') {
-        handleTabChange('users')
-      }
+      try {
+        const savedTab = localStorage.getItem('sdu_okr_active_tab')
+        if (savedTab) {
+          setActiveTab(savedTab)
+        } else if (currentRole === 'admin') {
+          handleTabChange('users')
+        }
+      } catch {}
     }
   }, [])
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (mounted && isAuthenticated) {
       loadData()
     }
-  }, [selectedYear, isAuthenticated])
+  }, [selectedYear, isAuthenticated, mounted])
 
   useEffect(() => {
-    if (!isClientReady) return
+    if (!mounted) return
     if (currentRole === 'admin' && activeTab === 'workspace') {
       handleTabChange('users')
     }
-  }, [currentRole, isClientReady])
+  }, [currentRole, mounted])
 
   const handleExportPDF = () => {
     window.print()
   }
 
-  // If still checking authentication state from localStorage/backend, show smooth loading screen
-  if (isAuthLoading && !currentUser) {
+  // During SSR or while auth session is initializing, render smooth loading screen
+  if (!mounted || (isAuthLoading && !currentUser)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
         <div className="flex flex-col items-center gap-4 animate-pulse">

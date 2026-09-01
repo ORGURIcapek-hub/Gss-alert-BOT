@@ -39,50 +39,9 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | undefined>(undefined)
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('sdu_okr_deleted_user_ids')
-        const deletedIds: string[] = raw ? JSON.parse(raw) : []
-        return mockUsers.filter(u => !deletedIds.includes(u.user_id))
-      } catch {
-        return mockUsers
-      }
-    }
-    return mockUsers
-  })
-  
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedUserId = localStorage.getItem('sdu_okr_user_id')
-        const rawDeleted = localStorage.getItem('sdu_okr_deleted_user_ids')
-        const deletedIds: string[] = rawDeleted ? JSON.parse(rawDeleted) : []
-        if (savedUserId && !deletedIds.includes(savedUserId)) {
-          const cachedUser = localStorage.getItem('sdu_okr_cached_user')
-          if (cachedUser) {
-            return JSON.parse(cachedUser)
-          }
-          const user = mockUsers.find(u => u.user_id === savedUserId)
-          if (user) return user
-        }
-      } catch {}
-    }
-    return null
-  })
-
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedUserId = localStorage.getItem('sdu_okr_user_id')
-        const rawDeleted = localStorage.getItem('sdu_okr_deleted_user_ids')
-        const deletedIds: string[] = rawDeleted ? JSON.parse(rawDeleted) : []
-        return Boolean(savedUserId && !deletedIds.includes(savedUserId))
-      } catch {}
-    }
-    return false
-  })
-
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(mockUsers)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true)
 
   const refreshUsers = async () => {
