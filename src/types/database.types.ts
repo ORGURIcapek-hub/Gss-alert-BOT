@@ -32,6 +32,7 @@ export interface Database {
           employment_status: string | null
           management_order: number
           avatar_url: string | null
+          status?: 'pending' | 'approved' | 'rejected'
           created_at: string
           updated_at: string
         }
@@ -51,6 +52,7 @@ export interface Database {
           employment_status?: string | null
           management_order?: number
           avatar_url?: string | null
+          status?: 'pending' | 'approved' | 'rejected'
           created_at?: string
           updated_at?: string
         }
@@ -70,6 +72,7 @@ export interface Database {
           employment_status?: string | null
           management_order?: number
           avatar_url?: string | null
+          status?: 'pending' | 'approved' | 'rejected'
           created_at?: string
           updated_at?: string
         }

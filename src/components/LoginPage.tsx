@@ -78,7 +78,14 @@ export function LoginPage() {
       setErrorMsg(result.error || 'ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง')
       setLoading(false)
     } else {
-      setSuccessMsg('ลงทะเบียนสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...')
+      setSuccessMsg('สมัครสมาชิกสำเร็จ! บัญชีของคุณถูกส่งให้ผู้ดูแลระบบ (Admin) ตรวจสอบและอนุมัติสิทธิ์เรียบร้อยแล้ว กรุณารอการอนุมัติก่อนเข้าสู่ระบบ')
+      setIdentifier(regEmail.trim())
+      setPassword(regPassword || '123456')
+      setLoading(false)
+      // Switch to sign in tab after 2 seconds
+      setTimeout(() => {
+        setAuthMode('signin')
+      }, 2000)
     }
   }
 

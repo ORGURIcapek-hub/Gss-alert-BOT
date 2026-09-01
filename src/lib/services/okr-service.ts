@@ -12,6 +12,26 @@ let inMemoryEvidenceSubmissions = [...mockEvidenceSubmissions]
 let inMemoryEvaluations = [...mockEvaluations]
 
 const DELETED_USERS_STORAGE_KEY = 'sdu_okr_deleted_user_ids'
+const USER_STATUS_STORAGE_KEY = 'sdu_okr_user_status_map'
+
+export function getUserStatusMap(): Record<string, 'pending' | 'approved' | 'rejected'> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(USER_STATUS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function setUserStatusInMap(userId: string, status: 'pending' | 'approved' | 'rejected'): void {
+  if (typeof window === 'undefined') return
+  try {
+    const map = getUserStatusMap()
+    map[userId] = status
+    localStorage.setItem(USER_STATUS_STORAGE_KEY, JSON.stringify(map))
+  } catch {}
+}
 
 export function getDeletedUserIds(): string[] {
   if (typeof window === 'undefined') return []
@@ -44,15 +64,22 @@ export function unrecordDeletedUserId(userId: string): void {
 
 export async function fetchUsers(): Promise<UserProfile[]> {
   const deletedIds = getDeletedUserIds()
+  const statusMap = getUserStatusMap()
+
+  const enrichUser = (u: UserProfile): UserProfile => ({
+    ...u,
+    status: statusMap[u.user_id] || u.status || 'approved'
+  })
+
   try {
     const supabase = createClient()
     const { data, error } = await (supabase.from('users') as any).select('*').order('management_order', { ascending: true })
     if (error || !data || data.length === 0) {
-      return inMemoryUsers.filter(u => !deletedIds.includes(u.user_id))
+      return inMemoryUsers.filter(u => !deletedIds.includes(u.user_id)).map(enrichUser)
     }
-    return (data as UserProfile[]).filter(u => !deletedIds.includes(u.user_id))
+    return (data as UserProfile[]).filter(u => !deletedIds.includes(u.user_id)).map(enrichUser)
   } catch {
-    return inMemoryUsers.filter(u => !deletedIds.includes(u.user_id))
+    return inMemoryUsers.filter(u => !deletedIds.includes(u.user_id)).map(enrichUser)
   }
 }
 
@@ -412,12 +439,16 @@ export async function registerUserRecord(userData: {
   role?: UserRole
   department?: string
   position?: string
+  status?: 'pending' | 'approved' | 'rejected'
 }): Promise<UserProfile> {
   const newId = crypto.randomUUID()
   const computedFirstName = userData.first_name || (userData.name ? userData.name.split(' ')[0] : 'อาจารย์')
   const computedLastName = userData.last_name || (userData.name ? userData.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
   const computedName = userData.name || `${computedFirstName} ${computedLastName}`
   const computedUsername = userData.username || userData.email.split('@')[0]
+  const userStatus = userData.status || 'pending'
+
+  setUserStatusInMap(newId, userStatus)
 
   const newUser: UserProfile = {
     user_id: newId,
@@ -435,6 +466,7 @@ export async function registerUserRecord(userData: {
     employment_status: 'Full-Time',
     management_order: userData.role === 'executive' ? 2 : userData.role === 'head_okr' ? 3 : 4,
     avatar_url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
+    status: userStatus,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
@@ -447,6 +479,48 @@ export async function registerUserRecord(userData: {
   inMemoryUsers.push(newUser)
   unrecordDeletedUserId(newId)
   return newUser
+}
+
+export async function approveUserRecord(userId: string, assignedRole?: UserRole): Promise<UserProfile> {
+  setUserStatusInMap(userId, 'approved')
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    user.status = 'approved'
+    if (assignedRole) {
+      user.role = assignedRole
+      user.management_order = assignedRole === 'executive' ? 2 : assignedRole === 'head_okr' ? 3 : 4
+    }
+  }
+
+  try {
+    const supabase = createClient()
+    const updatePayload: any = { status: 'approved' }
+    if (assignedRole) {
+      updatePayload.role = assignedRole
+      updatePayload.management_order = assignedRole === 'executive' ? 2 : assignedRole === 'head_okr' ? 3 : 4
+    }
+    await (supabase.from('users') as any).update(updatePayload).eq('user_id', userId)
+  } catch {}
+
+  return user || (await fetchUsers()).find(u => u.user_id === userId)!
+}
+
+export async function rejectUserRecord(userId: string): Promise<void> {
+  setUserStatusInMap(userId, 'rejected')
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    user.status = 'rejected'
+  }
+
+  try {
+    const supabase = createClient()
+    await (supabase.from('users') as any).update({ status: 'rejected' }).eq('user_id', userId)
+  } catch {}
+}
+
+export async function fetchPendingUsers(): Promise<UserProfile[]> {
+  const users = await fetchUsers()
+  return users.filter(u => u.status === 'pending')
 }
 
 // ==========================================

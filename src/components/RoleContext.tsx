@@ -25,12 +25,16 @@ interface RegisterData {
 interface RoleContextType {
   currentUser: UserProfile | null
   allUsers: UserProfile[]
+  pendingUsers: UserProfile[]
+  pendingCount: number
   currentRole: UserRole | null
   isAuthenticated: boolean
   isAuthLoading: boolean
   login: (identifier: string, password?: string) => Promise<LoginResult>
   register: (userData: RegisterData) => Promise<LoginResult>
   deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>
+  approveUser: (userId: string, assignedRole?: UserRole) => Promise<{ success: boolean; error?: string }>
+  rejectUser: (userId: string) => Promise<{ success: boolean; error?: string }>
   switchUser: (userId: string) => void
   logout: () => void
   refreshUsers: () => Promise<void>
@@ -130,6 +134,21 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ กรุณาตรวจสอบอีเมลหรือชื่อผู้ใช้งาน' }
     }
 
+    // Check account approval status
+    const userStatus = foundUser.status || 'approved'
+    if (userStatus === 'pending') {
+      return {
+        success: false,
+        error: 'บัญชีของคุณอยู่ระหว่างรอผู้ดูแลระบบ (Admin) ตรวจสอบและอนุมัติสิทธิ์การเข้าใช้งาน กรุณารอการอนุมัติก่อนเข้าสู่ระบบ'
+      }
+    }
+    if (userStatus === 'rejected') {
+      return {
+        success: false,
+        error: 'คำขอสมัครสมาชิกของบัญชีนี้ไม่ได้รับการอนุมัติจากผู้ดูแลระบบ กรุณาติดต่อผู้ดูแลระบบ'
+      }
+    }
+
     const expectedPassword = foundUser.password || 'password123'
     if (password !== undefined && password !== expectedPassword) {
       return { success: false, error: 'รหัสผ่านไม่ถูกต้อง (Incorrect password)' }
@@ -159,22 +178,39 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
 
       const { registerUserRecord } = await import('@/lib/services/okr-service')
-      const newUser = await registerUserRecord({
+      await registerUserRecord({
         ...userData,
         email: cleanEmail,
-        username: cleanUsername
+        username: cleanUsername,
+        status: 'pending'
       })
 
       await refreshUsers()
-      setCurrentUser(newUser)
-      setIsAuthenticated(true)
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('sdu_okr_user_id', newUser.user_id)
-        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(newUser))
-      }
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการลงทะเบียน' }
+    }
+  }
+
+  const approveUser = async (userId: string, assignedRole?: UserRole): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { approveUserRecord } = await import('@/lib/services/okr-service')
+      await approveUserRecord(userId, assignedRole)
+      await refreshUsers()
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการอนุมัติผู้ใช้งาน' }
+    }
+  }
+
+  const rejectUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { rejectUserRecord } = await import('@/lib/services/okr-service')
+      await rejectUserRecord(userId)
+      await refreshUsers()
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการปฏิเสธคำขอ' }
     }
   }
 
@@ -226,17 +262,24 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const pendingUsers = allUsers.filter(u => u.status === 'pending')
+  const pendingCount = pendingUsers.length
+
   return (
     <RoleContext.Provider
       value={{
         currentUser,
         allUsers,
+        pendingUsers,
+        pendingCount,
         currentRole: currentUser ? currentUser.role : null,
         isAuthenticated,
         isAuthLoading,
         login,
         register,
         deleteUser,
+        approveUser,
+        rejectUser,
         switchUser,
         logout,
         refreshUsers

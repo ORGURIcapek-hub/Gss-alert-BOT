@@ -20,7 +20,8 @@ import {
   GraduationCap,
   FilePlus,
   FileSpreadsheet,
-  FileText
+  FileText,
+  UserCheck
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -31,7 +32,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
-  const { currentUser, allUsers, switchUser, currentRole, logout } = useRole()
+  const { currentUser, allUsers, switchUser, currentRole, logout, pendingCount } = useRole()
 
   if (!currentUser) return null
 
@@ -84,6 +85,13 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
         ]
       case 'admin':
         return [
+          {
+            id: 'pending_users',
+            label: 'อนุมัติผู้สมัครใหม่',
+            icon: UserCheck,
+            badge: pendingCount > 0 ? pendingCount : undefined,
+            highlight: pendingCount > 0
+          },
           { id: 'users', label: 'จัดการสิทธิ์ผู้ใช้งาน (RBAC)', icon: Users },
           { id: 'normal_reports', label: 'Report โครงการ OKR', icon: FileText },
           { id: 'projects', label: 'จัดการโครงการทั้งหมด', icon: FolderGit2 },
@@ -195,7 +203,16 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
                   <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : item.highlight ? 'text-[#00A8B5]' : 'text-slate-500'}`} />
                   <span className="truncate">{item.label}</span>
                 </div>
-                {isActive && <ChevronRight className="w-3.5 h-3.5 text-white flex-shrink-0 ml-1" />}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {(item as any).badge !== undefined && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
+                      isActive ? 'bg-white text-[#003B71]' : 'bg-rose-500 text-white shadow-sm shadow-rose-500/30'
+                    }`}>
+                      {(item as any).badge}
+                    </span>
+                  )}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-white flex-shrink-0 ml-1" />}
+                </div>
               </button>
             )
           })}

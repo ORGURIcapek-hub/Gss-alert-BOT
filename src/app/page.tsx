@@ -11,6 +11,7 @@ import { CreateProjectModal } from '@/components/CreateProjectModal'
 import { OKRView } from '@/components/OKRView'
 import { EvidenceGallery } from '@/components/EvidenceGallery'
 import { AdminUserManagement } from '@/components/AdminUserManagement'
+import { AdminPendingApprovals } from '@/components/AdminPendingApprovals'
 import { LoginPage } from '@/components/LoginPage'
 import { ExecutiveWorkspace } from '@/components/workspaces/ExecutiveWorkspace'
 import { HeadOKRWorkspace } from '@/components/workspaces/HeadOKRWorkspace'
@@ -73,7 +74,7 @@ export default function HomePage() {
         if (savedTab) {
           setActiveTab(savedTab)
         } else if (currentRole === 'admin') {
-          handleTabChange('users')
+          handleTabChange('pending_users')
         }
       } catch {}
     }
@@ -88,7 +89,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!mounted) return
     if (currentRole === 'admin' && activeTab === 'workspace') {
-      handleTabChange('users')
+      handleTabChange('pending_users')
     }
   }, [currentRole, mounted])
 
@@ -243,6 +244,10 @@ export default function HomePage() {
 
           {activeTab === 'evidences' && (
             <EvidenceGallery projects={projects} />
+          )}
+
+          {activeTab === 'pending_users' && currentRole === 'admin' && (
+            <AdminPendingApprovals />
           )}
 
           {activeTab === 'users' && currentRole === 'admin' && (

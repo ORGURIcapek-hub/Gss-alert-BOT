@@ -40,6 +40,7 @@ CREATE TABLE public.users (
     employment_status VARCHAR(50) DEFAULT 'Full-Time',
     management_order INT DEFAULT 1,
     avatar_url TEXT,
+    status VARCHAR(20) DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
