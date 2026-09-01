@@ -15,7 +15,6 @@ import { LoginPage } from '@/components/LoginPage'
 import { ExecutiveWorkspace } from '@/components/workspaces/ExecutiveWorkspace'
 import { HeadOKRWorkspace } from '@/components/workspaces/HeadOKRWorkspace'
 import { TeacherWorkspace } from '@/components/workspaces/TeacherWorkspace'
-import { AdminWorkspace } from '@/components/workspaces/AdminWorkspace'
 import { CreateDashboardView } from '@/components/CreateDashboardView'
 import { CreateNormalReportView } from '@/components/CreateNormalReportView'
 import { NormalReportView } from '@/components/NormalReportView'
@@ -55,7 +54,7 @@ export default function HomePage() {
   }, [selectedYear, isAuthenticated])
 
   useEffect(() => {
-    setActiveTab('workspace')
+    setActiveTab(currentRole === 'admin' ? 'users' : 'workspace')
   }, [currentRole])
 
   const handleExportPDF = () => {
@@ -112,15 +111,6 @@ export default function HomePage() {
                 <TeacherWorkspace
                   projects={projects}
                   onSelectProject={(p) => setSelectedProject(p)}
-                />
-              )}
-
-              {currentRole === 'admin' && (
-                <AdminWorkspace
-                  okrs={okrs}
-                  projects={projects}
-                  onSelectProject={(p) => setSelectedProject(p)}
-                  onOpenCreateModal={() => setIsCreateModalOpen(true)}
                 />
               )}
 

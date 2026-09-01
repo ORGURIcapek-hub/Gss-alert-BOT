@@ -84,7 +84,6 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
         ]
       case 'admin':
         return [
-          { id: 'workspace', label: 'แผงควบคุมระบบ (Admin Center)', icon: ShieldCheck },
           { id: 'users', label: 'จัดการสิทธิ์ผู้ใช้งาน (RBAC)', icon: Users },
           { id: 'normal_reports', label: 'Report โครงการ OKR', icon: FileText },
           { id: 'projects', label: 'จัดการโครงการทั้งหมด', icon: FolderGit2 },
