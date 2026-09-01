@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calendar, Download, RefreshCw, Filter, Menu } from 'lucide-react'
+import { Calendar, Download, Filter, Menu } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 
@@ -10,7 +10,7 @@ interface HeaderProps {
   setSelectedYear: (year: number) => void
   selectedQuarter: string
   setSelectedQuarter: (quarter: string) => void
-  onRefresh: () => void
+  onRefresh?: () => void
   onExportPDF: () => void
   onToggleMobileMenu: () => void
   isRefreshing?: boolean
@@ -104,16 +104,7 @@ export function Header({
           </div>
         )}
 
-        {/* Refresh Button */}
-        <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className="p-2 sm:px-3.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#003B71] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
-          title="รีเฟรชข้อมูลหน้าจอปัจจุบัน"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#003B71]' : 'text-slate-600'}`} />
-          <span className="hidden sm:inline">{isRefreshing ? 'กำลังโหลด...' : 'รีเฟรช'}</span>
-        </button>
+
 
         {/* Export PDF Button - Completely hidden for Admin */}
         {!isAdmin && (
