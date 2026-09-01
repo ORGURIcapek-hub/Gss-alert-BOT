@@ -131,18 +131,18 @@ export function AdminUserManagement() {
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/70">
-              <th className="py-3.5 px-4 rounded-l-xl">ชื่อ - นามสกุล</th>
-              <th className="py-3.5 px-4">อีเมลมหาวิทยาลัย</th>
-              <th className="py-3.5 px-4">ภาควิชา / หน่วยงาน</th>
-              <th className="py-3.5 px-4">ตำแหน่งงาน</th>
-              <th className="py-3.5 px-4">บทบาทในระบบ (Role)</th>
-              <th className="py-3.5 px-4">รหัสผ่าน (Password)</th>
-              <th className="py-3.5 px-4 text-center">สถานะ RLS</th>
-              <th className="py-3.5 px-4 text-center rounded-r-xl">จัดการ / ลบ</th>
+            <tr className="border-b border-slate-200 text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider bg-slate-50/80">
+              <th className="py-4 px-4 rounded-l-2xl">ชื่อ - นามสกุล</th>
+              <th className="py-4 px-4">อีเมลมหาวิทยาลัย</th>
+              <th className="py-4 px-4">ภาควิชา / หน่วยงาน</th>
+              <th className="py-4 px-4">ตำแหน่งงาน</th>
+              <th className="py-4 px-4">บทบาทในระบบ (Role)</th>
+              <th className="py-4 px-4">รหัสผ่าน (Password)</th>
+              <th className="py-4 px-4 text-center">สถานะ RLS</th>
+              <th className="py-4 px-4 text-center rounded-r-2xl">จัดการ / ลบ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-xs">
+          <tbody className="divide-y divide-slate-100 text-sm">
             {filteredUsers.map((u) => {
               const isCurrentUser = currentUser?.user_id === u.user_id
               const isPasswordVisible = showAllPasswords || revealedPasswords[u.user_id]
@@ -151,22 +151,22 @@ export function AdminUserManagement() {
               return (
                 <tr key={u.user_id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-4 px-4 font-bold text-slate-900">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3">
                       <img
                         src={u.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
                         alt=""
-                        className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm"
+                        className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-sm"
                       />
-                      <span>{u.first_name} {u.last_name}</span>
+                      <span className="text-sm sm:text-base">{u.first_name} {u.last_name}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-slate-500 font-mono text-[11px]">
+                  <td className="py-4 px-4 text-slate-600 font-mono text-xs sm:text-sm font-medium">
                     {u.email}
                   </td>
-                  <td className="py-4 px-4 text-slate-700 font-medium">
+                  <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
                     {u.department}
                   </td>
-                  <td className="py-4 px-4 text-slate-700 font-medium">
+                  <td className="py-4 px-4 text-slate-700 font-medium text-sm">
                     {u.position || '-'}
                   </td>
                   <td className="py-4 px-4">
@@ -174,7 +174,7 @@ export function AdminUserManagement() {
                       value={u.role}
                       disabled={updatingId === u.user_id}
                       onChange={(e) => handleRoleChange(u.user_id, e.target.value as UserRole)}
-                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs cursor-pointer text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
                     >
                       {roleOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -186,9 +186,9 @@ export function AdminUserManagement() {
 
                   {/* Admin Password Inspection Column */}
                   <td className="py-4 px-4">
-                    <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-2.5 py-1.5 transition-colors">
-                      <KeyRound className="w-3.5 h-3.5 text-[#003B71] flex-shrink-0" />
-                      <span className={`font-mono text-xs font-semibold select-all ${isPasswordVisible ? 'text-[#003B71] font-bold' : 'text-slate-400'}`}>
+                    <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 transition-colors">
+                      <KeyRound className="w-4 h-4 text-[#003B71] flex-shrink-0" />
+                      <span className={`font-mono text-xs sm:text-sm font-bold select-all ${isPasswordVisible ? 'text-[#003B71]' : 'text-slate-400'}`}>
                         {isPasswordVisible ? userPassword : '••••••••'}
                       </span>
                       <button
@@ -197,7 +197,7 @@ export function AdminUserManagement() {
                         className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors ml-0.5 cursor-pointer"
                         title={isPasswordVisible ? 'ซ่อนรหัสผ่าน' : 'ดูรหัสผ่าน'}
                       >
-                        {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {isPasswordVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                       <button
                         type="button"
@@ -206,30 +206,30 @@ export function AdminUserManagement() {
                         title="คัดลอกรหัสผ่าน"
                       >
                         {copiedId === u.user_id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                          <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
                         ) : (
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-4 h-4" />
                         )}
                       </button>
                     </div>
                   </td>
 
                   <td className="py-4 px-4 text-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <Lock className="w-3 h-3" /> Protected
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <Lock className="w-3.5 h-3.5" /> Protected
                     </span>
                   </td>
                   <td className="py-4 px-4 text-center">
                     {isCurrentUser ? (
-                      <span className="text-[10px] text-slate-400 font-semibold px-2.5 py-1 bg-slate-100 rounded-lg" title="ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่">
+                      <span className="text-xs text-slate-400 font-semibold px-3 py-1 bg-slate-100 rounded-lg" title="ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่">
                         บัญชีปัจจุบัน
                       </span>
                     ) : (
                       <button
                         onClick={() => setUserToDelete(u)}
                         disabled={deletingId === u.user_id}
-                        title={`ลบผู้ใช้งาน ${u.first_name} ${u.last_name}`}
-                        className="p-2 rounded-xl text-rose-600 hover:text-white hover:bg-rose-600 bg-rose-50 border border-rose-200 hover:border-rose-600 transition-all cursor-pointer inline-flex items-center justify-center disabled:opacity-50"
+                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-200 transition-all cursor-pointer disabled:opacity-50"
+                        title="ลบผู้ใช้งานออกจากระบบ"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
