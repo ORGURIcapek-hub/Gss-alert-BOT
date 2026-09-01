@@ -18,6 +18,7 @@
     "jspdf": "^2.5.1",
     "lucide-react": "^0.441.0",
     "next": "14.2.33",
+    "nodemailer": "^9.1.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.16.5",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^18.3.8",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
