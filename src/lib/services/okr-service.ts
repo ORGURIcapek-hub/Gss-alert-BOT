@@ -87,6 +87,18 @@ export function saveRegisteredUser(user: UserProfile): void {
   safeSetStorage(REGISTERED_USERS_STORAGE_KEY, list)
 }
 
+export const USER_PROFILES_STORAGE_KEY = 'sdu_okr_user_profile_overrides'
+
+export function getUserProfileOverrides(): Record<string, Partial<UserProfile>> {
+  return safeGetStorage<Record<string, Partial<UserProfile>>>(USER_PROFILES_STORAGE_KEY, {})
+}
+
+export function saveUserProfileOverride(userId: string, updates: Partial<UserProfile>): void {
+  const map = getUserProfileOverrides()
+  map[userId] = { ...(map[userId] || {}), ...updates }
+  safeSetStorage(USER_PROFILES_STORAGE_KEY, map)
+}
+
 export function getUserPasswordsMap(): Record<string, string> {
   return safeGetStorage<Record<string, string>>(USER_PASSWORDS_STORAGE_KEY, {})
 }
@@ -134,13 +146,18 @@ export async function fetchUsers(): Promise<UserProfile[]> {
   const deletedIds = getDeletedUserIds()
   const statusMap = getUserStatusMap()
   const passwordMap = getUserPasswordsMap()
+  const profileOverrides = getUserProfileOverrides()
   const registeredUsers = getRegisteredUsers()
 
-  const enrichUser = (u: UserProfile): UserProfile => ({
-    ...u,
-    status: statusMap[u.user_id] || u.status || 'approved',
-    password: passwordMap[u.user_id] || u.password || 'password123'
-  })
+  const enrichUser = (u: UserProfile): UserProfile => {
+    const override = profileOverrides[u.user_id] || {}
+    return {
+      ...u,
+      ...override,
+      status: statusMap[u.user_id] || override.status || u.status || 'approved',
+      password: passwordMap[u.user_id] || override.password || u.password || 'password123'
+    }
+  }
 
   let baseUsers: UserProfile[] = []
 
@@ -259,6 +276,62 @@ export async function deleteUserRecord(userId: string): Promise<void> {
   safeSetStorage(REGISTERED_USERS_STORAGE_KEY, regUsers)
 }
 
+export async function updateUserProfileRecord(
+  userId: string,
+  updates: {
+    name?: string
+    first_name?: string
+    last_name?: string
+    avatar_url?: string
+    department?: string
+    position?: string
+  }
+): Promise<UserProfile | null> {
+  const computedFirstName = updates.first_name || (updates.name ? updates.name.split(' ')[0] : undefined)
+  const computedLastName = updates.last_name || (updates.name ? updates.name.split(' ').slice(1).join(' ') : undefined)
+  const computedName = updates.name || (computedFirstName && computedLastName ? `${computedFirstName} ${computedLastName}` : undefined)
+
+  const sanitizedUpdates: Partial<UserProfile> = {
+    ...updates,
+    ...(computedFirstName ? { first_name: computedFirstName } : {}),
+    ...(computedLastName ? { last_name: computedLastName } : {}),
+    ...(computedName ? { name: computedName } : {}),
+    updated_at: new Date().toISOString()
+  }
+
+  // 1. Save in local override storage for persistent hydration
+  saveUserProfileOverride(userId, sanitizedUpdates)
+
+  // 2. Update inMemoryUsers
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    Object.assign(user, sanitizedUpdates)
+  }
+
+  // 3. Update registeredUsers if applicable
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    Object.assign(regUser, sanitizedUpdates)
+    saveRegisteredUser(regUser)
+  }
+
+  // 4. Update in Supabase
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    try {
+      const { error } = await (supabase.from('users') as any)
+        .update(sanitizedUpdates)
+        .eq('user_id', userId)
+      if (error) console.warn('[okr-service] updateUserProfileRecord error:', error.message)
+    } catch (err) {
+      console.warn('[okr-service] updateUserProfileRecord exception:', err)
+    }
+  }
+
+  return user || null
+}
+
 export async function registerUserRecord(userData: {
   username?: string
   name?: string
@@ -269,6 +342,7 @@ export async function registerUserRecord(userData: {
   role?: UserRole
   department?: string
   position?: string
+  avatar_url?: string
   status?: 'pending' | 'approved' | 'rejected'
 }): Promise<UserProfile> {
   const newId = crypto.randomUUID()
@@ -278,6 +352,7 @@ export async function registerUserRecord(userData: {
   const computedUsername = userData.username || userData.email.split('@')[0]
   const userStatus = userData.status || 'pending'
   const userPassword = userData.password || 'password123'
+  const userAvatar = userData.avatar_url || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`
 
   setUserStatusInMap(newId, userStatus)
   setUserPasswordInMap(newId, userPassword)
@@ -297,7 +372,7 @@ export async function registerUserRecord(userData: {
     executive_level: null,
     employment_status: 'Full-Time',
     management_order: userData.role === 'executive' ? 2 : userData.role === 'head_okr' ? 3 : 4,
-    avatar_url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
+    avatar_url: userAvatar,
     status: userStatus,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()

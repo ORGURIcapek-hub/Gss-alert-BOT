@@ -20,6 +20,16 @@ interface RegisterData {
   role?: UserRole
   department?: string
   position?: string
+  avatar_url?: string
+}
+
+interface UpdateProfileData {
+  name?: string
+  first_name?: string
+  last_name?: string
+  avatar_url?: string
+  department?: string
+  position?: string
 }
 
 interface RoleContextType {
@@ -39,10 +49,15 @@ interface RoleContextType {
   logout: () => void
   refreshUsers: () => Promise<void>
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
+  updateProfile: (updates: UpdateProfileData) => Promise<{ success: boolean; error?: string }>
   isChangePasswordOpen: boolean
   setIsChangePasswordOpen: (open: boolean) => void
   openChangePasswordModal: () => void
   closeChangePasswordModal: () => void
+  isProfileModalOpen: boolean
+  setIsProfileModalOpen: (open: boolean) => void
+  openProfileModal: () => void
+  closeProfileModal: () => void
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined)
@@ -52,6 +67,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true)
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+
+  const openChangePasswordModal = () => setIsChangePasswordOpen(true)
+  const closeChangePasswordModal = () => setIsChangePasswordOpen(false)
+  const openProfileModal = () => setIsProfileModalOpen(true)
+  const closeProfileModal = () => setIsProfileModalOpen(false)
 
   const refreshUsers = async () => {
     try {
@@ -288,10 +310,6 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState<boolean>(false)
-  const openChangePasswordModal = () => setIsChangePasswordOpen(true)
-  const closeChangePasswordModal = () => setIsChangePasswordOpen(false)
-
   const updatePassword = async (
     currentPassword: string,
     newPassword: string
@@ -343,6 +361,40 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateProfile = async (updates: UpdateProfileData): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) {
+      return { success: false, error: 'ไม่พบข้อมูลผู้ใช้งานที่เข้าสู่ระบบ' }
+    }
+
+    try {
+      const { updateUserProfileRecord } = await import('@/lib/services/okr-service')
+      const updated = await updateUserProfileRecord(currentUser.user_id, updates)
+
+      const mergedUser: UserProfile = {
+        ...currentUser,
+        ...(updated || updates),
+        ...(updates.first_name ? { first_name: updates.first_name } : {}),
+        ...(updates.last_name ? { last_name: updates.last_name } : {}),
+        ...(updates.name ? { name: updates.name } : {}),
+        ...(updates.avatar_url ? { avatar_url: updates.avatar_url } : {}),
+        ...(updates.department ? { department: updates.department } : {}),
+        ...(updates.position ? { position: updates.position } : {})
+      }
+
+      setCurrentUser(mergedUser)
+      setAllUsers(prev => prev.map(u => (u.user_id === currentUser.user_id ? mergedUser : u)))
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(mergedUser))
+      }
+
+      await refreshUsers()
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูลโปรไฟล์' }
+    }
+  }
+
   const pendingUsers = allUsers.filter(u => u.status === 'pending')
   const pendingCount = pendingUsers.length
 
@@ -365,10 +417,15 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         logout,
         refreshUsers,
         updatePassword,
+        updateProfile,
         isChangePasswordOpen,
         setIsChangePasswordOpen,
         openChangePasswordModal,
-        closeChangePasswordModal
+        closeChangePasswordModal,
+        isProfileModalOpen,
+        setIsProfileModalOpen,
+        openProfileModal,
+        closeProfileModal
       }}
     >
       {children}

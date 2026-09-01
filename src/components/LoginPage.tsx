@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 import { UserRole } from '@/types/database.types'
@@ -21,8 +21,20 @@ import {
   Eye,
   EyeOff,
   Check,
-  X
+  X,
+  Camera,
+  Upload,
+  RotateCcw
 } from 'lucide-react'
+
+const PRESET_AVATARS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+]
 
 export function LoginPage() {
   const { login, register } = useRole()
@@ -43,10 +55,32 @@ export function LoginPage() {
   const [regRole, setRegRole] = useState<UserRole>('teacher')
   const [regDepartment, setRegDepartment] = useState('ภาควิชาวิทยาการคอมพิวเตอร์')
   const [regPosition, setRegPosition] = useState('อาจารย์ประจำภาควิชา')
+  const [regAvatarUrl, setRegAvatarUrl] = useState(PRESET_AVATARS[0])
 
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const regFileInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle local image file upload & convert to base64
+  const handleRegAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorMsg('ขนาดรูปภาพต้องไม่เกิน 2MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      setRegAvatarUrl(base64)
+      setErrorMsg('')
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Sign Up Password Strength Criteria Evaluation
   const isPasswordValidLength = regPassword.length >= 8 && regPassword.length <= 15
@@ -146,7 +180,8 @@ export function LoginPage() {
       password: regPassword,
       role: regRole,
       department: regDepartment,
-      position: regPosition
+      position: regPosition,
+      avatar_url: regAvatarUrl
     })
 
     if (!result.success) {
@@ -161,6 +196,7 @@ export function LoginPage() {
       setRegFullName('')
       setRegEmail('')
       setRegPassword('')
+      setRegAvatarUrl(PRESET_AVATARS[0])
       setLoading(false)
       setTimeout(() => {
         setAuthMode('signin')
@@ -341,6 +377,67 @@ export function LoginPage() {
         {/* ========================================================= */}
         {authMode === 'signup' && (
           <form onSubmit={handleSignUp} className="space-y-3.5 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+            
+            {/* Profile Avatar Upload & Selector */}
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3.5">
+              <div
+                className="relative group cursor-pointer flex-shrink-0"
+                onClick={() => regFileInputRef.current?.click()}
+                title="คลิกเพื่ออัปโหลดรูปโปรไฟล์"
+              >
+                <img
+                  src={regAvatarUrl || PRESET_AVATARS[0]}
+                  alt="Profile Preview"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md group-hover:opacity-90"
+                />
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <input
+                  ref={regFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleRegAvatarUpload}
+                  className="hidden"
+                />
+              </div>
+
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                    <Camera className="w-3.5 h-3.5 text-[#003B71]" />
+                    <span>รูปโปรไฟล์ (Profile Image)</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => regFileInputRef.current?.click()}
+                      className="text-[11px] font-bold text-[#003B71] hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>อัปโหลดรูป</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preset Avatars Chips */}
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 custom-scrollbar">
+                  {PRESET_AVATARS.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setRegAvatarUrl(preset)}
+                      className={`w-6 h-6 rounded-full overflow-hidden border transition-all flex-shrink-0 cursor-pointer ${
+                        regAvatarUrl === preset ? 'border-[#003B71] ring-2 ring-[#003B71]/30 scale-110' : 'border-white opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={preset} alt={`preset ${idx}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Row 1: Username & Full Name */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">

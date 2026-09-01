@@ -22,7 +22,8 @@ import {
   FileSpreadsheet,
   FileText,
   UserCheck,
-  KeyRound
+  KeyRound,
+  User
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -33,7 +34,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
-  const { currentUser, allUsers, switchUser, currentRole, logout, pendingCount, openChangePasswordModal } = useRole()
+  const { currentUser, allUsers, switchUser, currentRole, logout, pendingCount, openChangePasswordModal, openProfileModal } = useRole()
 
   if (!currentUser) return null
 
@@ -147,16 +148,27 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
 
         {/* Current User Profile Card */}
         <div className="p-4 border-b border-slate-200 bg-white">
-          <div className="flex items-center gap-3">
-            <img
-              src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-              alt="Profile"
-              className="w-11 h-11 rounded-full object-cover border-2 border-[#003B71]/30 shadow-sm"
-            />
+          <div
+            onClick={openProfileModal}
+            className="flex items-center gap-3 p-2 -m-2 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer group"
+            title="คลิกเพื่อดูและแก้ไขโปรไฟล์"
+          >
+            <div className="relative">
+              <img
+                src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                alt="Profile"
+                className="w-11 h-11 rounded-full object-cover border-2 border-[#003B71]/30 shadow-sm group-hover:border-[#003B71] transition-all"
+              />
+              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#003B71] text-white flex items-center justify-center text-[9px] shadow-sm">
+                ✎
+              </div>
+            </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                {currentUser?.first_name || 'ผู้ใช้งาน'} {currentUser?.last_name || ''}
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-[#003B71] transition-colors">
+                  {currentUser?.first_name || 'ผู้ใช้งาน'} {currentUser?.last_name || ''}
+                </h2>
+              </div>
               <div className={`mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${roleInfo.color}`}>
                 {roleInfo.label}
               </div>
@@ -165,12 +177,12 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
 
           <button
             type="button"
-            onClick={openChangePasswordModal}
-            className="mt-3 w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-[#003B71]/10 text-slate-700 hover:text-[#003B71] text-xs font-bold border border-slate-200 hover:border-[#003B71]/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-            title="เปลี่ยนรหัสผ่านสำหรับเข้าสู่ระบบ"
+            onClick={openProfileModal}
+            className="mt-3 w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-[#003B71]/10 text-slate-700 hover:text-[#003B71] text-xs font-bold border border-slate-200 hover:border-[#003B71]/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+            title="แก้ไขชื่อ รูปโปรไฟล์ และข้อมูลส่วนตัว"
           >
-            <KeyRound className="w-3.5 h-3.5 text-[#003B71]" />
-            <span>เปลี่ยนรหัสผ่าน (Change Password)</span>
+            <User className="w-3.5 h-3.5 text-[#003B71]" />
+            <span>ดูและแก้ไขโปรไฟล์</span>
           </button>
         </div>
 
