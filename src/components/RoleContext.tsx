@@ -29,6 +29,7 @@ interface RoleContextType {
   isAuthenticated: boolean
   login: (identifier: string, password?: string) => Promise<LoginResult>
   register: (userData: RegisterData) => Promise<LoginResult>
+  deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>
   switchUser: (userId: string) => void
   logout: () => void
   refreshUsers: () => Promise<void>
@@ -37,7 +38,18 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | undefined>(undefined)
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(mockUsers)
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('sdu_okr_deleted_user_ids')
+        const deletedIds: string[] = raw ? JSON.parse(raw) : []
+        return mockUsers.filter(u => !deletedIds.includes(u.user_id))
+      } catch {
+        return mockUsers
+      }
+    }
+    return mockUsers
+  })
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
 
@@ -48,6 +60,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const updated = users.find(u => u.user_id === currentUser.user_id)
       if (updated) {
         setCurrentUser(updated)
+      } else {
+        // User was deleted
+        logout()
       }
     }
   }
@@ -56,10 +71,24 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     refreshUsers()
     const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_user_id') : null
     if (savedUserId) {
-      const user = mockUsers.find(u => u.user_id === savedUserId)
-      if (user) {
-        setCurrentUser(user)
-        setIsAuthenticated(true)
+      // Check if user was deleted
+      let isDeleted = false
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('sdu_okr_deleted_user_ids')
+          const deletedIds: string[] = raw ? JSON.parse(raw) : []
+          if (deletedIds.includes(savedUserId)) isDeleted = true
+        } catch {}
+      }
+
+      if (!isDeleted) {
+        const user = mockUsers.find(u => u.user_id === savedUserId)
+        if (user) {
+          setCurrentUser(user)
+          setIsAuthenticated(true)
+        }
+      } else {
+        localStorage.removeItem('sdu_okr_user_id')
       }
     }
   }, [])
@@ -121,6 +150,29 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const deleteUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // 1. Instantly remove from allUsers state (optimistic)
+      setAllUsers(prev => prev.filter(u => u.user_id !== userId))
+
+      // 2. If deleted user is current user, logout
+      if (currentUser?.user_id === userId) {
+        logout()
+      }
+
+      // 3. Call backend / service delete
+      const { deleteUserRecord } = await import('@/lib/services/okr-service')
+      await deleteUserRecord(userId)
+
+      // 4. Refresh users to ensure consistency
+      await refreshUsers()
+      return { success: true }
+    } catch (err: any) {
+      await refreshUsers()
+      return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการลบผู้ใช้งาน' }
+    }
+  }
+
   const switchUser = (userId: string) => {
     const found = allUsers.find(u => u.user_id === userId)
     if (found) {
@@ -149,6 +201,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         login,
         register,
+        deleteUser,
         switchUser,
         logout,
         refreshUsers

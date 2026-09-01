@@ -152,6 +152,44 @@ export const mockUsers: UserProfile[] = [
     avatar_url: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
+  },
+  {
+    user_id: '00000000-0000-0000-0000-000000000009',
+    username: 'staff.general',
+    name: 'นายธนภัทร สุขประสิทธิ์',
+    email: 'staff.general@science.ac.th',
+    password: 'password123',
+    first_name: 'นายธนภัทร',
+    last_name: 'สุขประสิทธิ์',
+    position: 'เจ้าหน้าที่บริหารงานทั่วไป',
+    department: 'สำนักงานคณบดี',
+    role: 'staff',
+    admin_type: null,
+    executive_level: null,
+    management_order: 5,
+    employment_status: 'Full-Time',
+    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z'
+  },
+  {
+    user_id: '00000000-0000-0000-0000-000000000010',
+    username: 'staff.finance',
+    name: 'น.ส.กมลวรรณ ทรัพย์เจริญ',
+    email: 'staff.finance@science.ac.th',
+    password: 'password123',
+    first_name: 'น.ส.กมลวรรณ',
+    last_name: 'ทรัพย์เจริญ',
+    position: 'เจ้าหน้าที่การเงินและพัสดุ',
+    department: 'สำนักงานคณบดี',
+    role: 'staff',
+    admin_type: null,
+    executive_level: null,
+    management_order: 5,
+    employment_status: 'Full-Time',
+    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z'
   }
 ]
 

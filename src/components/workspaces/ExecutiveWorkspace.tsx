@@ -266,6 +266,9 @@ export function ExecutiveWorkspace({
         </div>
       </div>
 
+      {/* Analytics Charts */}
+      <ExecutiveAnalytics projects={filteredProjects} />
+
       {/* SECTION: Reports submitted by OKR Head with Visual Infographics & 5-Star Interactive Rating */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
@@ -427,9 +430,6 @@ export function ExecutiveWorkspace({
           </div>
         )}
       </div>
-
-      {/* Analytics Charts */}
-      <ExecutiveAnalytics projects={filteredProjects} />
 
       {/* Delayed Projects Attention Box */}
       {delayedProjects.length > 0 && (

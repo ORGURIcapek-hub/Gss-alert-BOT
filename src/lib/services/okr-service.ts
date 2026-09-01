@@ -11,16 +11,48 @@ let inMemoryProjectAssignments = [...mockProjectAssignments]
 let inMemoryEvidenceSubmissions = [...mockEvidenceSubmissions]
 let inMemoryEvaluations = [...mockEvaluations]
 
+const DELETED_USERS_STORAGE_KEY = 'sdu_okr_deleted_user_ids'
+
+export function getDeletedUserIds(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(DELETED_USERS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export function recordDeletedUserId(userId: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const list = getDeletedUserIds()
+    if (!list.includes(userId)) {
+      list.push(userId)
+      localStorage.setItem(DELETED_USERS_STORAGE_KEY, JSON.stringify(list))
+    }
+  } catch {}
+}
+
+export function unrecordDeletedUserId(userId: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const list = getDeletedUserIds().filter(id => id !== userId)
+    localStorage.setItem(DELETED_USERS_STORAGE_KEY, JSON.stringify(list))
+  } catch {}
+}
+
 export async function fetchUsers(): Promise<UserProfile[]> {
+  const deletedIds = getDeletedUserIds()
   try {
     const supabase = createClient()
     const { data, error } = await (supabase.from('users') as any).select('*').order('management_order', { ascending: true })
     if (error || !data || data.length === 0) {
-      return inMemoryUsers
+      return inMemoryUsers.filter(u => !deletedIds.includes(u.user_id))
     }
-    return data as UserProfile[]
+    return (data as UserProfile[]).filter(u => !deletedIds.includes(u.user_id))
   } catch {
-    return inMemoryUsers
+    return inMemoryUsers.filter(u => !deletedIds.includes(u.user_id))
   }
 }
 
@@ -244,6 +276,27 @@ export async function updateUserRoleRecord(userId: string, role: UserRole): Prom
   }
 }
 
+export async function deleteUserRecord(userId: string): Promise<void> {
+  recordDeletedUserId(userId)
+
+  try {
+    const supabase = createClient()
+    await (supabase.from('users') as any).delete().eq('user_id', userId)
+  } catch {}
+
+  inMemoryUsers = inMemoryUsers.filter(u => u.user_id !== userId)
+  inMemoryProjectAssignments = inMemoryProjectAssignments.filter(a => a.user_id !== userId)
+  inMemoryProjects.forEach(p => {
+    if (p.head_of_project === userId) {
+      p.head_of_project = ''
+      p.head = null
+    }
+    if (p.assignees) {
+      p.assignees = p.assignees.filter(a => a.user_id !== userId)
+    }
+  })
+}
+
 // ==========================================
 // Table Dashboard (Executive Dashboard Reports)
 // ==========================================
@@ -392,6 +445,7 @@ export async function registerUserRecord(userData: {
   } catch {}
 
   inMemoryUsers.push(newUser)
+  unrecordDeletedUserId(newId)
   return newUser
 }
 
