@@ -43,7 +43,7 @@ export default function HomePage() {
     setActiveTab(tabId)
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('sdu_okr_active_tab', tabId)
+        sessionStorage.setItem('sdu_okr_active_tab', tabId)
       } catch {}
     }
   }
@@ -69,7 +69,7 @@ export default function HomePage() {
     setMounted(true)
     if (typeof window !== 'undefined') {
       try {
-        const savedTab = localStorage.getItem('sdu_okr_active_tab')
+        const savedTab = sessionStorage.getItem('sdu_okr_active_tab')
         if (savedTab) {
           setActiveTab(savedTab)
         } else if (currentRole === 'admin') {

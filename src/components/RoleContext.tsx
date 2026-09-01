@@ -53,7 +53,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         if (updated) {
           setCurrentUser(updated)
           if (typeof window !== 'undefined') {
-            localStorage.setItem('sdu_okr_cached_user', JSON.stringify(updated))
+            sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(updated))
           }
         }
       }
@@ -66,11 +66,19 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true
     const initAuth = async () => {
       try {
+        // Clean legacy permanent localStorage sessions
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('sdu_okr_user_id')
+          localStorage.removeItem('sdu_okr_cached_user')
+          localStorage.removeItem('sdu_okr_active_tab')
+        }
+
         const users = await fetchUsers()
         if (!isMounted) return
         setAllUsers(users)
 
-        const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_user_id') : null
+        // Read active tab session from sessionStorage (preserved on refresh, cleared on browser close)
+        const savedUserId = typeof window !== 'undefined' ? sessionStorage.getItem('sdu_okr_user_id') : null
         if (savedUserId) {
           const rawDeleted = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_deleted_user_ids') : null
           const deletedIds: string[] = rawDeleted ? JSON.parse(rawDeleted) : []
@@ -80,9 +88,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
             if (foundInFetched) {
               setCurrentUser(foundInFetched)
               setIsAuthenticated(true)
-              localStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundInFetched))
+              sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundInFetched))
             } else {
-              const cached = localStorage.getItem('sdu_okr_cached_user')
+              const cached = sessionStorage.getItem('sdu_okr_cached_user')
               if (cached) {
                 const parsed = JSON.parse(cached)
                 setCurrentUser(parsed)
@@ -90,8 +98,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
               }
             }
           } else {
-            localStorage.removeItem('sdu_okr_user_id')
-            localStorage.removeItem('sdu_okr_cached_user')
+            sessionStorage.removeItem('sdu_okr_user_id')
+            sessionStorage.removeItem('sdu_okr_cached_user')
             setCurrentUser(null)
             setIsAuthenticated(false)
           }
@@ -130,8 +138,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(foundUser)
     setIsAuthenticated(true)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('sdu_okr_user_id', foundUser.user_id)
-      localStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundUser))
+      sessionStorage.setItem('sdu_okr_user_id', foundUser.user_id)
+      sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundUser))
     }
     return { success: true }
   }
@@ -161,8 +169,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(newUser)
       setIsAuthenticated(true)
       if (typeof window !== 'undefined') {
-        localStorage.setItem('sdu_okr_user_id', newUser.user_id)
-        localStorage.setItem('sdu_okr_cached_user', JSON.stringify(newUser))
+        sessionStorage.setItem('sdu_okr_user_id', newUser.user_id)
+        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(newUser))
       }
       return { success: true }
     } catch (err: any) {
@@ -199,8 +207,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(found)
       setIsAuthenticated(true)
       if (typeof window !== 'undefined') {
-        localStorage.setItem('sdu_okr_user_id', found.user_id)
-        localStorage.setItem('sdu_okr_cached_user', JSON.stringify(found))
+        sessionStorage.setItem('sdu_okr_user_id', found.user_id)
+        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(found))
       }
     }
   }
@@ -209,6 +217,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null)
     setIsAuthenticated(false)
     if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('sdu_okr_user_id')
+      sessionStorage.removeItem('sdu_okr_cached_user')
+      sessionStorage.removeItem('sdu_okr_active_tab')
       localStorage.removeItem('sdu_okr_user_id')
       localStorage.removeItem('sdu_okr_cached_user')
       localStorage.removeItem('sdu_okr_active_tab')
