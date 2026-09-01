@@ -8,6 +8,7 @@ import { ExecutiveAnalytics } from '@/components/ExecutiveAnalytics'
 import { ProjectTable } from '@/components/ProjectTable'
 import { ProjectDetailModal } from '@/components/ProjectDetailModal'
 import { CreateProjectModal } from '@/components/CreateProjectModal'
+import { ChangePasswordModal } from '@/components/ChangePasswordModal'
 import { OKRView } from '@/components/OKRView'
 import { EvidenceGallery } from '@/components/EvidenceGallery'
 import { AdminUserManagement } from '@/components/AdminUserManagement'
@@ -272,6 +273,8 @@ export default function HomePage() {
           onCreated={loadData}
         />
       )}
+
+      <ChangePasswordModal />
     </div>
   )
 }

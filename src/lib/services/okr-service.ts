@@ -39,6 +39,8 @@ let inMemoryEvaluations = [...mockEvaluations]
 // =============================================================================
 const DELETED_USERS_STORAGE_KEY = 'sdu_okr_deleted_user_ids'
 const USER_STATUS_STORAGE_KEY = 'sdu_okr_user_status_map'
+const REGISTERED_USERS_STORAGE_KEY = 'sdu_okr_registered_users'
+const USER_PASSWORDS_STORAGE_KEY = 'sdu_okr_user_passwords'
 
 function safeGetStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue
@@ -68,6 +70,31 @@ export function setUserStatusInMap(userId: string, status: 'pending' | 'approved
   const map = getUserStatusMap()
   map[userId] = status
   safeSetStorage(USER_STATUS_STORAGE_KEY, map)
+}
+
+export function getRegisteredUsers(): UserProfile[] {
+  return safeGetStorage<UserProfile[]>(REGISTERED_USERS_STORAGE_KEY, [])
+}
+
+export function saveRegisteredUser(user: UserProfile): void {
+  const list = getRegisteredUsers()
+  const idx = list.findIndex(u => u.user_id === user.user_id || u.email.toLowerCase() === user.email.toLowerCase())
+  if (idx !== -1) {
+    list[idx] = user
+  } else {
+    list.unshift(user)
+  }
+  safeSetStorage(REGISTERED_USERS_STORAGE_KEY, list)
+}
+
+export function getUserPasswordsMap(): Record<string, string> {
+  return safeGetStorage<Record<string, string>>(USER_PASSWORDS_STORAGE_KEY, {})
+}
+
+export function setUserPasswordInMap(userId: string, newPassword: string): void {
+  const map = getUserPasswordsMap()
+  map[userId] = newPassword
+  safeSetStorage(USER_PASSWORDS_STORAGE_KEY, map)
 }
 
 export function getDeletedUserIds(): string[] {
@@ -106,11 +133,16 @@ function getSafeSupabaseClient() {
 export async function fetchUsers(): Promise<UserProfile[]> {
   const deletedIds = getDeletedUserIds()
   const statusMap = getUserStatusMap()
+  const passwordMap = getUserPasswordsMap()
+  const registeredUsers = getRegisteredUsers()
 
   const enrichUser = (u: UserProfile): UserProfile => ({
     ...u,
-    status: statusMap[u.user_id] || u.status || 'approved'
+    status: statusMap[u.user_id] || u.status || 'approved',
+    password: passwordMap[u.user_id] || u.password || 'password123'
   })
+
+  let baseUsers: UserProfile[] = []
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
@@ -120,9 +152,8 @@ export async function fetchUsers(): Promise<UserProfile[]> {
         .order('management_order', { ascending: true })
 
       if (!error && data && data.length > 0) {
-        return (data as UserProfile[]).filter(u => !deletedIds.includes(u.user_id)).map(enrichUser)
-      }
-      if (error) {
+        baseUsers = data as UserProfile[]
+      } else if (error) {
         console.warn('[okr-service] fetchUsers error:', error.message)
       }
     } catch (err) {
@@ -130,7 +161,18 @@ export async function fetchUsers(): Promise<UserProfile[]> {
     }
   }
 
-  return inMemoryUsers.filter(u => !deletedIds.includes(u.user_id)).map(enrichUser)
+  if (baseUsers.length === 0) {
+    baseUsers = inMemoryUsers
+  }
+
+  // Merge registered users from localStorage to ensure NO registered applicant is ever lost
+  const mergedMap = new Map<string, UserProfile>()
+  baseUsers.forEach(u => mergedMap.set(u.user_id, u))
+  registeredUsers.forEach(u => mergedMap.set(u.user_id, u))
+
+  return Array.from(mergedMap.values())
+    .filter(u => !deletedIds.includes(u.user_id))
+    .map(enrichUser)
 }
 
 export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
@@ -147,6 +189,44 @@ export async function updateUserRoleRecord(userId: string, role: UserRole): Prom
   const user = inMemoryUsers.find(u => u.user_id === userId)
   if (user) {
     user.role = role
+  }
+
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    regUser.role = role
+    saveRegisteredUser(regUser)
+  }
+}
+
+export async function updateUserPasswordRecord(userId: string, newPassword: string): Promise<void> {
+  setUserPasswordInMap(userId, newPassword)
+
+  // Update inMemoryUsers
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    user.password = newPassword
+  }
+
+  // Update registeredUsers in localStorage if present
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    regUser.password = newPassword
+    saveRegisteredUser(regUser)
+  }
+
+  // Update in Supabase
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    try {
+      const { error } = await (supabase.from('users') as any)
+        .update({ password: newPassword, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+      if (error) console.warn('[okr-service] updateUserPasswordRecord error:', error.message)
+    } catch (err) {
+      console.warn('[okr-service] updateUserPasswordRecord exception:', err)
+    }
   }
 }
 
@@ -174,6 +254,9 @@ export async function deleteUserRecord(userId: string): Promise<void> {
       p.assignees = p.assignees.filter(a => a.user_id !== userId)
     }
   })
+
+  const regUsers = getRegisteredUsers().filter(u => u.user_id !== userId)
+  safeSetStorage(REGISTERED_USERS_STORAGE_KEY, regUsers)
 }
 
 export async function registerUserRecord(userData: {
@@ -194,15 +277,17 @@ export async function registerUserRecord(userData: {
   const computedName = userData.name || `${computedFirstName} ${computedLastName}`
   const computedUsername = userData.username || userData.email.split('@')[0]
   const userStatus = userData.status || 'pending'
+  const userPassword = userData.password || 'password123'
 
   setUserStatusInMap(newId, userStatus)
+  setUserPasswordInMap(newId, userPassword)
 
   const newUser: UserProfile = {
     user_id: newId,
     username: computedUsername,
     name: computedName,
     email: userData.email.toLowerCase().trim(),
-    password: userData.password || 'password123',
+    password: userPassword,
     first_name: computedFirstName,
     last_name: computedLastName,
     position: userData.position || 'อาจารย์ประจำภาควิชา',
@@ -218,11 +303,14 @@ export async function registerUserRecord(userData: {
     updated_at: new Date().toISOString()
   }
 
+  // Always save in localStorage so admin sees it regardless of DB failures
+  saveRegisteredUser(newUser)
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     try {
       const { error } = await (supabase.from('users') as any).insert(newUser)
-      if (error) console.warn('[okr-service] registerUserRecord error:', error.message)
+      if (error) console.warn('[okr-service] registerUserRecord db insert warning:', error.message)
     } catch (err) {
       console.warn('[okr-service] registerUserRecord exception:', err)
     }
@@ -242,6 +330,17 @@ export async function approveUserRecord(userId: string, assignedRole?: UserRole)
       user.role = assignedRole
       user.management_order = assignedRole === 'executive' ? 2 : assignedRole === 'head_okr' ? 3 : 4
     }
+  }
+
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    regUser.status = 'approved'
+    if (assignedRole) {
+      regUser.role = assignedRole
+      regUser.management_order = assignedRole === 'executive' ? 2 : assignedRole === 'head_okr' ? 3 : 4
+    }
+    saveRegisteredUser(regUser)
   }
 
   const supabase = getSafeSupabaseClient()
@@ -267,6 +366,13 @@ export async function rejectUserRecord(userId: string): Promise<void> {
   const user = inMemoryUsers.find(u => u.user_id === userId)
   if (user) {
     user.status = 'rejected'
+  }
+
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    regUser.status = 'rejected'
+    saveRegisteredUser(regUser)
   }
 
   const supabase = getSafeSupabaseClient()

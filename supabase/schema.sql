@@ -350,6 +350,12 @@ USING (
     )
 );
 
+DROP POLICY IF EXISTS "Allow user registration" ON public.users;
+CREATE POLICY "Allow user registration"
+ON public.users FOR INSERT
+TO authenticated, anon
+WITH CHECK (true);
+
 -- OKRs Policies
 DROP POLICY IF EXISTS "Authenticated users can read okrs" ON public.okrs;
 CREATE POLICY "Authenticated users can read okrs"

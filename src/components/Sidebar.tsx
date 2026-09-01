@@ -21,7 +21,8 @@ import {
   FilePlus,
   FileSpreadsheet,
   FileText,
-  UserCheck
+  UserCheck,
+  KeyRound
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -32,7 +33,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
-  const { currentUser, allUsers, switchUser, currentRole, logout, pendingCount } = useRole()
+  const { currentUser, allUsers, switchUser, currentRole, logout, pendingCount, openChangePasswordModal } = useRole()
 
   if (!currentUser) return null
 
@@ -161,6 +162,16 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
               </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={openChangePasswordModal}
+            className="mt-3 w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-[#003B71]/10 text-slate-700 hover:text-[#003B71] text-xs font-bold border border-slate-200 hover:border-[#003B71]/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+            title="เปลี่ยนรหัสผ่านสำหรับเข้าสู่ระบบ"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-[#003B71]" />
+            <span>เปลี่ยนรหัสผ่าน (Change Password)</span>
+          </button>
         </div>
 
         {/* Fast Role Switcher */}

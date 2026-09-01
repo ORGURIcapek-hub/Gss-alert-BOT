@@ -38,6 +38,11 @@ interface RoleContextType {
   switchUser: (userId: string) => void
   logout: () => void
   refreshUsers: () => Promise<void>
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
+  isChangePasswordOpen: boolean
+  setIsChangePasswordOpen: (open: boolean) => void
+  openChangePasswordModal: () => void
+  closeChangePasswordModal: () => void
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined)
@@ -177,12 +182,33 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' }
       }
 
+      if (userData.password) {
+        const p = userData.password
+        const hasLength = p.length >= 8 && p.length <= 15
+        const hasLetter = /[a-zA-Z]/.test(p)
+        const hasNumber = /[0-9]/.test(p)
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(p)
+
+        if (!hasLength || !hasLetter || !hasNumber || !hasSpecial) {
+          return {
+            success: false,
+            error: 'รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
+          }
+        }
+      }
+
       const { registerUserRecord } = await import('@/lib/services/okr-service')
-      await registerUserRecord({
+      const createdUser = await registerUserRecord({
         ...userData,
         email: cleanEmail,
         username: cleanUsername,
         status: 'pending'
+      })
+
+      // Optimistically add to state so admin badge and list update immediately
+      setAllUsers(prev => {
+        const withoutDup = prev.filter(u => u.user_id !== createdUser.user_id && u.email.toLowerCase() !== createdUser.email.toLowerCase())
+        return [...withoutDup, createdUser]
       })
 
       await refreshUsers()
@@ -262,6 +288,61 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState<boolean>(false)
+  const openChangePasswordModal = () => setIsChangePasswordOpen(true)
+  const closeChangePasswordModal = () => setIsChangePasswordOpen(false)
+
+  const updatePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) {
+      return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนเปลี่ยนรหัสผ่าน' }
+    }
+
+    const expectedPassword = currentUser.password || 'password123'
+    if (currentPassword !== expectedPassword) {
+      return { success: false, error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง (Incorrect current password)' }
+    }
+
+    const hasLength = newPassword.length >= 8 && newPassword.length <= 15
+    const hasLetter = /[a-zA-Z]/.test(newPassword)
+    const hasNumber = /[0-9]/.test(newPassword)
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword)
+
+    if (!hasLength || !hasLetter || !hasNumber || !hasSpecial) {
+      return {
+        success: false,
+        error: 'รหัสผ่านใหม่ต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
+      }
+    }
+
+    if (newPassword === currentPassword) {
+      return {
+        success: false,
+        error: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม'
+      }
+    }
+
+    try {
+      const { updateUserPasswordRecord } = await import('@/lib/services/okr-service')
+      await updateUserPasswordRecord(currentUser.user_id, newPassword)
+
+      // Update current user state with new password
+      const updatedUser: UserProfile = { ...currentUser, password: newPassword }
+      setCurrentUser(updatedUser)
+      setAllUsers(prev => prev.map(u => (u.user_id === currentUser.user_id ? updatedUser : u)))
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(updatedUser))
+      }
+
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน' }
+    }
+  }
+
   const pendingUsers = allUsers.filter(u => u.status === 'pending')
   const pendingCount = pendingUsers.length
 
@@ -282,7 +363,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         rejectUser,
         switchUser,
         logout,
-        refreshUsers
+        refreshUsers,
+        updatePassword,
+        isChangePasswordOpen,
+        setIsChangePasswordOpen,
+        openChangePasswordModal,
+        closeChangePasswordModal
       }}
     >
       {children}

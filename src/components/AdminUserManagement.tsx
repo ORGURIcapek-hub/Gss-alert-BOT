@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
-import { Shield, Check, Lock, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2 } from 'lucide-react'
+import { Shield, Check, Lock, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound } from 'lucide-react'
 import { updateUserRoleRecord, deleteUserRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 
@@ -14,6 +14,25 @@ export function AdminUserManagement() {
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null)
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({})
+  const [showAllPasswords, setShowAllPasswords] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const toggleRevealPassword = (userId: string) => {
+    setRevealedPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }))
+  }
+
+  const handleCopyPassword = (userId: string, pass: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(pass)
+    }
+    setCopiedId(userId)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUpdatingId(userId)
@@ -66,19 +85,34 @@ export function AdminUserManagement() {
             การจัดการสิทธิ์และบทบาทผู้ใช้งาน (RBAC Panel)
           </h2>
           <p className="text-xs text-slate-500 mt-0.5 font-medium">
-            กำหนดบทบาทและสิทธิ์การเข้าถึงข้อมูลตามมาตรฐาน Row Level Security (RLS)
+            กำหนดบทบาท ตรวจสอบรหัสผ่าน และสิทธิ์การเข้าถึงข้อมูลตามมาตรฐาน Row Level Security (RLS)
           </p>
         </div>
 
-        <div className="relative min-w-[260px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="ค้นหาชื่ออาจารย์, อีเมล, ภาควิชา..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#003B71]"
-          />
+        <div className="flex items-center flex-wrap gap-2.5">
+          <button
+            onClick={() => setShowAllPasswords(!showAllPasswords)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+              showAllPasswords
+                ? 'bg-amber-50 text-amber-800 border-amber-300 ring-2 ring-amber-200'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+            }`}
+            title="สลับการแสดงรหัสผ่านของผู้ใช้งานทุกคน"
+          >
+            {showAllPasswords ? <EyeOff className="w-3.5 h-3.5 text-amber-600" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+            <span>{showAllPasswords ? 'ซ่อนรหัสผ่านทั้งหมด' : 'แสดงรหัสผ่านทุกคน'}</span>
+          </button>
+
+          <div className="relative min-w-[240px]">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="ค้นหาชื่ออาจารย์, อีเมล, ภาควิชา..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#003B71]"
+            />
+          </div>
         </div>
       </div>
 
@@ -103,6 +137,7 @@ export function AdminUserManagement() {
               <th className="py-3.5 px-4">ภาควิชา / หน่วยงาน</th>
               <th className="py-3.5 px-4">ตำแหน่งงาน</th>
               <th className="py-3.5 px-4">บทบาทในระบบ (Role)</th>
+              <th className="py-3.5 px-4">รหัสผ่าน (Password)</th>
               <th className="py-3.5 px-4 text-center">สถานะ RLS</th>
               <th className="py-3.5 px-4 text-center rounded-r-xl">จัดการ / ลบ</th>
             </tr>
@@ -110,6 +145,9 @@ export function AdminUserManagement() {
           <tbody className="divide-y divide-slate-100 text-xs">
             {filteredUsers.map((u) => {
               const isCurrentUser = currentUser?.user_id === u.user_id
+              const isPasswordVisible = showAllPasswords || revealedPasswords[u.user_id]
+              const userPassword = u.password || 'password123'
+
               return (
                 <tr key={u.user_id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-4 px-4 font-bold text-slate-900">
@@ -145,6 +183,37 @@ export function AdminUserManagement() {
                       ))}
                     </select>
                   </td>
+
+                  {/* Admin Password Inspection Column */}
+                  <td className="py-4 px-4">
+                    <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-2.5 py-1.5 transition-colors">
+                      <KeyRound className="w-3.5 h-3.5 text-[#003B71] flex-shrink-0" />
+                      <span className={`font-mono text-xs font-semibold select-all ${isPasswordVisible ? 'text-[#003B71] font-bold' : 'text-slate-400'}`}>
+                        {isPasswordVisible ? userPassword : '••••••••'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleRevealPassword(u.user_id)}
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors ml-0.5 cursor-pointer"
+                        title={isPasswordVisible ? 'ซ่อนรหัสผ่าน' : 'ดูรหัสผ่าน'}
+                      >
+                        {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyPassword(u.user_id, userPassword)}
+                        className="p-1 text-slate-400 hover:text-[#003B71] rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+                        title="คัดลอกรหัสผ่าน"
+                      >
+                        {copiedId === u.user_id ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+
                   <td className="py-4 px-4 text-center">
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       <Lock className="w-3 h-3" /> Protected

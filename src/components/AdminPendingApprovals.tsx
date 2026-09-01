@@ -17,7 +17,12 @@ import {
   Crown,
   Layers,
   GraduationCap,
-  Briefcase
+  Briefcase,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Copy,
+  Check
 } from 'lucide-react'
 
 export function AdminPendingApprovals() {
@@ -25,6 +30,25 @@ export function AdminPendingApprovals() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRoleOverrides, setSelectedRoleOverrides] = useState<Record<string, UserRole>>({})
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({})
+  const [showAllPasswords, setShowAllPasswords] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const toggleRevealPassword = (userId: string) => {
+    setRevealedPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }))
+  }
+
+  const handleCopyPassword = (userId: string, pass: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(pass)
+    }
+    setCopiedId(userId)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean
@@ -221,19 +245,34 @@ export function AdminPendingApprovals() {
               <span>รายชื่อผู้สมัครที่รอการตรวจสอบสิทธิ์</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              คลิกปุ่มอนุมัติเพื่อให้ผู้ใช้สามารถล็อกอินเข้าใช้งานตามบทบาทที่กำหนด
+              ตรวจสอบข้อมูลและรหัสผ่านของผู้สมัคร แล้วคลิกอนุมัติเพื่อให้ผู้ใช้สามารถล็อกอินเข้าสู่ระบบได้
             </p>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="ค้นหาชื่อ, อีเมล, หรือภาควิชา..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71]"
-            />
+          <div className="flex items-center flex-wrap gap-2.5">
+            <button
+              onClick={() => setShowAllPasswords(!showAllPasswords)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                showAllPasswords
+                  ? 'bg-amber-50 text-amber-800 border-amber-300 ring-2 ring-amber-200'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+              title="สลับการแสดงรหัสผ่านของผู้สมัครทุกคน"
+            >
+              {showAllPasswords ? <EyeOff className="w-3.5 h-3.5 text-amber-600" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+              <span>{showAllPasswords ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}</span>
+            </button>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อ, อีเมล, หรือภาควิชา..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71]"
+              />
+            </div>
           </div>
         </div>
 
@@ -258,6 +297,7 @@ export function AdminPendingApprovals() {
                   <th className="py-3 px-4">ข้อมูลผู้สมัคร</th>
                   <th className="py-3 px-4">หน่วยงาน / ตำแหน่ง</th>
                   <th className="py-3 px-4">บทบาทที่ขอสมัคร</th>
+                  <th className="py-3 px-4">รหัสผ่านที่ตั้ง (Password)</th>
                   <th className="py-3 px-4">กำหนดสิทธิ์ให้ (Role Grant)</th>
                   <th className="py-3 px-4">วันที่สมัคร</th>
                   <th className="py-3 px-4 text-right">ดำเนินการ (Actions)</th>
@@ -268,6 +308,8 @@ export function AdminPendingApprovals() {
                   const reqRoleInfo = getRoleBadge(user.role)
                   const chosenRole = selectedRoleOverrides[user.user_id] || user.role
                   const isProcessing = processingId === user.user_id
+                  const isPasswordVisible = showAllPasswords || revealedPasswords[user.user_id]
+                  const userPassword = user.password || 'password123'
 
                   return (
                     <tr key={user.user_id} className="hover:bg-slate-50/80 transition-colors">
@@ -313,6 +355,36 @@ export function AdminPendingApprovals() {
                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${reqRoleInfo.color}`}>
                           <reqRoleInfo.icon className="w-3.5 h-3.5" />
                           <span>{reqRoleInfo.label}</span>
+                        </div>
+                      </td>
+
+                      {/* Password Column */}
+                      <td className="py-3.5 px-4">
+                        <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-2.5 py-1.5 transition-colors">
+                          <KeyRound className="w-3.5 h-3.5 text-[#003B71] flex-shrink-0" />
+                          <span className={`font-mono text-xs font-semibold select-all ${isPasswordVisible ? 'text-[#003B71] font-bold' : 'text-slate-400'}`}>
+                            {isPasswordVisible ? userPassword : '••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRevealPassword(user.user_id)}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors ml-0.5 cursor-pointer"
+                            title={isPasswordVisible ? 'ซ่อนรหัสผ่าน' : 'ดูรหัสผ่าน'}
+                          >
+                            {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPassword(user.user_id, userPassword)}
+                            className="p-1 text-slate-400 hover:text-[#003B71] rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+                            title="คัดลอกรหัสผ่าน"
+                          >
+                            {copiedId === user.user_id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
                         </div>
                       </td>
 

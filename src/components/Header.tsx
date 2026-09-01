@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calendar, Download, Filter, Menu } from 'lucide-react'
+import { Calendar, Download, Filter, Menu, KeyRound } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 
@@ -26,7 +26,7 @@ export function Header({
   onToggleMobileMenu,
   isRefreshing
 }: HeaderProps) {
-  const { currentRole } = useRole()
+  const { currentRole, openChangePasswordModal } = useRole()
   const isAdmin = currentRole === 'admin'
 
   return (
@@ -105,6 +105,17 @@ export function Header({
         )}
 
 
+
+        {/* Change Password Button */}
+        <button
+          type="button"
+          onClick={openChangePasswordModal}
+          className="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#003B71] transition-all flex items-center gap-1.5 cursor-pointer"
+          title="เปลี่ยนรหัสผ่านของตนเอง"
+        >
+          <KeyRound className="w-3.5 h-3.5 text-[#003B71]" />
+          <span className="hidden sm:inline">เปลี่ยนรหัสผ่าน</span>
+        </button>
 
         {/* Export PDF Button - Completely hidden for Admin */}
         {!isAdmin && (
