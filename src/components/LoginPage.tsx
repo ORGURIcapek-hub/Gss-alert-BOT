@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Sparkles,
   Building2,
-  Briefcase,
   UserPlus,
   LogIn,
   Eye,
@@ -35,6 +34,14 @@ const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
 ]
 
+const DEFAULT_ROLE_POSITIONS: Record<UserRole, string> = {
+  teacher: 'อาจารย์ประจำภาควิชา',
+  head_okr: 'หัวหน้าโครงการ OKR',
+  executive: 'ผู้บริหารระดับสูง',
+  staff: 'เจ้าหน้าที่ / บุคลากรทั่วไป',
+  admin: 'ผู้ดูแลระบบ'
+}
+
 export function LoginPage() {
   const { login, register } = useRole()
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin')
@@ -53,7 +60,6 @@ export function LoginPage() {
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [regRole, setRegRole] = useState<UserRole>('teacher')
   const [regDepartment, setRegDepartment] = useState('ภาควิชาวิทยาการคอมพิวเตอร์')
-  const [regPosition, setRegPosition] = useState('อาจารย์ประจำภาควิชา')
   const [regAvatarUrl, setRegAvatarUrl] = useState(PRESET_AVATARS[0])
 
   const [errorMsg, setErrorMsg] = useState('')
@@ -179,7 +185,7 @@ export function LoginPage() {
       password: regPassword,
       role: regRole,
       department: regDepartment,
-      position: regPosition,
+      position: DEFAULT_ROLE_POSITIONS[regRole] || 'อาจารย์ประจำภาควิชา',
       avatar_url: regAvatarUrl
     })
 
@@ -583,40 +589,24 @@ export function LoginPage() {
               )}
             </div>
 
-            {/* Row 4: Department & Position */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="space-y-1.5">
-                <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-[#003B71]" />
-                  ภาควิชา / หน่วยงาน *
-                </label>
-                <select
-                  value={regDepartment}
-                  onChange={(e) => setRegDepartment(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
-                >
-                  <option value="ภาควิชาวิทยาการคอมพิวเตอร์">ภาควิชาวิทยาการคอมพิวเตอร์</option>
-                  <option value="ภาควิชาเคมี">ภาควิชาเคมี</option>
-                  <option value="ภาควิชาชีววิทยา">ภาควิชาชีววิทยา</option>
-                  <option value="ภาควิชาฟิสิกส์">ภาควิชาฟิสิกส์</option>
-                  <option value="ภาควิชาคณิตศาสตร์">ภาควิชาคณิตศาสตร์</option>
-                  <option value="สำนักงานคณบดี">สำนักงานคณบดี</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  <Briefcase className="w-4 h-4 text-[#003B71]" />
-                  ตำแหน่งงาน
-                </label>
-                <input
-                  type="text"
-                  placeholder="เช่น อาจารย์ประจำภาควิชา"
-                  value={regPosition}
-                  onChange={(e) => setRegPosition(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
-                />
-              </div>
+            {/* Row 4: Department */}
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-[#003B71]" />
+                ภาควิชา / หน่วยงาน *
+              </label>
+              <select
+                value={regDepartment}
+                onChange={(e) => setRegDepartment(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
+              >
+                <option value="ภาควิชาวิทยาการคอมพิวเตอร์">ภาควิชาวิทยาการคอมพิวเตอร์</option>
+                <option value="ภาควิชาเคมี">ภาควิชาเคมี</option>
+                <option value="ภาควิชาชีววิทยา">ภาควิชาชีววิทยา</option>
+                <option value="ภาควิชาฟิสิกส์">ภาควิชาฟิสิกส์</option>
+                <option value="ภาควิชาคณิตศาสตร์">ภาควิชาคณิตศาสตร์</option>
+                <option value="สำนักงานคณบดี">สำนักงานคณบดี</option>
+              </select>
             </div>
 
             <button

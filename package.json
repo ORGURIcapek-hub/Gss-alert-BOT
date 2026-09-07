@@ -18,7 +18,7 @@
     "jspdf": "^2.5.1",
     "lucide-react": "^0.441.0",
     "next": "14.2.33",
-    "nodemailer": "^9.1.0",
+    "nodemailer": "^9.1.1",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
