@@ -11,7 +11,6 @@ import {
   Users,
   ShieldCheck,
   Building2,
-  SlidersHorizontal,
   ChevronRight,
   LogOut,
   X,
@@ -34,7 +33,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
-  const { currentUser, allUsers, switchUser, currentRole, logout, pendingCount, openChangePasswordModal, openProfileModal } = useRole()
+  const { currentUser, currentRole, logout, pendingCount, openChangePasswordModal, openProfileModal } = useRole()
 
   if (!currentUser) return null
 
@@ -184,25 +183,6 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
             <User className="w-4 h-4 text-[#003B71]" />
             <span>ดูและแก้ไขโปรไฟล์</span>
           </button>
-        </div>
-
-        {/* Fast Role Switcher */}
-        <div className="px-4 py-3 sm:px-5 border-b border-slate-200 bg-slate-50">
-          <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1.5 flex items-center gap-1.5">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-[#003B71]" />
-            สลับบัญชีทดสอบ (Role Switcher)
-          </label>
-          <select
-            value={currentUser?.user_id || ''}
-            onChange={(e) => switchUser(e.target.value)}
-            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71]"
-          >
-            {allUsers.map((u) => (
-              <option key={u.user_id} value={u.user_id}>
-                [{u.role}] {u.first_name} ({u.position || u.department})
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Menu Navigation */}

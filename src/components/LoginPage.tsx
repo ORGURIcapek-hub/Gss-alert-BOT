@@ -13,7 +13,6 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  Sparkles,
   Building2,
   UserPlus,
   LogIn,
@@ -207,12 +206,6 @@ export function LoginPage() {
         setSuccessMsg('')
       }, 2500)
     }
-  }
-
-  const fillSampleCredential = (sampleEmail: string) => {
-    setIdentifier(sampleEmail)
-    setPassword('password123')
-    setErrorMsg('')
   }
 
   return (
@@ -627,60 +620,6 @@ export function LoginPage() {
               )}
             </button>
           </form>
-        )}
-
-        {/* Quick Demo Credentials Helper (in signin mode) */}
-        {authMode === 'signin' && (
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-[#00A8B5]" />
-                คลิกเพื่อทดสอบบัญชีตัวอย่าง (รหัสผ่าน: password123)
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              <button
-                type="button"
-                onClick={() => fillSampleCredential('dean@science.ac.th')}
-                className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 text-left truncate transition-colors cursor-pointer"
-                title="ผู้บริหารระดับสูง"
-              >
-                👑 ผู้บริหาร (Dean)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillSampleCredential('head.cs@science.ac.th')}
-                className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 text-left truncate transition-colors cursor-pointer"
-                title="หัวหน้า OKR"
-              >
-                🎯 หัวหน้า OKR (Head)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillSampleCredential('teacher.cs1@science.ac.th')}
-                className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 text-left truncate transition-colors cursor-pointer"
-                title="อาจารย์ลูกทีม"
-              >
-                🎓 อาจารย์ลูกทีม
-              </button>
-              <button
-                type="button"
-                onClick={() => fillSampleCredential('admin@science.ac.th')}
-                className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 text-left truncate transition-colors cursor-pointer"
-                title="ผู้ดูแลระบบ"
-              >
-                🛡️ ผู้ดูแลระบบ (Admin)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillSampleCredential('staff.plan@science.ac.th')}
-                className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 text-left truncate transition-colors col-span-2 sm:col-span-1 cursor-pointer"
-                title="บุคลากรทั่วไป"
-              >
-                📋 เจ้าหน้าที่ (Staff)
-              </button>
-            </div>
-          </div>
         )}
 
         {/* Footer info */}
