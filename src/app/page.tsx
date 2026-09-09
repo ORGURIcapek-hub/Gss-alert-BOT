@@ -94,10 +94,6 @@ export default function HomePage() {
     }
   }, [currentRole, mounted])
 
-  const handleExportPDF = () => {
-    window.print()
-  }
-
   // During SSR or while auth session is initializing, render smooth loading screen
   if (!mounted || (isAuthLoading && !currentUser)) {
     return (
@@ -133,7 +129,6 @@ export default function HomePage() {
           selectedQuarter={selectedQuarter}
           setSelectedQuarter={setSelectedQuarter}
           onRefresh={loadData}
-          onExportPDF={handleExportPDF}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           isRefreshing={isRefreshing}
         />
@@ -146,7 +141,6 @@ export default function HomePage() {
                   okrs={okrs}
                   projects={projects}
                   onSelectProject={(p) => setSelectedProject(p)}
-                  onExportPDF={handleExportPDF}
                 />
               )}
 

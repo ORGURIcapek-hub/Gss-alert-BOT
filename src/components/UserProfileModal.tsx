@@ -57,18 +57,27 @@ export function UserProfileModal() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Populate form with current user data on open
+  const prevOpenRef = useRef(false)
+  const currentLoadedUserIdRef = useRef<string | null>(null)
+
+  // Populate form with current user data only when modal opens or active user ID changes
   useEffect(() => {
-    if (currentUser && isProfileModalOpen) {
-      setFirstName(currentUser.first_name || (currentUser.name ? currentUser.name.split(' ')[0] : ''))
-      setLastName(currentUser.last_name || (currentUser.name ? currentUser.name.split(' ').slice(1).join(' ') : ''))
-      setDepartment(currentUser.department || 'ภาควิชาวิทยาการคอมพิวเตอร์')
-      setPosition(currentUser.position || '')
-      setAvatarUrl(currentUser.avatar_url || PRESET_AVATARS[0])
-      setErrorMsg('')
-      setSuccessMsg('')
+    if (isProfileModalOpen) {
+      if (!prevOpenRef.current || currentLoadedUserIdRef.current !== currentUser?.user_id) {
+        if (currentUser) {
+          setFirstName(currentUser.first_name || (currentUser.name ? currentUser.name.split(' ')[0] : ''))
+          setLastName(currentUser.last_name || (currentUser.name ? currentUser.name.split(' ').slice(1).join(' ') : ''))
+          setDepartment(currentUser.department || 'ภาควิชาวิทยาการคอมพิวเตอร์')
+          setPosition(currentUser.position || '')
+          setAvatarUrl(currentUser.avatar_url || PRESET_AVATARS[0])
+          setErrorMsg('')
+          setSuccessMsg('')
+          currentLoadedUserIdRef.current = currentUser.user_id
+        }
+      }
     }
-  }, [currentUser, isProfileModalOpen])
+    prevOpenRef.current = isProfileModalOpen
+  }, [isProfileModalOpen, currentUser?.user_id])
 
   if (!isProfileModalOpen || !currentUser) return null
 

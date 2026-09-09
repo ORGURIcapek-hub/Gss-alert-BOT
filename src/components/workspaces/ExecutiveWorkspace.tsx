@@ -7,7 +7,6 @@ import {
   TrendingUp,
   DollarSign,
   AlertCircle,
-  Download,
   CheckCircle2,
   ChevronRight,
   Building,
@@ -32,14 +31,12 @@ interface ExecutiveWorkspaceProps {
   okrs: OKR[]
   projects: ProjectWithHeadAndAssignees[]
   onSelectProject: (project: ProjectWithHeadAndAssignees) => void
-  onExportPDF: () => void
 }
 
 export function ExecutiveWorkspace({
   okrs,
   projects,
-  onSelectProject,
-  onExportPDF
+  onSelectProject
 }: ExecutiveWorkspaceProps) {
   const { currentUser, allUsers, refreshUsers } = useRole()
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL')
@@ -159,14 +156,6 @@ export function ExecutiveWorkspace({
           >
             <UserPlus className="w-4 h-4" />
             <span>กำหนดหัวหน้าโครงการ (Assign OKR Head)</span>
-          </button>
-
-          <button
-            onClick={onExportPDF}
-            className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-slate-600" />
-            <span>Export รายงาน</span>
           </button>
         </div>
       </div>

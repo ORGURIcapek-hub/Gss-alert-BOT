@@ -203,11 +203,11 @@
     {
       "user_id": "96edac15-fd4f-482c-b7a9-f78dbd01d4b8",
       "username": "tae",
-      "name": "Anuphat phukang",
+      "name": "นาย อนุภัทร ภูฆัง",
       "email": "goog24012561@gmail.com",
       "password": "King-snow77",
-      "first_name": "Anuphat",
-      "last_name": "phukang",
+      "first_name": "นาย อนุภัทร",
+      "last_name": "ภูฆัง",
       "position": "อาจารย์ประจำภาควิชา",
       "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
       "role": "admin",
@@ -218,16 +218,16 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-09T15:27:39.213Z",
-      "updated_at": "2026-09-09T15:27:56.246Z"
+      "updated_at": "2026-09-09T16:03:19.683Z"
     },
     {
       "user_id": "0abe6f85-27ff-4052-a122-250b37d0408e",
       "username": "tao",
-      "name": "kawin tocharoen",
+      "name": "นาย กวิน โตเจริญ",
       "email": "taokosit@gmail.com",
       "password": "Kevinnewbie20#",
-      "first_name": "kawin",
-      "last_name": "tocharoen",
+      "first_name": "นาย กวิน",
+      "last_name": "โตเจริญ",
       "position": "อาจารย์ประจำภาควิชา",
       "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
       "role": "teacher",
@@ -238,7 +238,7 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-09T15:36:25.059Z",
-      "updated_at": "2026-09-09T15:37:07.278Z"
+      "updated_at": "2026-09-09T16:04:09.882Z"
     },
     {
       "user_id": "637f7480-9f89-4a6c-bbab-f93fa9b8ef24",
@@ -259,6 +259,26 @@
       "status": "approved",
       "created_at": "2026-09-09T15:47:26.669Z",
       "updated_at": "2026-09-09T15:49:51.049Z"
+    },
+    {
+      "user_id": "9e890205-d4d9-4d56-9085-af02115b9e85",
+      "username": "ninice",
+      "name": "นางสาวนิรชา วรรณชยา",
+      "email": "ninicexzen@gmail.com",
+      "password": "N0926899879n-",
+      "first_name": "นางสาวนิรชา",
+      "last_name": "วรรณชยา",
+      "position": "เจ้าหน้าที่ / บุคลากรทั่วไป",
+      "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
+      "role": "staff",
+      "admin_type": null,
+      "executive_level": null,
+      "employment_status": "Full-Time",
+      "management_order": 4,
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "status": "approved",
+      "created_at": "2026-09-09T16:15:35.899Z",
+      "updated_at": "2026-09-09T16:15:43.749Z"
     }
   ],
   "deletedUserIds": [

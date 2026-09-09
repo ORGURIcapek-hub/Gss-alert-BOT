@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calendar, Download, Filter, Menu, KeyRound } from 'lucide-react'
+import { Calendar, Filter, Menu } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 
@@ -11,7 +11,6 @@ interface HeaderProps {
   selectedQuarter: string
   setSelectedQuarter: (quarter: string) => void
   onRefresh?: () => void
-  onExportPDF: () => void
   onToggleMobileMenu: () => void
   isRefreshing?: boolean
 }
@@ -22,11 +21,10 @@ export function Header({
   selectedQuarter,
   setSelectedQuarter,
   onRefresh,
-  onExportPDF,
   onToggleMobileMenu,
   isRefreshing
 }: HeaderProps) {
-  const { currentUser, currentRole, openChangePasswordModal, openProfileModal } = useRole()
+  const { currentRole } = useRole()
   const isAdmin = currentRole === 'admin'
 
   return (
@@ -53,17 +51,6 @@ export function Header({
             </div>
           </div>
         </div>
-
-        {/* Mobile Export button (hidden for admin) */}
-        {!isAdmin && (
-          <button
-            onClick={onExportPDF}
-            className="sm:hidden p-2.5 rounded-xl bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/20 font-bold"
-            title="Export PDF"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-        )}
       </div>
 
       <div className="flex items-center flex-wrap gap-2.5">
@@ -102,34 +89,6 @@ export function Header({
               <option value="Q4">Q4</option>
             </select>
           </div>
-        )}
-
-        {/* User Profile Button */}
-        <button
-          type="button"
-          onClick={openProfileModal}
-          className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer group active:scale-95 shadow-xs"
-          title="ดูและแก้ไขโปรไฟล์ของคุณ"
-        >
-          <img
-            src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-            alt="User Avatar"
-            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-[#003B71]/40 shadow-xs"
-          />
-          <span className="text-xs font-bold text-slate-800 group-hover:text-[#003B71] hidden md:inline truncate max-w-[120px]">
-            {currentUser?.first_name || 'โปรไฟล์'}
-          </span>
-        </button>
-
-        {/* Export PDF Button - Completely hidden for Admin */}
-        {!isAdmin && (
-          <button
-            onClick={onExportPDF}
-            className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#003B71] to-[#005B94] hover:opacity-95 text-white text-xs font-bold shadow-md shadow-[#003B71]/15 transition-all active:scale-95"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export PDF</span>
-          </button>
         )}
       </div>
     </header>

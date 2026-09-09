@@ -76,6 +76,11 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const openProfileModal = () => setIsProfileModalOpen(true)
   const closeProfileModal = () => setIsProfileModalOpen(false)
 
+  const currentUserRef = useRef<UserProfile | null>(currentUser)
+  useEffect(() => {
+    currentUserRef.current = currentUser
+  }, [currentUser])
+
   const lastFetchTimeRef = useRef<number>(0)
   const isFetchingRef = useRef<boolean>(false)
 
@@ -91,12 +96,28 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const users = await fetchUsers()
       lastFetchTimeRef.current = Date.now()
       setAllUsers(users)
-      if (currentUser) {
-        const updated = users.find(u => u.user_id === currentUser.user_id)
+      const current = currentUserRef.current
+      if (current) {
+        const updated = users.find(u => u.user_id === current.user_id)
         if (updated) {
-          setCurrentUser(updated)
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(updated))
+          const isIdentical =
+            current.user_id === updated.user_id &&
+            current.name === updated.name &&
+            current.first_name === updated.first_name &&
+            current.last_name === updated.last_name &&
+            current.role === updated.role &&
+            current.department === updated.department &&
+            current.position === updated.position &&
+            current.avatar_url === updated.avatar_url &&
+            current.status === updated.status &&
+            current.email === updated.email &&
+            current.password === updated.password
+
+          if (!isIdentical) {
+            setCurrentUser(updated)
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(updated))
+            }
           }
         }
       }
@@ -144,8 +165,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser || currentUser.role !== 'admin') return
 
     const timer = setInterval(() => {
-      refreshUsers(true)
-    }, 5000)
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      refreshUsers(false)
+    }, 10000)
 
     return () => clearInterval(timer)
   }, [currentUser?.role])
