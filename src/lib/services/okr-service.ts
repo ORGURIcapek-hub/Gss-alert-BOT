@@ -133,10 +133,34 @@ export function unrecordDeletedUserId(userId: string): void {
 function getSafeSupabaseClient() {
   try {
     return createClient()
-  } catch (err) {
-    // Only log once in dev without spamming
+  } catch {
     return null
   }
+}
+
+/**
+ * Wraps a Supabase async call with a consistent try/catch + console.warn.
+ * Returns null on any error so callers can fall through to in-memory data.
+ */
+async function dbCall<T>(fn: () => Promise<{ data: T | null; error: { message: string } | null }>, label: string): Promise<T | null> {
+  try {
+    const { data, error } = await fn()
+    if (error) {
+      console.warn(`[okr-service] ${label} error:`, error.message)
+      return null
+    }
+    return data
+  } catch (err) {
+    console.warn(`[okr-service] ${label} exception:`, err)
+    return null
+  }
+}
+
+/** Maps a UserRole to its management_order integer. */
+function getManagementOrder(role?: string): number {
+  if (role === 'executive') return 2
+  if (role === 'head_okr') return 3
+  return 4
 }
 
 // =============================================================================
@@ -163,19 +187,11 @@ export async function fetchUsers(): Promise<UserProfile[]> {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { data, error } = await (supabase.from('users') as any)
-        .select('*')
-        .order('management_order', { ascending: true })
-
-      if (!error && data && data.length > 0) {
-        baseUsers = data as UserProfile[]
-      } else if (error) {
-        console.warn('[okr-service] fetchUsers error:', error.message)
-      }
-    } catch (err) {
-      console.warn('[okr-service] fetchUsers exception:', err)
-    }
+    const data = await dbCall<UserProfile[]>(
+      () => (supabase.from('users') as any).select('*').order('management_order', { ascending: true }),
+      'fetchUsers'
+    )
+    if (data && data.length > 0) baseUsers = data
   }
 
   if (baseUsers.length === 0) {
@@ -195,12 +211,7 @@ export async function fetchUsers(): Promise<UserProfile[]> {
 export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('users') as any).update({ role }).eq('user_id', userId)
-      if (error) console.warn('[okr-service] updateUserRoleRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] updateUserRoleRecord exception:', err)
-    }
+    await dbCall(() => (supabase.from('users') as any).update({ role }).eq('user_id', userId), 'updateUserRoleRecord')
   }
 
   const user = inMemoryUsers.find(u => u.user_id === userId)
@@ -236,14 +247,10 @@ export async function updateUserPasswordRecord(userId: string, newPassword: stri
   // Update in Supabase
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('users') as any)
-        .update({ password: newPassword, updated_at: new Date().toISOString() })
-        .eq('user_id', userId)
-      if (error) console.warn('[okr-service] updateUserPasswordRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] updateUserPasswordRecord exception:', err)
-    }
+    await dbCall(
+      () => (supabase.from('users') as any).update({ password: newPassword, updated_at: new Date().toISOString() }).eq('user_id', userId),
+      'updateUserPasswordRecord'
+    )
   }
 }
 
@@ -252,12 +259,7 @@ export async function deleteUserRecord(userId: string): Promise<void> {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('users') as any).delete().eq('user_id', userId)
-      if (error) console.warn('[okr-service] deleteUserRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] deleteUserRecord exception:', err)
-    }
+    await dbCall(() => (supabase.from('users') as any).delete().eq('user_id', userId), 'deleteUserRecord')
   }
 
   inMemoryUsers = inMemoryUsers.filter(u => u.user_id !== userId)
@@ -319,14 +321,10 @@ export async function updateUserProfileRecord(
   // 4. Update in Supabase
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('users') as any)
-        .update(sanitizedUpdates)
-        .eq('user_id', userId)
-      if (error) console.warn('[okr-service] updateUserProfileRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] updateUserProfileRecord exception:', err)
-    }
+    await dbCall(
+      () => (supabase.from('users') as any).update(sanitizedUpdates).eq('user_id', userId),
+      'updateUserProfileRecord'
+    )
   }
 
   return user || null
@@ -371,7 +369,7 @@ export async function registerUserRecord(userData: {
     admin_type: null,
     executive_level: null,
     employment_status: 'Full-Time',
-    management_order: userData.role === 'executive' ? 2 : userData.role === 'head_okr' ? 3 : 4,
+    management_order: getManagementOrder(userData.role),
     avatar_url: userAvatar,
     status: userStatus,
     created_at: new Date().toISOString(),
@@ -383,12 +381,7 @@ export async function registerUserRecord(userData: {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('users') as any).insert(newUser)
-      if (error) console.warn('[okr-service] registerUserRecord db insert warning:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] registerUserRecord exception:', err)
-    }
+    await dbCall(() => (supabase.from('users') as any).insert(newUser), 'registerUserRecord')
   }
 
   inMemoryUsers.push(newUser)
@@ -398,39 +391,27 @@ export async function registerUserRecord(userData: {
 
 export async function approveUserRecord(userId: string, assignedRole?: UserRole): Promise<UserProfile> {
   setUserStatusInMap(userId, 'approved')
+  const mgmtOrder = assignedRole ? getManagementOrder(assignedRole) : undefined
+
   const user = inMemoryUsers.find(u => u.user_id === userId)
   if (user) {
     user.status = 'approved'
-    if (assignedRole) {
-      user.role = assignedRole
-      user.management_order = assignedRole === 'executive' ? 2 : assignedRole === 'head_okr' ? 3 : 4
-    }
+    if (assignedRole) { user.role = assignedRole; user.management_order = mgmtOrder! }
   }
 
   const regUsers = getRegisteredUsers()
   const regUser = regUsers.find(u => u.user_id === userId)
   if (regUser) {
     regUser.status = 'approved'
-    if (assignedRole) {
-      regUser.role = assignedRole
-      regUser.management_order = assignedRole === 'executive' ? 2 : assignedRole === 'head_okr' ? 3 : 4
-    }
+    if (assignedRole) { regUser.role = assignedRole; regUser.management_order = mgmtOrder! }
     saveRegisteredUser(regUser)
   }
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const updatePayload: any = { status: 'approved' }
-      if (assignedRole) {
-        updatePayload.role = assignedRole
-        updatePayload.management_order = assignedRole === 'executive' ? 2 : assignedRole === 'head_okr' ? 3 : 4
-      }
-      const { error } = await (supabase.from('users') as any).update(updatePayload).eq('user_id', userId)
-      if (error) console.warn('[okr-service] approveUserRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] approveUserRecord exception:', err)
-    }
+    const payload: any = { status: 'approved' }
+    if (assignedRole) { payload.role = assignedRole; payload.management_order = mgmtOrder }
+    await dbCall(() => (supabase.from('users') as any).update(payload).eq('user_id', userId), 'approveUserRecord')
   }
 
   return user || (await fetchUsers()).find(u => u.user_id === userId)!
@@ -439,25 +420,15 @@ export async function approveUserRecord(userId: string, assignedRole?: UserRole)
 export async function rejectUserRecord(userId: string): Promise<void> {
   setUserStatusInMap(userId, 'rejected')
   const user = inMemoryUsers.find(u => u.user_id === userId)
-  if (user) {
-    user.status = 'rejected'
-  }
+  if (user) user.status = 'rejected'
 
   const regUsers = getRegisteredUsers()
   const regUser = regUsers.find(u => u.user_id === userId)
-  if (regUser) {
-    regUser.status = 'rejected'
-    saveRegisteredUser(regUser)
-  }
+  if (regUser) { regUser.status = 'rejected'; saveRegisteredUser(regUser) }
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('users') as any).update({ status: 'rejected' }).eq('user_id', userId)
-      if (error) console.warn('[okr-service] rejectUserRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] rejectUserRecord exception:', err)
-    }
+    await dbCall(() => (supabase.from('users') as any).update({ status: 'rejected' }).eq('user_id', userId), 'rejectUserRecord')
   }
 }
 
@@ -472,21 +443,11 @@ export async function fetchPendingUsers(): Promise<UserProfile[]> {
 export async function fetchOKRs(year?: number): Promise<OKR[]> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      let query = (supabase.from('okrs') as any).select('*')
-      if (year) {
-        query = query.eq('year', year)
-      }
-      const { data, error } = await query.order('created_at', { ascending: false })
-      if (!error && data && data.length > 0) {
-        return data as OKR[]
-      }
-      if (error) console.warn('[okr-service] fetchOKRs error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] fetchOKRs exception:', err)
-    }
+    let query = (supabase.from('okrs') as any).select('*')
+    if (year) query = query.eq('year', year)
+    const data = await dbCall<OKR[]>(() => query.order('created_at', { ascending: false }), 'fetchOKRs')
+    if (data && data.length > 0) return data
   }
-
   return year ? inMemoryOKRs.filter(o => o.year === year) : inMemoryOKRs
 }
 
@@ -500,35 +461,18 @@ export async function fetchProjects(filters?: {
 }): Promise<ProjectWithHeadAndAssignees[]> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      let query = (supabase.from('projects') as any)
-        .select(`
-          *,
-          head:users!projects_head_of_project_fkey(*),
-          assignees:project_assignees(
-            *,
-            user:users(*)
-          ),
-          evidences(*)
-        `)
+    let query = (supabase.from('projects') as any).select(`
+      *,
+      head:users!projects_head_of_project_fkey(*),
+      assignees:project_assignees(*, user:users(*)),
+      evidences(*)
+    `)
+    if (filters?.department && filters.department !== 'ทั้งหมด') query = query.eq('department', filters.department)
+    if (filters?.status && filters.status !== 'all') query = query.eq('status', filters.status as ProjectStatus)
 
-      if (filters?.department && filters.department !== 'ทั้งหมด') {
-        query = query.eq('department', filters.department)
-      }
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status as ProjectStatus)
-      }
-
-      const { data, error } = await query
-      if (!error && data && data.length > 0) {
-        return data as unknown as ProjectWithHeadAndAssignees[]
-      }
-      if (error) console.warn('[okr-service] fetchProjects error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] fetchProjects exception:', err)
-    }
+    const data = await dbCall<ProjectWithHeadAndAssignees[]>(() => query, 'fetchProjects')
+    if (data && data.length > 0) return data
   }
-
   return filterMemoryProjects(filters)
 }
 
@@ -590,28 +534,17 @@ export async function createProjectRecord(projectData: {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('projects') as any).insert({
-        project_id: newId,
-        okr_id: projectData.okr_id,
-        project_name: projectData.project_name,
-        project_type: projectData.project_type,
-        description: projectData.description,
-        main_objective: projectData.main_objective,
-        sub_objective: projectData.sub_objective,
-        department: projectData.department,
-        head_of_project: projectData.head_of_project,
-        budget: projectData.budget,
-        start_date: projectData.start_date,
-        end_date: projectData.end_date,
-        progress_percentage: 0,
-        spent_amount: 0,
-        status: 'In Progress'
-      })
-      if (error) console.warn('[okr-service] createProjectRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] createProjectRecord exception:', err)
-    }
+    await dbCall(
+      () => (supabase.from('projects') as any).insert({
+        project_id: newId, okr_id: projectData.okr_id, project_name: projectData.project_name,
+        project_type: projectData.project_type, description: projectData.description,
+        main_objective: projectData.main_objective, sub_objective: projectData.sub_objective,
+        department: projectData.department, head_of_project: projectData.head_of_project,
+        budget: projectData.budget, start_date: projectData.start_date, end_date: projectData.end_date,
+        progress_percentage: 0, spent_amount: 0, status: 'In Progress'
+      }),
+      'createProjectRecord'
+    )
   }
 
   inMemoryProjects.unshift(newProj)
@@ -627,20 +560,12 @@ export async function updateProjectProgressRecord(
 ): Promise<void> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('projects') as any)
-        .update({
-          progress_percentage: progress,
-          bottleneck: bottleneck,
-          status: status,
-          spent_amount: spent,
-          updated_at: new Date().toISOString()
-        })
-        .eq('project_id', projectId)
-      if (error) console.warn('[okr-service] updateProjectProgressRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] updateProjectProgressRecord exception:', err)
-    }
+    await dbCall(
+      () => (supabase.from('projects') as any)
+        .update({ progress_percentage: progress, bottleneck, status, spent_amount: spent, updated_at: new Date().toISOString() })
+        .eq('project_id', projectId),
+      'updateProjectProgressRecord'
+    )
   }
 
   const index = inMemoryProjects.findIndex(p => p.project_id === projectId)
@@ -679,12 +604,7 @@ export async function uploadEvidenceRecord(
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('evidences') as any).insert(newEvidence)
-      if (error) console.warn('[okr-service] uploadEvidenceRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] uploadEvidenceRecord exception:', err)
-    }
+    await dbCall(() => (supabase.from('evidences') as any).insert(newEvidence), 'uploadEvidenceRecord')
   }
 
   const proj = inMemoryProjects.find(p => p.project_id === projectId)
@@ -697,12 +617,7 @@ export async function uploadEvidenceRecord(
 export async function deleteEvidenceRecord(evidenceId: string, projectId: string): Promise<void> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId)
-      if (error) console.warn('[okr-service] deleteEvidenceRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] deleteEvidenceRecord exception:', err)
-    }
+    await dbCall(() => (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceRecord')
   }
 
   const proj = inMemoryProjects.find(p => p.project_id === projectId)
@@ -751,12 +666,7 @@ export async function submitEvidenceSubmission(data: {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('evidence_submissions') as any).insert(newSubmission)
-      if (error) console.warn('[okr-service] submitEvidenceSubmission error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] submitEvidenceSubmission exception:', err)
-    }
+    await dbCall(() => (supabase.from('evidence_submissions') as any).insert(newSubmission), 'submitEvidenceSubmission')
   }
 
   inMemoryEvidenceSubmissions.unshift(newSubmission)
@@ -783,12 +693,8 @@ export async function submitEvidenceSubmission(data: {
 export async function deleteEvidenceSubmission(evidenceId: string): Promise<void> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      await (supabase.from('evidence_submissions') as any).delete().eq('evidence_id', evidenceId)
-      await (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId)
-    } catch (err) {
-      console.warn('[okr-service] deleteEvidenceSubmission exception:', err)
-    }
+    await dbCall(() => (supabase.from('evidence_submissions') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceSubmission:submissions')
+    await dbCall(() => (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceSubmission:evidences')
   }
 
   inMemoryEvidenceSubmissions = inMemoryEvidenceSubmissions.filter(e => e.evidence_id !== evidenceId)
@@ -843,12 +749,7 @@ export async function assignProjectRole(data: {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('project_assignments') as any).insert(assignment)
-      if (error) console.warn('[okr-service] assignProjectRole error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] assignProjectRole exception:', err)
-    }
+    await dbCall(() => (supabase.from('project_assignments') as any).insert(assignment), 'assignProjectRole')
   }
 
   // Remove existing assignment of this user in this project if any
@@ -886,12 +787,7 @@ export async function assignProjectRole(data: {
 export async function removeProjectRole(assignmentId: string): Promise<void> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('project_assignments') as any).delete().eq('assignment_id', assignmentId)
-      if (error) console.warn('[okr-service] removeProjectRole error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] removeProjectRole exception:', err)
-    }
+    await dbCall(() => (supabase.from('project_assignments') as any).delete().eq('assignment_id', assignmentId), 'removeProjectRole')
   }
 
   const target = inMemoryProjectAssignments.find(a => a.assignment_id === assignmentId)
@@ -910,19 +806,12 @@ export async function removeProjectRole(assignmentId: string): Promise<void> {
 export async function fetchDashboardReports(): Promise<DashboardReport[]> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { data, error } = await (supabase.from('dashboard') as any)
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (!error && data && data.length > 0) {
-        return data as DashboardReport[]
-      }
-      if (error) console.warn('[okr-service] fetchDashboardReports error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] fetchDashboardReports exception:', err)
-    }
+    const data = await dbCall<DashboardReport[]>(
+      () => (supabase.from('dashboard') as any).select('*').order('created_at', { ascending: false }),
+      'fetchDashboardReports'
+    )
+    if (data && data.length > 0) return data
   }
-
   return inMemoryDashboardReports
 }
 
@@ -947,12 +836,7 @@ export async function createDashboardReport(reportData: {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('dashboard') as any).insert(newReport)
-      if (error) console.warn('[okr-service] createDashboardReport error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] createDashboardReport exception:', err)
-    }
+    await dbCall(() => (supabase.from('dashboard') as any).insert(newReport), 'createDashboardReport')
   }
 
   inMemoryDashboardReports.unshift(newReport)
@@ -965,19 +849,12 @@ export async function createDashboardReport(reportData: {
 export async function fetchNormalReports(): Promise<NormalReport[]> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { data, error } = await (supabase.from('normal_reports') as any)
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (!error && data && data.length > 0) {
-        return data as NormalReport[]
-      }
-      if (error) console.warn('[okr-service] fetchNormalReports error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] fetchNormalReports exception:', err)
-    }
+    const data = await dbCall<NormalReport[]>(
+      () => (supabase.from('normal_reports') as any).select('*').order('created_at', { ascending: false }),
+      'fetchNormalReports'
+    )
+    if (data && data.length > 0) return data
   }
-
   return inMemoryNormalReports
 }
 
@@ -1012,12 +889,7 @@ export async function createNormalReport(reportData: {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('normal_reports') as any).insert(newReport)
-      if (error) console.warn('[okr-service] createNormalReport error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] createNormalReport exception:', err)
-    }
+    await dbCall(() => (supabase.from('normal_reports') as any).insert(newReport), 'createNormalReport')
   }
 
   inMemoryNormalReports.unshift(newReport)
@@ -1030,24 +902,12 @@ export async function createNormalReport(reportData: {
 export async function fetchEvaluations(filter?: { report_id?: string; dashboard_id?: string }): Promise<Evaluation[]> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      let query = (supabase.from('evaluations') as any).select('*')
-      if (filter?.report_id) {
-        query = query.eq('report_id', filter.report_id)
-      }
-      if (filter?.dashboard_id) {
-        query = query.eq('dashboard_id', filter.dashboard_id)
-      }
-      const { data, error } = await query
-      if (!error && data && data.length > 0) {
-        return data as Evaluation[]
-      }
-      if (error) console.warn('[okr-service] fetchEvaluations error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] fetchEvaluations exception:', err)
-    }
+    let query = (supabase.from('evaluations') as any).select('*')
+    if (filter?.report_id) query = query.eq('report_id', filter.report_id)
+    if (filter?.dashboard_id) query = query.eq('dashboard_id', filter.dashboard_id)
+    const data = await dbCall<Evaluation[]>(() => query, 'fetchEvaluations')
+    if (data && data.length > 0) return data
   }
-
   return filterEvaluations(filter)
 }
 
@@ -1081,12 +941,7 @@ export async function saveEvaluationRecord(data: {
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    try {
-      const { error } = await (supabase.from('evaluations') as any).insert(evaluation)
-      if (error) console.warn('[okr-service] saveEvaluationRecord error:', error.message)
-    } catch (err) {
-      console.warn('[okr-service] saveEvaluationRecord exception:', err)
-    }
+    await dbCall(() => (supabase.from('evaluations') as any).insert(evaluation), 'saveEvaluationRecord')
   }
 
   const existingIdx = inMemoryEvaluations.findIndex(e =>

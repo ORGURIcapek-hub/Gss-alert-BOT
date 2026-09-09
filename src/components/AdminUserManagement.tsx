@@ -5,6 +5,7 @@ import { UserProfile, UserRole } from '@/types/database.types'
 import { Shield, Check, Lock, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound } from 'lucide-react'
 import { updateUserRoleRecord, deleteUserRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
+import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
 
 export function AdminUserManagement() {
   const { currentUser, allUsers, deleteUser, refreshUsers } = useRole()
@@ -15,24 +16,14 @@ export function AdminUserManagement() {
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({})
-  const [showAllPasswords, setShowAllPasswords] = useState(false)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-
-  const toggleRevealPassword = (userId: string) => {
-    setRevealedPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }))
-  }
-
-  const handleCopyPassword = (userId: string, pass: string) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(pass)
-    }
-    setCopiedId(userId)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
+  const {
+    revealedPasswords,
+    showAllPasswords,
+    copiedId,
+    toggleRevealPassword,
+    handleCopyPassword,
+    setShowAllPasswords
+  } = usePasswordReveal()
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUpdatingId(userId)

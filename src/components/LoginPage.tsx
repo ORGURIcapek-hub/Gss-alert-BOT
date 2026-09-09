@@ -5,6 +5,7 @@ import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 import { UserRole } from '@/types/database.types'
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal'
+import { validateEmail } from '@/lib/password-utils'
 import {
   Lock,
   Mail,
@@ -55,6 +56,7 @@ export function LoginPage() {
   const [regUsername, setRegUsername] = useState('')
   const [regFullName, setRegFullName] = useState('')
   const [regEmail, setRegEmail] = useState('')
+  const [regEmailError, setRegEmailError] = useState<string | null>(null)
   const [regPassword, setRegPassword] = useState('')
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [regRole, setRegRole] = useState<UserRole>('teacher')
@@ -168,6 +170,14 @@ export function LoginPage() {
 
     if (!regUsername.trim() || !regEmail.trim() || !regFullName.trim() || !regPassword) {
       setErrorMsg('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง')
+      return
+    }
+
+    // Email format validation
+    const emailCheck = validateEmail(regEmail)
+    if (!emailCheck.isValid) {
+      setRegEmailError(emailCheck.error)
+      setErrorMsg(emailCheck.error || 'รูปแบบอีเมลไม่ถูกต้อง')
       return
     }
 
@@ -476,14 +486,42 @@ export function LoginPage() {
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="email"
+                    type="text"
                     required
                     placeholder="name@science.ac.th"
                     value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
+                    onChange={(e) => {
+                      setRegEmail(e.target.value)
+                      // Clear error as user types
+                      if (regEmailError) setRegEmailError(null)
+                    }}
+                    onBlur={() => {
+                      if (regEmail.trim()) {
+                        const check = validateEmail(regEmail)
+                        setRegEmailError(check.isValid ? null : check.error)
+                      }
+                    }}
+                    className={`w-full bg-slate-50 border rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71] ${
+                      regEmailError
+                        ? 'border-rose-400 focus:ring-1 focus:ring-rose-300'
+                        : regEmail && !regEmailError
+                          ? 'border-emerald-400'
+                          : 'border-slate-200'
+                    }`}
                   />
                 </div>
+                {/* Inline email feedback */}
+                {regEmailError ? (
+                  <p className="text-xs text-rose-600 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    {regEmailError}
+                  </p>
+                ) : regEmail && !regEmailError && validateEmail(regEmail).isValid ? (
+                  <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                    รูปแบบอีเมลถูกต้อง
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">

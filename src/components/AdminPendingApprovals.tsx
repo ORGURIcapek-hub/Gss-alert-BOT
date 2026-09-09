@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRole } from '@/components/RoleContext'
 import { UserRole, UserProfile } from '@/types/database.types'
+import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
 import {
   UserCheck,
   UserX,
@@ -30,24 +31,14 @@ export function AdminPendingApprovals() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRoleOverrides, setSelectedRoleOverrides] = useState<Record<string, UserRole>>({})
   const [processingId, setProcessingId] = useState<string | null>(null)
-  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({})
-  const [showAllPasswords, setShowAllPasswords] = useState(false)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-
-  const toggleRevealPassword = (userId: string) => {
-    setRevealedPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }))
-  }
-
-  const handleCopyPassword = (userId: string, pass: string) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(pass)
-    }
-    setCopiedId(userId)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
+  const {
+    revealedPasswords,
+    showAllPasswords,
+    copiedId,
+    toggleRevealPassword,
+    handleCopyPassword,
+    setShowAllPasswords
+  } = usePasswordReveal()
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [confirmModal, setConfirmModal] = useState<{

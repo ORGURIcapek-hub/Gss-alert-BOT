@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRole } from '@/components/RoleContext'
+import { validatePassword, getPasswordStrengthMeta } from '@/lib/password-utils'
 import {
   KeyRound,
   Lock,
@@ -33,62 +34,9 @@ export function ChangePasswordModal() {
   if (!isChangePasswordOpen || !currentUser) return null
 
   // Password criteria evaluation
-  const isPasswordValidLength = newPassword.length >= 8 && newPassword.length <= 15
-  const hasLetter = /[a-zA-Z]/.test(newPassword)
-  const hasNumber = /[0-9]/.test(newPassword)
-  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword)
-  const isPasswordAllValid = isPasswordValidLength && hasLetter && hasNumber && hasSpecial
+  const { hasLength: isPasswordValidLength, hasLetter, hasNumber, hasSpecial, isValid: isPasswordAllValid, criteriaCount: passedCriteriaCount } = validatePassword(newPassword)
   const isMatching = newPassword && confirmPassword && newPassword === confirmPassword
-
-  const passedCriteriaCount = [isPasswordValidLength, hasLetter, hasNumber, hasSpecial].filter(Boolean).length
-
-  const getStrengthMeta = () => {
-    if (!newPassword) {
-      return {
-        label: 'ระบุรหัสผ่านใหม่',
-        barColor: 'bg-slate-200',
-        textColor: 'text-slate-400',
-        widthClass: 'w-0',
-        badgeBg: 'bg-slate-100 text-slate-500 border-slate-200'
-      }
-    }
-    if (passedCriteriaCount <= 1) {
-      return {
-        label: 'ความปลอดภัยต่ำ (Weak)',
-        barColor: 'bg-rose-500',
-        textColor: 'text-rose-600',
-        widthClass: 'w-1/4',
-        badgeBg: 'bg-rose-50 text-rose-700 border-rose-200'
-      }
-    }
-    if (passedCriteriaCount === 2) {
-      return {
-        label: 'ปานกลาง (Medium)',
-        barColor: 'bg-amber-500',
-        textColor: 'text-amber-600',
-        widthClass: 'w-2/4',
-        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200'
-      }
-    }
-    if (passedCriteriaCount === 3) {
-      return {
-        label: 'เกือบสมบูรณ์ (Good)',
-        barColor: 'bg-sky-500',
-        textColor: 'text-sky-600',
-        widthClass: 'w-3/4',
-        badgeBg: 'bg-sky-50 text-sky-700 border-sky-200'
-      }
-    }
-    return {
-      label: 'แข็งแกร่ง ปลอดภัยสูง (Strong)',
-      barColor: 'bg-emerald-500',
-      textColor: 'text-emerald-600',
-      widthClass: 'w-full',
-      badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    }
-  }
-
-  const strengthMeta = getStrengthMeta()
+  const strengthMeta = getPasswordStrengthMeta(newPassword)
 
   const handleClose = () => {
     setCurrentPassword('')

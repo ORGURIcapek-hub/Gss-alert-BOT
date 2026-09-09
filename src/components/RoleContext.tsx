@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { mockUsers } from '@/lib/mock-data'
 import { fetchUsers } from '@/lib/services/okr-service'
+import { validatePassword, validateEmail } from '@/lib/password-utils'
 
 interface LoginResult {
   success: boolean
@@ -176,9 +177,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const expectedPassword = foundUser.password || 'password123'
-    if (password !== undefined && password !== expectedPassword) {
-      return { success: false, error: 'รหัสผ่านไม่ถูกต้อง (Incorrect password)' }
+    // Password is always required — no fallback default
+    if (!password) {
+      return { success: false, error: 'กรุณาระบุรหัสผ่าน' }
+    }
+    const expectedPassword = foundUser.password
+    if (!expectedPassword || password !== expectedPassword) {
+      return { success: false, error: 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านของคุณ' }
     }
 
     setCurrentUser(foundUser)
@@ -194,7 +199,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     try {
       const cleanEmail = userData.email.trim().toLowerCase()
       const cleanUsername = userData.username.trim().toLowerCase()
-      
+
+      // Validate email format before doing anything else
+      const emailCheck = validateEmail(cleanEmail)
+      if (!emailCheck.isValid) {
+        return { success: false, error: emailCheck.error || 'รูปแบบอีเมลไม่ถูกต้อง' }
+      }
+
       const existing = allUsers.find(u =>
         u.email.trim().toLowerCase() === cleanEmail ||
         (u.username && u.username.trim().toLowerCase() === cleanUsername)
@@ -205,13 +216,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (userData.password) {
-        const p = userData.password
-        const hasLength = p.length >= 8 && p.length <= 15
-        const hasLetter = /[a-zA-Z]/.test(p)
-        const hasNumber = /[0-9]/.test(p)
-        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(p)
-
-        if (!hasLength || !hasLetter || !hasNumber || !hasSpecial) {
+        const { isValid } = validatePassword(userData.password)
+        if (!isValid) {
           return {
             success: false,
             error: 'รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
@@ -323,12 +329,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง (Incorrect current password)' }
     }
 
-    const hasLength = newPassword.length >= 8 && newPassword.length <= 15
-    const hasLetter = /[a-zA-Z]/.test(newPassword)
-    const hasNumber = /[0-9]/.test(newPassword)
-    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword)
-
-    if (!hasLength || !hasLetter || !hasNumber || !hasSpecial) {
+    const { isValid: isNewPwValid } = validatePassword(newPassword)
+    if (!isNewPwValid) {
       return {
         success: false,
         error: 'รหัสผ่านใหม่ต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
