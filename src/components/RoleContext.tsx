@@ -153,7 +153,19 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (identifier: string, password?: string): Promise<LoginResult> => {
     const cleanId = identifier.trim().toLowerCase()
-    const foundUser = allUsers.find(u =>
+
+    // Always fetch fresh users before login search to prevent race condition
+    // where allUsers state hasn't been hydrated with localStorage registered users yet.
+    let searchPool = allUsers
+    try {
+      const freshUsers = await fetchUsers()
+      setAllUsers(freshUsers)
+      searchPool = freshUsers
+    } catch (e) {
+      console.warn('[login] fetchUsers failed, falling back to in-memory allUsers', e)
+    }
+
+    const foundUser = searchPool.find(u =>
       u.email.trim().toLowerCase() === cleanId ||
       (u.username && u.username.trim().toLowerCase() === cleanId)
     )
@@ -324,8 +336,17 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนเปลี่ยนรหัสผ่าน' }
     }
 
-    const expectedPassword = currentUser.password || 'password123'
-    if (currentPassword !== expectedPassword) {
+    // Fetch the latest user record to get the real password (may be updated via passwordMap in localStorage)
+    let expectedPassword = currentUser.password
+    try {
+      const freshUsers = await fetchUsers()
+      const freshUser = freshUsers.find(u => u.user_id === currentUser.user_id)
+      if (freshUser?.password) expectedPassword = freshUser.password
+    } catch (e) {
+      // fall back to currentUser.password
+    }
+
+    if (!expectedPassword || currentPassword !== expectedPassword) {
       return { success: false, error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง (Incorrect current password)' }
     }
 

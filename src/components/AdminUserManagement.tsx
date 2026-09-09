@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
-import { Shield, Check, Lock, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound } from 'lucide-react'
+import { Shield, Check, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound } from 'lucide-react'
 import { updateUserRoleRecord, deleteUserRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
@@ -123,13 +123,13 @@ export function AdminUserManagement() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-200 text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider bg-slate-50/80">
-              <th className="py-4 px-4 rounded-l-2xl">ชื่อ - นามสกุล</th>
+              <th className="py-4 px-4 rounded-l-2xl">Username</th>
+              <th className="py-4 px-4">ชื่อ - นามสกุล</th>
               <th className="py-4 px-4">อีเมลมหาวิทยาลัย</th>
               <th className="py-4 px-4">ภาควิชา / หน่วยงาน</th>
               <th className="py-4 px-4">ตำแหน่งงาน</th>
               <th className="py-4 px-4">บทบาทในระบบ (Role)</th>
               <th className="py-4 px-4">รหัสผ่าน (Password)</th>
-              <th className="py-4 px-4 text-center">สถานะ RLS</th>
               <th className="py-4 px-4 text-center rounded-r-2xl">จัดการ / ลบ</th>
             </tr>
           </thead>
@@ -141,15 +141,20 @@ export function AdminUserManagement() {
 
               return (
                 <tr key={u.user_id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-4 px-4 font-bold text-slate-900">
-                    <div className="flex items-center gap-3">
+                  <td className="py-4 px-4">
+                    <div className="flex items-center gap-2.5">
                       <img
                         src={u.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
                         alt=""
-                        className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-sm"
+                        className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm flex-shrink-0"
                       />
-                      <span className="text-sm sm:text-base">{u.first_name} {u.last_name}</span>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-xs font-bold border border-slate-200">
+                        {u.username || u.email.split('@')[0]}
+                      </span>
                     </div>
+                  </td>
+                  <td className="py-4 px-4 font-bold text-slate-900 text-sm sm:text-base">
+                    {u.first_name} {u.last_name}
                   </td>
                   <td className="py-4 px-4 text-slate-600 font-mono text-xs sm:text-sm font-medium">
                     {u.email}
@@ -205,11 +210,6 @@ export function AdminUserManagement() {
                     </div>
                   </td>
 
-                  <td className="py-4 px-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <Lock className="w-3.5 h-3.5" /> Protected
-                    </span>
-                  </td>
                   <td className="py-4 px-4 text-center">
                     {isCurrentUser ? (
                       <span className="text-xs text-slate-400 font-semibold px-3 py-1 bg-slate-100 rounded-lg" title="ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่">
