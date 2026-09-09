@@ -139,17 +139,17 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/70">
-              <th className="py-3.5 px-4 rounded-l-xl">ชื่อโครงการ</th>
-              <th className="py-3.5 px-4">หน่วยงาน / ภาควิชา</th>
-              <th className="py-3.5 px-4">หัวหน้าโครงการ</th>
-              <th className="py-3.5 px-4 text-center">งบประมาณ</th>
-              <th className="py-3.5 px-4">ความก้าวหน้า</th>
-              <th className="py-3.5 px-4 text-center">สถานะ</th>
-              <th className="py-3.5 px-4 text-right rounded-r-xl">จัดการ</th>
+            <tr className="border-b border-slate-200 text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider bg-slate-50/80">
+              <th className="py-4 px-4 rounded-l-2xl">ชื่อโครงการ</th>
+              <th className="py-4 px-4">หน่วยงาน / ภาควิชา</th>
+              <th className="py-4 px-4">หัวหน้าโครงการ</th>
+              <th className="py-4 px-4 text-center">งบประมาณ</th>
+              <th className="py-4 px-4">ความก้าวหน้า</th>
+              <th className="py-4 px-4 text-center">สถานะ</th>
+              <th className="py-4 px-4 text-right rounded-r-2xl">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-xs">
+          <tbody className="divide-y divide-slate-100 text-sm">
             {filteredProjects.map((p) => {
               const headName = p.head ? `${p.head.first_name} ${p.head.last_name}` : 'ไม่ระบุ'
               return (
@@ -159,26 +159,26 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
                   className="hover:bg-slate-50/80 transition-colors cursor-pointer"
                 >
                   <td className="py-4 px-4">
-                    <div className="font-bold text-slate-900 line-clamp-1 max-w-xs">{p.project_name}</div>
-                    <span className="text-[11px] text-slate-500">{p.project_type}</span>
+                    <div className="font-bold text-slate-900 text-sm sm:text-base line-clamp-1 max-w-sm">{p.project_name}</div>
+                    <span className="text-xs text-slate-500 font-medium">{p.project_type}</span>
                   </td>
-                  <td className="py-4 px-4 text-slate-700 font-medium">
+                  <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
                     {p.department.replace('ภาควิชา', '')}
                   </td>
-                  <td className="py-4 px-4 text-slate-700 font-medium">
+                  <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
                     {headName}
                   </td>
-                  <td className="py-4 px-4 text-center font-bold text-slate-900">
+                  <td className="py-4 px-4 text-center font-extrabold text-slate-900 text-sm">
                     {(Number(p.budget) / 1000).toLocaleString()}k ฿
                   </td>
                   <td className="py-4 px-4">
-                    <div className="w-28">
-                      <div className="flex justify-between text-[11px] font-bold mb-1">
-                        <span className="text-slate-700">{p.progress_percentage}%</span>
+                    <div className="w-32">
+                      <div className="flex justify-between text-xs font-bold mb-1">
+                        <span className="text-slate-800">{p.progress_percentage}%</span>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                         <div
-                          className="bg-[#003B71] h-1.5 rounded-full"
+                          className="bg-[#003B71] h-2 rounded-full"
                           style={{ width: `${p.progress_percentage}%` }}
                         />
                       </div>
@@ -193,9 +193,10 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
                         e.stopPropagation()
                         onSelectProject(p)
                       }}
-                      className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-[#003B71] transition-colors inline-flex items-center gap-1"
+                      className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-[#003B71] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      title="ดูรายละเอียดโครงการ"
                     >
-                      <Eye className="w-3.5 h-3.5" />
+                      <Eye className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>

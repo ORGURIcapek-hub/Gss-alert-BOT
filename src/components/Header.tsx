@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calendar, Download, RefreshCw, Filter, Menu } from 'lucide-react'
+import { Calendar, Download, Filter, Menu, KeyRound } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 
@@ -10,7 +10,7 @@ interface HeaderProps {
   setSelectedYear: (year: number) => void
   selectedQuarter: string
   setSelectedQuarter: (quarter: string) => void
-  onRefresh: () => void
+  onRefresh?: () => void
   onExportPDF: () => void
   onToggleMobileMenu: () => void
   isRefreshing?: boolean
@@ -26,7 +26,7 @@ export function Header({
   onToggleMobileMenu,
   isRefreshing
 }: HeaderProps) {
-  const { currentRole } = useRole()
+  const { currentUser, currentRole, openChangePasswordModal, openProfileModal } = useRole()
   const isAdmin = currentRole === 'admin'
 
   return (
@@ -104,15 +104,21 @@ export function Header({
           </div>
         )}
 
-        {/* Refresh Button */}
+        {/* User Profile Button */}
         <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className="p-2 sm:px-3.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 transition-all flex items-center gap-1.5"
-          title="รีเฟรชข้อมูล"
+          type="button"
+          onClick={openProfileModal}
+          className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer group active:scale-95 shadow-xs"
+          title="ดูและแก้ไขโปรไฟล์ของคุณ"
         >
-          <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isRefreshing ? 'animate-spin text-[#003B71]' : ''}`} />
-          <span className="hidden sm:inline">รีเฟรช</span>
+          <img
+            src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+            alt="User Avatar"
+            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-[#003B71]/40 shadow-xs"
+          />
+          <span className="text-xs font-bold text-slate-800 group-hover:text-[#003B71] hidden md:inline truncate max-w-[120px]">
+            {currentUser?.first_name || 'โปรไฟล์'}
+          </span>
         </button>
 
         {/* Export PDF Button - Completely hidden for Admin */}

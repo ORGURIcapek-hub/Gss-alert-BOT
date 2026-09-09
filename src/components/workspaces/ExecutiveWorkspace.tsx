@@ -183,7 +183,7 @@ export function ExecutiveWorkspace({
       </div>
 
       {/* Main Focus Area: Dynamic Active Projects Filter */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+      <div className="bg-white rounded-2xl p-5 border-2 border-slate-900 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#00A8B5]" />
@@ -202,7 +202,7 @@ export function ExecutiveWorkspace({
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${
               selectedProjectId === 'ALL'
                 ? 'bg-[#003B71] text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-2 border-slate-800'
             }`}
           >
             🌟 ภาพรวมทุกโครงการ ({projects.length})
@@ -217,7 +217,7 @@ export function ExecutiveWorkspace({
                 className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-2 cursor-pointer ${
                   isSelected
                     ? 'bg-[#003B71] text-white shadow-sm font-bold'
-                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border-2 border-slate-800'
                 }`}
               >
                 <span className={`w-2 h-2 rounded-full ${p.progress_percentage === 100 ? 'bg-emerald-500' : 'bg-sky-500'}`} />
@@ -233,13 +233,13 @@ export function ExecutiveWorkspace({
 
       {/* KPI Stats Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-900 shadow-sm">
           <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">ยุทธศาสตร์ OKR คณะ</span>
           <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{okrs.length} เป้าหมาย</div>
           <span className="text-xs text-[#003B71] font-semibold mt-1 block">{filteredProjects.length} โครงการ</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-900 shadow-sm">
           <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">ความก้าวหน้าเฉลี่ย</span>
           <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">{avgProgress}%</div>
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
@@ -247,7 +247,7 @@ export function ExecutiveWorkspace({
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-900 shadow-sm">
           <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">งบประมาณเบิกจ่าย</span>
           <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
             {(totalSpent / 1000000).toFixed(2)} / {(totalBudget / 1000000).toFixed(1)} ลบ.
@@ -257,7 +257,7 @@ export function ExecutiveWorkspace({
           </span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-900 shadow-sm">
           <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">โครงการที่ต้องเร่งรัด</span>
           <div className={`text-2xl sm:text-3xl font-black mt-1 ${delayedProjects.length > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
             {delayedProjects.length} โครงการ
@@ -266,25 +266,28 @@ export function ExecutiveWorkspace({
         </div>
       </div>
 
+      {/* Analytics Charts & Project Status Breakdown */}
+      <ExecutiveAnalytics projects={filteredProjects} onSelectProject={onSelectProject} />
+
       {/* SECTION: Reports submitted by OKR Head with Visual Infographics & 5-Star Interactive Rating */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-900 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
           <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-[#003B71]" />
-              อินโฟกราฟิกและรายงานสรุปจากหัวหน้าโครงการ OKR (Table Dashboard View)
+              <span>อินโฟกราฟิกและรายงานสรุปจากหัวหน้าโครงการ OKR (Table Dashboard View)</span>
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
               แปลงข้อมูลสรุปเป็น Visual Infographics พร้อมระบบคลิกให้คะแนนประเมินหัวหน้าโครงการ (1 - 5 ดาว)
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-[#003B71] border border-sky-200 self-start sm:self-auto">
+          <span className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-sky-50 text-[#003B71] border-2 border-sky-300 self-start sm:self-auto">
             {dashboardReports.length} Dashboard Reports
           </span>
         </div>
 
         {dashboardReports.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">
+          <div className="p-8 text-center text-slate-400 text-sm sm:text-base">
             ยังไม่มีรายงานเชิงยุทธศาสตร์ที่ส่งเข้ามาใน Table Dashboard
           </div>
         ) : (
@@ -298,20 +301,20 @@ export function ExecutiveWorkspace({
               return (
                 <div
                   key={report.dashboard_id}
-                  className="rounded-3xl bg-gradient-to-br from-slate-50 via-white to-sky-50/50 border border-slate-200 hover:border-sky-300 hover:shadow-lg transition-all p-6 space-y-5 flex flex-col justify-between"
+                  className="rounded-3xl bg-gradient-to-br from-slate-50 via-white to-sky-50/50 border-2 border-slate-900 hover:border-[#003B71] hover:shadow-lg transition-all p-6 sm:p-7 space-y-5 flex flex-col justify-between"
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-[#003B71]/10 text-[#003B71] flex items-center justify-center font-bold shadow-sm">
-                        <UserCheck className="w-5 h-5" />
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-[#003B71]/10 text-[#003B71] flex items-center justify-center font-bold shadow-sm">
+                        <UserCheck className="w-6 h-6" />
                       </div>
                       <div>
-                        <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                        <h4 className="text-base sm:text-lg font-bold text-slate-900">
                           {report.head_name || 'หัวหน้าโครงการ OKR'}
                         </h4>
-                        <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
+                        <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
+                          <Calendar className="w-3.5 h-3.5" />
                           ปีการศึกษา {report.academic_year || 2567} • {new Date(report.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
@@ -323,25 +326,25 @@ export function ExecutiveWorkspace({
                   </div>
 
                   {/* Visual Infographic Cards Representation */}
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">ระดับผลงาน</span>
-                      <div className="text-base font-black text-emerald-600 mt-1 flex items-center justify-center gap-1">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ระดับผลงาน</span>
+                      <div className="text-base sm:text-lg font-black text-emerald-600 mt-1 flex items-center justify-center gap-1">
                         <Award className="w-4 h-4 text-emerald-500" />
                         <span>{displayRating >= 4 ? 'ดีเยี่ยม' : displayRating >= 3 ? 'ดี' : 'ต้องพัฒนา'}</span>
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">เกณฑ์ประเมิน</span>
-                      <div className="text-base font-black text-[#003B71] mt-1">
+                    <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เกณฑ์ประเมิน</span>
+                      <div className="text-base sm:text-lg font-black text-[#003B71] mt-1">
                         {displayRating * 20}%
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">สถานะส่งมอบ</span>
-                      <div className="text-base font-black text-amber-500 mt-1 flex items-center justify-center gap-1">
+                    <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">สถานะส่งมอบ</span>
+                      <div className="text-base sm:text-lg font-black text-amber-500 mt-1 flex items-center justify-center gap-1">
                         <Activity className="w-4 h-4 text-amber-500" />
                         <span>สมบูรณ์</span>
                       </div>
@@ -349,41 +352,41 @@ export function ExecutiveWorkspace({
                   </div>
 
                   {/* Visual Progress Meter Infographic */}
-                  <div className="space-y-1.5 bg-white p-3.5 rounded-2xl border border-slate-200/80">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-600 flex items-center gap-1">
-                        <TrendingUp className="w-3.5 h-3.5 text-[#00A8B5]" />
+                  <div className="space-y-2 bg-white p-4 rounded-2xl border border-slate-200/80">
+                    <div className="flex justify-between text-xs sm:text-sm font-bold">
+                      <span className="text-slate-700 flex items-center gap-1.5">
+                        <TrendingUp className="w-4 h-4 text-[#00A8B5]" />
                         ระดับการบรรลุเป้าหมายยุทธศาสตร์ (OKR Benchmark)
                       </span>
                       <span className="text-[#003B71]">{displayRating * 20}%</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
                       <div
-                        className="h-2.5 rounded-full bg-gradient-to-r from-[#003B71] via-[#005B94] to-[#00A8B5] transition-all duration-300"
+                        className="h-3 rounded-full bg-gradient-to-r from-[#003B71] via-[#005B94] to-[#00A8B5] transition-all duration-300"
                         style={{ width: `${displayRating * 20}%` }}
                       />
                     </div>
                   </div>
 
                   {/* Summary Text Content */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block flex items-center gap-1">
-                      <FileText className="w-3.5 h-3.5 text-[#003B71]" />
+                  <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1.5">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-[#003B71]" />
                       ข้อมูลภาพรวมผลสัมฤทธิ์ (Overall OKR Info):
                     </span>
-                    <p className="text-xs text-slate-800 leading-relaxed font-medium">
+                    <p className="text-sm text-slate-800 leading-relaxed font-medium">
                       {report.overall_okr_info}
                     </p>
                   </div>
 
-                  {/* INTERACTIVE 5-STAR RATING (OKR Head Only - Hide Team Evaluation) */}
-                  <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2">
+                  {/* INTERACTIVE 5-STAR RATING */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
                         <span>ประเมินผลหัวหน้าโครงการ OKR (Head Evaluation: 1-5 คะแนน)</span>
                       </label>
-                      <span className="text-xs font-black text-amber-700">
+                      <span className="text-xs sm:text-sm font-black text-amber-700">
                         {displayRating} / 5 ดาว
                       </span>
                     </div>
@@ -399,11 +402,11 @@ export function ExecutiveWorkspace({
                               onClick={() => handleRateHead(report.dashboard_id, star)}
                               onMouseEnter={() => setHoverScores(prev => ({ ...prev, [report.dashboard_id]: star }))}
                               onMouseLeave={() => setHoverScores(prev => ({ ...prev, [report.dashboard_id]: 0 }))}
-                              className="p-1 rounded-lg hover:scale-125 transition-all cursor-pointer"
+                              className="p-1 rounded-xl hover:scale-125 transition-all cursor-pointer"
                               title={`ให้ ${star} คะแนน`}
                             >
                               <Star
-                                className={`w-6 h-6 transition-colors ${
+                                className={`w-7 h-7 transition-colors ${
                                   isFilled
                                     ? 'text-amber-500 fill-amber-400 drop-shadow-sm'
                                     : 'text-slate-300 fill-transparent hover:text-amber-400'
@@ -415,9 +418,9 @@ export function ExecutiveWorkspace({
                       </div>
 
                       {isSavingThis ? (
-                        <span className="text-[11px] text-amber-700 font-bold animate-pulse">กำลังบันทึก...</span>
+                        <span className="text-xs text-amber-700 font-bold animate-pulse">กำลังบันทึก...</span>
                       ) : (
-                        <span className="text-[10px] text-slate-500 font-semibold">คลิกดาวเพื่อประเมิน</span>
+                        <span className="text-xs text-slate-500 font-semibold">คลิกดาวเพื่อประเมิน</span>
                       )}
                     </div>
                   </div>
@@ -428,12 +431,9 @@ export function ExecutiveWorkspace({
         )}
       </div>
 
-      {/* Analytics Charts */}
-      <ExecutiveAnalytics projects={filteredProjects} />
-
       {/* Delayed Projects Attention Box */}
       {delayedProjects.length > 0 && (
-        <div className="bg-rose-50/70 rounded-2xl p-6 border border-rose-200 space-y-4">
+        <div className="bg-rose-50/70 rounded-2xl p-6 border-2 border-rose-400 space-y-4 shadow-sm">
           <h3 className="text-sm sm:text-base font-bold text-rose-800 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
             โครงการที่ติดปัญหาและต้องการการสนับสนุนจากผู้บริหาร ({delayedProjects.length} โครงการ)
@@ -444,7 +444,7 @@ export function ExecutiveWorkspace({
               <div
                 key={p.project_id}
                 onClick={() => onSelectProject(p)}
-                className="p-4 rounded-xl bg-white border border-rose-200 hover:border-rose-400 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
+                className="p-4 rounded-xl bg-white border-2 border-slate-900 hover:border-rose-500 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
               >
                 <div>
                   <div className="flex items-center gap-2">

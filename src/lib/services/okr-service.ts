@@ -1,7 +1,30 @@
 import { createClient } from '@/lib/supabase/client'
-import { mockUsers, mockOKRs, mockProjects, mockDashboardReports, mockNormalReports, mockProjectAssignments, mockEvidenceSubmissions, mockEvaluations } from '@/lib/mock-data'
-import { OKR, ProjectWithHeadAndAssignees, UserProfile, UserRole, ProjectStatus, DashboardReport, NormalReport, ProjectAssignment, EvidenceSubmission, Evaluation } from '@/types/database.types'
+import {
+  mockUsers,
+  mockOKRs,
+  mockProjects,
+  mockDashboardReports,
+  mockNormalReports,
+  mockProjectAssignments,
+  mockEvidenceSubmissions,
+  mockEvaluations
+} from '@/lib/mock-data'
+import {
+  OKR,
+  ProjectWithHeadAndAssignees,
+  UserProfile,
+  UserRole,
+  ProjectStatus,
+  DashboardReport,
+  NormalReport,
+  ProjectAssignment,
+  EvidenceSubmission,
+  Evaluation
+} from '@/types/database.types'
 
+// =============================================================================
+// IN-MEMORY DATA STORES (Client Fallback & Offline Simulation)
+// =============================================================================
 let inMemoryProjects = [...mockProjects]
 let inMemoryUsers = [...mockUsers]
 let inMemoryOKRs = [...mockOKRs]
@@ -11,69 +34,446 @@ let inMemoryProjectAssignments = [...mockProjectAssignments]
 let inMemoryEvidenceSubmissions = [...mockEvidenceSubmissions]
 let inMemoryEvaluations = [...mockEvaluations]
 
+// =============================================================================
+// STORAGE KEYS & ROBUST HELPERS (SSR Safe)
+// =============================================================================
+const DELETED_USERS_STORAGE_KEY = 'sdu_okr_deleted_user_ids'
+const USER_STATUS_STORAGE_KEY = 'sdu_okr_user_status_map'
+const REGISTERED_USERS_STORAGE_KEY = 'sdu_okr_registered_users'
+const USER_PASSWORDS_STORAGE_KEY = 'sdu_okr_user_passwords'
+
+function safeGetStorage<T>(key: string, defaultValue: T): T {
+  if (typeof window === 'undefined') return defaultValue
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : defaultValue
+  } catch (err) {
+    console.warn(`[okr-storage] Error reading key "${key}":`, err)
+    return defaultValue
+  }
+}
+
+function safeSetStorage<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (err) {
+    console.warn(`[okr-storage] Error writing key "${key}":`, err)
+  }
+}
+
+export function getUserStatusMap(): Record<string, 'pending' | 'approved' | 'rejected'> {
+  return safeGetStorage(USER_STATUS_STORAGE_KEY, {})
+}
+
+export function setUserStatusInMap(userId: string, status: 'pending' | 'approved' | 'rejected'): void {
+  const map = getUserStatusMap()
+  map[userId] = status
+  safeSetStorage(USER_STATUS_STORAGE_KEY, map)
+}
+
+export function getRegisteredUsers(): UserProfile[] {
+  return safeGetStorage<UserProfile[]>(REGISTERED_USERS_STORAGE_KEY, [])
+}
+
+export function saveRegisteredUser(user: UserProfile): void {
+  const list = getRegisteredUsers()
+  const idx = list.findIndex(u => u.user_id === user.user_id || u.email.toLowerCase() === user.email.toLowerCase())
+  if (idx !== -1) {
+    list[idx] = user
+  } else {
+    list.unshift(user)
+  }
+  safeSetStorage(REGISTERED_USERS_STORAGE_KEY, list)
+}
+
+export const USER_PROFILES_STORAGE_KEY = 'sdu_okr_user_profile_overrides'
+
+export function getUserProfileOverrides(): Record<string, Partial<UserProfile>> {
+  return safeGetStorage<Record<string, Partial<UserProfile>>>(USER_PROFILES_STORAGE_KEY, {})
+}
+
+export function saveUserProfileOverride(userId: string, updates: Partial<UserProfile>): void {
+  const map = getUserProfileOverrides()
+  map[userId] = { ...(map[userId] || {}), ...updates }
+  safeSetStorage(USER_PROFILES_STORAGE_KEY, map)
+}
+
+export function getUserPasswordsMap(): Record<string, string> {
+  return safeGetStorage<Record<string, string>>(USER_PASSWORDS_STORAGE_KEY, {})
+}
+
+export function setUserPasswordInMap(userId: string, newPassword: string): void {
+  const map = getUserPasswordsMap()
+  map[userId] = newPassword
+  safeSetStorage(USER_PASSWORDS_STORAGE_KEY, map)
+}
+
+export function getDeletedUserIds(): string[] {
+  return safeGetStorage(DELETED_USERS_STORAGE_KEY, [])
+}
+
+export function recordDeletedUserId(userId: string): void {
+  const list = getDeletedUserIds()
+  if (!list.includes(userId)) {
+    list.push(userId)
+    safeSetStorage(DELETED_USERS_STORAGE_KEY, list)
+  }
+}
+
+export function unrecordDeletedUserId(userId: string): void {
+  const list = getDeletedUserIds().filter(id => id !== userId)
+  safeSetStorage(DELETED_USERS_STORAGE_KEY, list)
+}
+
+/**
+ * Safe Supabase Client Initializer:
+ * Avoids uncaught fatal exceptions when environment variables are not set during local mock development.
+ */
+function getSafeSupabaseClient() {
+  try {
+    return createClient()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Wraps a Supabase async call with a consistent try/catch + console.warn.
+ * Returns null on any error so callers can fall through to in-memory data.
+ */
+async function dbCall<T>(fn: () => Promise<{ data: T | null; error: { message: string } | null }>, label: string): Promise<T | null> {
+  try {
+    const { data, error } = await fn()
+    if (error) {
+      console.warn(`[okr-service] ${label} error:`, error.message)
+      return null
+    }
+    return data
+  } catch (err) {
+    console.warn(`[okr-service] ${label} exception:`, err)
+    return null
+  }
+}
+
+/** Maps a UserRole to its management_order integer. */
+function getManagementOrder(role?: string): number {
+  if (role === 'executive') return 2
+  if (role === 'head_okr') return 3
+  return 4
+}
+
+// =============================================================================
+// USER SERVICE
+// =============================================================================
 export async function fetchUsers(): Promise<UserProfile[]> {
-  try {
-    const supabase = createClient()
-    const { data, error } = await (supabase.from('users') as any).select('*').order('management_order', { ascending: true })
-    if (error || !data || data.length === 0) {
-      return inMemoryUsers
+  const deletedIds = getDeletedUserIds()
+  const statusMap = getUserStatusMap()
+  const passwordMap = getUserPasswordsMap()
+  const profileOverrides = getUserProfileOverrides()
+  const registeredUsers = getRegisteredUsers()
+
+  const enrichUser = (u: UserProfile): UserProfile => {
+    const override = profileOverrides[u.user_id] || {}
+    return {
+      ...u,
+      ...override,
+      status: statusMap[u.user_id] || override.status || u.status || 'approved',
+      password: passwordMap[u.user_id] || override.password || u.password || 'password123'
     }
-    return data as UserProfile[]
-  } catch {
-    return inMemoryUsers
+  }
+
+  let baseUsers: UserProfile[] = []
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    const data = await dbCall<UserProfile[]>(
+      () => (supabase.from('users') as any).select('*').order('management_order', { ascending: true }),
+      'fetchUsers'
+    )
+    if (data && data.length > 0) baseUsers = data
+  }
+
+  if (baseUsers.length === 0) {
+    baseUsers = inMemoryUsers
+  }
+
+  // Merge registered users from localStorage to ensure NO registered applicant is ever lost
+  const mergedMap = new Map<string, UserProfile>()
+  baseUsers.forEach(u => mergedMap.set(u.user_id, u))
+  registeredUsers.forEach(u => mergedMap.set(u.user_id, u))
+
+  return Array.from(mergedMap.values())
+    .filter(u => !deletedIds.includes(u.user_id))
+    .map(enrichUser)
+}
+
+export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('users') as any).update({ role }).eq('user_id', userId), 'updateUserRoleRecord')
+  }
+
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    user.role = role
+  }
+
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    regUser.role = role
+    saveRegisteredUser(regUser)
   }
 }
 
+export async function updateUserPasswordRecord(userId: string, newPassword: string): Promise<void> {
+  setUserPasswordInMap(userId, newPassword)
+
+  // Update inMemoryUsers
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    user.password = newPassword
+  }
+
+  // Update registeredUsers in localStorage if present
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    regUser.password = newPassword
+    saveRegisteredUser(regUser)
+  }
+
+  // Update in Supabase
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(
+      () => (supabase.from('users') as any).update({ password: newPassword, updated_at: new Date().toISOString() }).eq('user_id', userId),
+      'updateUserPasswordRecord'
+    )
+  }
+}
+
+export async function deleteUserRecord(userId: string): Promise<void> {
+  recordDeletedUserId(userId)
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('users') as any).delete().eq('user_id', userId), 'deleteUserRecord')
+  }
+
+  inMemoryUsers = inMemoryUsers.filter(u => u.user_id !== userId)
+  inMemoryProjectAssignments = inMemoryProjectAssignments.filter(a => a.user_id !== userId)
+  inMemoryProjects.forEach(p => {
+    if (p.head_of_project === userId) {
+      p.head_of_project = ''
+      p.head = null
+    }
+    if (p.assignees) {
+      p.assignees = p.assignees.filter(a => a.user_id !== userId)
+    }
+  })
+
+  const regUsers = getRegisteredUsers().filter(u => u.user_id !== userId)
+  safeSetStorage(REGISTERED_USERS_STORAGE_KEY, regUsers)
+}
+
+export async function updateUserProfileRecord(
+  userId: string,
+  updates: {
+    name?: string
+    first_name?: string
+    last_name?: string
+    avatar_url?: string
+    department?: string
+    position?: string
+  }
+): Promise<UserProfile | null> {
+  const computedFirstName = updates.first_name || (updates.name ? updates.name.split(' ')[0] : undefined)
+  const computedLastName = updates.last_name || (updates.name ? updates.name.split(' ').slice(1).join(' ') : undefined)
+  const computedName = updates.name || (computedFirstName && computedLastName ? `${computedFirstName} ${computedLastName}` : undefined)
+
+  const sanitizedUpdates: Partial<UserProfile> = {
+    ...updates,
+    ...(computedFirstName ? { first_name: computedFirstName } : {}),
+    ...(computedLastName ? { last_name: computedLastName } : {}),
+    ...(computedName ? { name: computedName } : {}),
+    updated_at: new Date().toISOString()
+  }
+
+  // 1. Save in local override storage for persistent hydration
+  saveUserProfileOverride(userId, sanitizedUpdates)
+
+  // 2. Update inMemoryUsers
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    Object.assign(user, sanitizedUpdates)
+  }
+
+  // 3. Update registeredUsers if applicable
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    Object.assign(regUser, sanitizedUpdates)
+    saveRegisteredUser(regUser)
+  }
+
+  // 4. Update in Supabase
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(
+      () => (supabase.from('users') as any).update(sanitizedUpdates).eq('user_id', userId),
+      'updateUserProfileRecord'
+    )
+  }
+
+  return user || null
+}
+
+export async function registerUserRecord(userData: {
+  username?: string
+  name?: string
+  first_name?: string
+  last_name?: string
+  email: string
+  password?: string
+  role?: UserRole
+  department?: string
+  position?: string
+  avatar_url?: string
+  status?: 'pending' | 'approved' | 'rejected'
+}): Promise<UserProfile> {
+  const newId = crypto.randomUUID()
+  const computedFirstName = userData.first_name || (userData.name ? userData.name.split(' ')[0] : 'อาจารย์')
+  const computedLastName = userData.last_name || (userData.name ? userData.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
+  const computedName = userData.name || `${computedFirstName} ${computedLastName}`
+  const computedUsername = userData.username || userData.email.split('@')[0]
+  const userStatus = userData.status || 'pending'
+  const userPassword = userData.password || 'password123'
+  const userAvatar = userData.avatar_url || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`
+
+  setUserStatusInMap(newId, userStatus)
+  setUserPasswordInMap(newId, userPassword)
+
+  const newUser: UserProfile = {
+    user_id: newId,
+    username: computedUsername,
+    name: computedName,
+    email: userData.email.toLowerCase().trim(),
+    password: userPassword,
+    first_name: computedFirstName,
+    last_name: computedLastName,
+    position: userData.position || 'อาจารย์ประจำภาควิชา',
+    department: userData.department || 'ภาควิชาวิทยาการคอมพิวเตอร์',
+    role: userData.role || 'teacher',
+    admin_type: null,
+    executive_level: null,
+    employment_status: 'Full-Time',
+    management_order: getManagementOrder(userData.role),
+    avatar_url: userAvatar,
+    status: userStatus,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+
+  // Always save in localStorage so admin sees it regardless of DB failures
+  saveRegisteredUser(newUser)
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('users') as any).insert(newUser), 'registerUserRecord')
+  }
+
+  inMemoryUsers.push(newUser)
+  unrecordDeletedUserId(newId)
+  return newUser
+}
+
+export async function approveUserRecord(userId: string, assignedRole?: UserRole): Promise<UserProfile> {
+  setUserStatusInMap(userId, 'approved')
+  const mgmtOrder = assignedRole ? getManagementOrder(assignedRole) : undefined
+
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) {
+    user.status = 'approved'
+    if (assignedRole) { user.role = assignedRole; user.management_order = mgmtOrder! }
+  }
+
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) {
+    regUser.status = 'approved'
+    if (assignedRole) { regUser.role = assignedRole; regUser.management_order = mgmtOrder! }
+    saveRegisteredUser(regUser)
+  }
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    const payload: any = { status: 'approved' }
+    if (assignedRole) { payload.role = assignedRole; payload.management_order = mgmtOrder }
+    await dbCall(() => (supabase.from('users') as any).update(payload).eq('user_id', userId), 'approveUserRecord')
+  }
+
+  return user || (await fetchUsers()).find(u => u.user_id === userId)!
+}
+
+export async function rejectUserRecord(userId: string): Promise<void> {
+  setUserStatusInMap(userId, 'rejected')
+  const user = inMemoryUsers.find(u => u.user_id === userId)
+  if (user) user.status = 'rejected'
+
+  const regUsers = getRegisteredUsers()
+  const regUser = regUsers.find(u => u.user_id === userId)
+  if (regUser) { regUser.status = 'rejected'; saveRegisteredUser(regUser) }
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('users') as any).update({ status: 'rejected' }).eq('user_id', userId), 'rejectUserRecord')
+  }
+}
+
+export async function fetchPendingUsers(): Promise<UserProfile[]> {
+  const users = await fetchUsers()
+  return users.filter(u => u.status === 'pending')
+}
+
+// =============================================================================
+// OKR SERVICE
+// =============================================================================
 export async function fetchOKRs(year?: number): Promise<OKR[]> {
-  try {
-    const supabase = createClient()
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
     let query = (supabase.from('okrs') as any).select('*')
-    if (year) {
-      query = query.eq('year', year)
-    }
-    const { data, error } = await query.order('created_at', { ascending: false })
-    if (error || !data || data.length === 0) {
-      return year ? inMemoryOKRs.filter(o => o.year === year) : inMemoryOKRs
-    }
-    return data as OKR[]
-  } catch {
-    return year ? inMemoryOKRs.filter(o => o.year === year) : inMemoryOKRs
+    if (year) query = query.eq('year', year)
+    const data = await dbCall<OKR[]>(() => query.order('created_at', { ascending: false }), 'fetchOKRs')
+    if (data && data.length > 0) return data
   }
+  return year ? inMemoryOKRs.filter(o => o.year === year) : inMemoryOKRs
 }
 
+// =============================================================================
+// PROJECT SERVICE
+// =============================================================================
 export async function fetchProjects(filters?: {
   year?: number
   department?: string
   status?: string
 }): Promise<ProjectWithHeadAndAssignees[]> {
-  try {
-    const supabase = createClient()
-    let query = (supabase.from('projects') as any)
-      .select(`
-        *,
-        head:users!projects_head_of_project_fkey(*),
-        assignees:project_assignees(
-          *,
-          user:users(*)
-        ),
-        evidences(*)
-      `)
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    let query = (supabase.from('projects') as any).select(`
+      *,
+      head:users!projects_head_of_project_fkey(*),
+      assignees:project_assignees(*, user:users(*)),
+      evidences(*)
+    `)
+    if (filters?.department && filters.department !== 'ทั้งหมด') query = query.eq('department', filters.department)
+    if (filters?.status && filters.status !== 'all') query = query.eq('status', filters.status as ProjectStatus)
 
-    if (filters?.department && filters.department !== 'ทั้งหมด') {
-      query = query.eq('department', filters.department)
-    }
-    if (filters?.status && filters.status !== 'all') {
-      query = query.eq('status', filters.status as ProjectStatus)
-    }
-
-    const { data, error } = await query
-    if (error || !data || data.length === 0) {
-      return filterMemoryProjects(filters)
-    }
-    return data as unknown as ProjectWithHeadAndAssignees[]
-  } catch {
-    return filterMemoryProjects(filters)
+    const data = await dbCall<ProjectWithHeadAndAssignees[]>(() => query, 'fetchProjects')
+    if (data && data.length > 0) return data
   }
+  return filterMemoryProjects(filters)
 }
 
 function filterMemoryProjects(filters?: {
@@ -132,26 +532,20 @@ export async function createProjectRecord(projectData: {
     evidences: []
   }
 
-  try {
-    const supabase = createClient()
-    await (supabase.from('projects') as any).insert({
-      project_id: newId,
-      okr_id: projectData.okr_id,
-      project_name: projectData.project_name,
-      project_type: projectData.project_type,
-      description: projectData.description,
-      main_objective: projectData.main_objective,
-      sub_objective: projectData.sub_objective,
-      department: projectData.department,
-      head_of_project: projectData.head_of_project,
-      budget: projectData.budget,
-      start_date: projectData.start_date,
-      end_date: projectData.end_date,
-      progress_percentage: 0,
-      spent_amount: 0,
-      status: 'In Progress'
-    })
-  } catch {}
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(
+      () => (supabase.from('projects') as any).insert({
+        project_id: newId, okr_id: projectData.okr_id, project_name: projectData.project_name,
+        project_type: projectData.project_type, description: projectData.description,
+        main_objective: projectData.main_objective, sub_objective: projectData.sub_objective,
+        department: projectData.department, head_of_project: projectData.head_of_project,
+        budget: projectData.budget, start_date: projectData.start_date, end_date: projectData.end_date,
+        progress_percentage: 0, spent_amount: 0, status: 'In Progress'
+      }),
+      'createProjectRecord'
+    )
+  }
 
   inMemoryProjects.unshift(newProj)
   return newProj
@@ -164,18 +558,15 @@ export async function updateProjectProgressRecord(
   status: ProjectStatus,
   spent?: number
 ): Promise<void> {
-  try {
-    const supabase = createClient()
-    await (supabase.from('projects') as any)
-      .update({
-        progress_percentage: progress,
-        bottleneck: bottleneck,
-        status: status,
-        spent_amount: spent,
-        updated_at: new Date().toISOString()
-      })
-      .eq('project_id', projectId)
-  } catch {}
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(
+      () => (supabase.from('projects') as any)
+        .update({ progress_percentage: progress, bottleneck, status, spent_amount: spent, updated_at: new Date().toISOString() })
+        .eq('project_id', projectId),
+      'updateProjectProgressRecord'
+    )
+  }
 
   const index = inMemoryProjects.findIndex(p => p.project_id === projectId)
   if (index !== -1) {
@@ -190,6 +581,9 @@ export async function updateProjectProgressRecord(
   }
 }
 
+// =============================================================================
+// EVIDENCE & SUBMISSIONS SERVICE
+// =============================================================================
 export async function uploadEvidenceRecord(
   projectId: string,
   userId: string,
@@ -208,10 +602,10 @@ export async function uploadEvidenceRecord(
     upload_date: new Date().toISOString()
   }
 
-  try {
-    const supabase = createClient()
-    await (supabase.from('evidences') as any).insert(newEvidence)
-  } catch {}
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('evidences') as any).insert(newEvidence), 'uploadEvidenceRecord')
+  }
 
   const proj = inMemoryProjects.find(p => p.project_id === projectId)
   if (proj) {
@@ -221,10 +615,10 @@ export async function uploadEvidenceRecord(
 }
 
 export async function deleteEvidenceRecord(evidenceId: string, projectId: string): Promise<void> {
-  try {
-    const supabase = createClient()
-    await (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId)
-  } catch {}
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceRecord')
+  }
 
   const proj = inMemoryProjects.find(p => p.project_id === projectId)
   if (proj && proj.evidences) {
@@ -232,266 +626,9 @@ export async function deleteEvidenceRecord(evidenceId: string, projectId: string
   }
 }
 
-export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
-  try {
-    const supabase = createClient()
-    await (supabase.from('users') as any).update({ role }).eq('user_id', userId)
-  } catch {}
-
-  const user = inMemoryUsers.find(u => u.user_id === userId)
-  if (user) {
-    user.role = role
-  }
-}
-
-// ==========================================
-// Table Dashboard (Executive Dashboard Reports)
-// ==========================================
-export async function fetchDashboardReports(): Promise<DashboardReport[]> {
-  try {
-    const supabase = createClient()
-    const { data, error } = await (supabase.from('dashboard') as any)
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (error || !data || data.length === 0) {
-      return inMemoryDashboardReports
-    }
-    return data as DashboardReport[]
-  } catch {
-    return inMemoryDashboardReports
-  }
-}
-
-export async function createDashboardReport(reportData: {
-  overall_okr_info: string
-  okr_head_evaluation_score: number
-  head_id: string
-  head_name?: string
-  academic_year?: number
-}): Promise<DashboardReport> {
-  const newId = crypto.randomUUID()
-  const newReport: DashboardReport = {
-    dashboard_id: newId,
-    overall_okr_info: reportData.overall_okr_info,
-    okr_head_evaluation_score: reportData.okr_head_evaluation_score,
-    head_id: reportData.head_id,
-    head_name: reportData.head_name || 'หัวหน้าโครงการ OKR',
-    academic_year: reportData.academic_year || 2567,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-
-  try {
-    const supabase = createClient()
-    await (supabase.from('dashboard') as any).insert(newReport)
-  } catch {}
-
-  inMemoryDashboardReports.unshift(newReport)
-  return newReport
-}
-
-// ==========================================
-// Table Normal Report (General Reports)
-// ==========================================
-export async function fetchNormalReports(): Promise<NormalReport[]> {
-  try {
-    const supabase = createClient()
-    const { data, error } = await (supabase.from('normal_reports') as any)
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (error || !data || data.length === 0) {
-      return inMemoryNormalReports
-    }
-    return data as NormalReport[]
-  } catch {
-    return inMemoryNormalReports
-  }
-}
-
-export async function createNormalReport(reportData: {
-  project_id?: string
-  project_name: string
-  project_details?: string
-  responsible_person_name?: string
-  head_name?: string
-  project_outcome?: string
-  initial_expected_outcome?: string
-  head_evaluation_score: number
-  team_evaluation_score: number
-  created_by?: string
-}): Promise<NormalReport> {
-  const newId = crypto.randomUUID()
-  const newReport: NormalReport = {
-    report_id: newId,
-    project_id: reportData.project_id || null,
-    project_name: reportData.project_name,
-    project_details: reportData.project_details || null,
-    responsible_person_name: reportData.responsible_person_name || null,
-    head_name: reportData.head_name || null,
-    project_outcome: reportData.project_outcome || null,
-    initial_expected_outcome: reportData.initial_expected_outcome || null,
-    head_evaluation_score: reportData.head_evaluation_score,
-    team_evaluation_score: reportData.team_evaluation_score,
-    created_by: reportData.created_by || null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-
-  try {
-    const supabase = createClient()
-    await (supabase.from('normal_reports') as any).insert(newReport)
-  } catch {}
-
-  inMemoryNormalReports.unshift(newReport)
-  return newReport
-}
-
-// ==========================================
-// User Registration & Creation
-// ==========================================
-export async function registerUserRecord(userData: {
-  username?: string
-  name?: string
-  first_name?: string
-  last_name?: string
-  email: string
-  password?: string
-  role?: UserRole
-  department?: string
-  position?: string
-}): Promise<UserProfile> {
-  const newId = crypto.randomUUID()
-  const computedFirstName = userData.first_name || (userData.name ? userData.name.split(' ')[0] : 'อาจารย์')
-  const computedLastName = userData.last_name || (userData.name ? userData.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
-  const computedName = userData.name || `${computedFirstName} ${computedLastName}`
-  const computedUsername = userData.username || userData.email.split('@')[0]
-
-  const newUser: UserProfile = {
-    user_id: newId,
-    username: computedUsername,
-    name: computedName,
-    email: userData.email.toLowerCase().trim(),
-    password: userData.password || 'password123',
-    first_name: computedFirstName,
-    last_name: computedLastName,
-    position: userData.position || 'อาจารย์ประจำภาควิชา',
-    department: userData.department || 'ภาควิชาวิทยาการคอมพิวเตอร์',
-    role: userData.role || 'teacher',
-    admin_type: null,
-    executive_level: null,
-    employment_status: 'Full-Time',
-    management_order: userData.role === 'executive' ? 2 : userData.role === 'head_okr' ? 3 : 4,
-    avatar_url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-
-  try {
-    const supabase = createClient()
-    await (supabase.from('users') as any).insert(newUser)
-  } catch {}
-
-  inMemoryUsers.push(newUser)
-  return newUser
-}
-
-// ==========================================
-// Table Project_Assignments (Role & Member Assignments)
-// ==========================================
-export async function fetchProjectAssignments(projectId?: string): Promise<ProjectAssignment[]> {
-  try {
-    const supabase = createClient()
-    let query = (supabase.from('project_assignments') as any).select('*')
-    if (projectId) {
-      query = query.eq('project_id', projectId)
-    }
-    const { data, error } = await query
-    if (error || !data || data.length === 0) {
-      return projectId
-        ? inMemoryProjectAssignments.filter(a => a.project_id === projectId)
-        : inMemoryProjectAssignments
-    }
-    return data as ProjectAssignment[]
-  } catch {
-    return projectId
-      ? inMemoryProjectAssignments.filter(a => a.project_id === projectId)
-      : inMemoryProjectAssignments
-  }
-}
-
-export async function assignProjectRole(data: {
-  project_id: string
-  user_id: string
-  role_type: 'Head' | 'Member'
-  assigned_by?: string
-}): Promise<ProjectAssignment> {
-  const newId = crypto.randomUUID()
-  const assignment: ProjectAssignment = {
-    assignment_id: newId,
-    project_id: data.project_id,
-    user_id: data.user_id,
-    role_type: data.role_type,
-    assigned_by: data.assigned_by || null,
-    created_at: new Date().toISOString()
-  }
-
-  try {
-    const supabase = createClient()
-    await (supabase.from('project_assignments') as any).insert(assignment)
-  } catch {}
-
-  // Remove existing assignment of this user in this project if any
-  inMemoryProjectAssignments = inMemoryProjectAssignments.filter(
-    a => !(a.project_id === data.project_id && a.user_id === data.user_id)
-  )
-  inMemoryProjectAssignments.unshift(assignment)
-
-  // Update inMemoryProjects assignees or head
-  const proj = inMemoryProjects.find(p => p.project_id === data.project_id)
-  const targetUser = inMemoryUsers.find(u => u.user_id === data.user_id) || null
-
-  if (proj) {
-    if (data.role_type === 'Head') {
-      proj.head_of_project = data.user_id
-      proj.head = targetUser
-    } else {
-      if (!proj.assignees) proj.assignees = []
-      const exists = proj.assignees.some(a => a.user_id === data.user_id)
-      if (!exists) {
-        proj.assignees.push({
-          project_id: data.project_id,
-          user_id: data.user_id,
-          assigned_role: 'ผู้ร่วมรับผิดชอบโครงการ (Member)',
-          assigned_date: new Date().toISOString(),
-          user: targetUser || undefined
-        })
-      }
-    }
-  }
-
-  return assignment
-}
-
-export async function removeProjectRole(assignmentId: string): Promise<void> {
-  try {
-    const supabase = createClient()
-    await (supabase.from('project_assignments') as any).delete().eq('assignment_id', assignmentId)
-  } catch {}
-
-  const target = inMemoryProjectAssignments.find(a => a.assignment_id === assignmentId)
-  if (target) {
-    inMemoryProjectAssignments = inMemoryProjectAssignments.filter(a => a.assignment_id !== assignmentId)
-    const proj = inMemoryProjects.find(p => p.project_id === target.project_id)
-    if (proj && proj.assignees) {
-      proj.assignees = proj.assignees.filter(a => a.user_id !== target.user_id)
-    }
-  }
-}
-
-// ==========================================
-// Table Evidence_Submissions (Team Uploads & Head View)
-// ==========================================
-export async function fetchEvidenceSubmissions(projectId?: string): Promise<(EvidenceSubmission & { sender?: UserProfile; project?: ProjectWithHeadAndAssignees })[]> {
+export async function fetchEvidenceSubmissions(
+  projectId?: string
+): Promise<(EvidenceSubmission & { sender?: UserProfile; project?: ProjectWithHeadAndAssignees })[]> {
   let list = inMemoryEvidenceSubmissions
   if (projectId) {
     list = list.filter(e => e.project_id === projectId)
@@ -527,14 +664,14 @@ export async function submitEvidenceSubmission(data: {
     submitted_at: new Date().toISOString()
   }
 
-  try {
-    const supabase = createClient()
-    await (supabase.from('evidence_submissions') as any).insert(newSubmission)
-  } catch {}
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('evidence_submissions') as any).insert(newSubmission), 'submitEvidenceSubmission')
+  }
 
   inMemoryEvidenceSubmissions.unshift(newSubmission)
 
-  // Also sync to project evidences for backward compatibility
+  // Sync to project evidences for backward compatibility
   const proj = inMemoryProjects.find(p => p.project_id === data.project_id)
   if (proj) {
     if (!proj.evidences) proj.evidences = []
@@ -554,11 +691,11 @@ export async function submitEvidenceSubmission(data: {
 }
 
 export async function deleteEvidenceSubmission(evidenceId: string): Promise<void> {
-  try {
-    const supabase = createClient()
-    await (supabase.from('evidence_submissions') as any).delete().eq('evidence_id', evidenceId)
-    await (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId)
-  } catch {}
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('evidence_submissions') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceSubmission:submissions')
+    await dbCall(() => (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceSubmission:evidences')
+  }
 
   inMemoryEvidenceSubmissions = inMemoryEvidenceSubmissions.filter(e => e.evidence_id !== evidenceId)
   inMemoryProjects.forEach(p => {
@@ -568,27 +705,210 @@ export async function deleteEvidenceSubmission(evidenceId: string): Promise<void
   })
 }
 
-// ==========================================
-// Table Evaluations (Interactive 5-Level Ratings)
-// ==========================================
-export async function fetchEvaluations(filter?: { report_id?: string; dashboard_id?: string }): Promise<Evaluation[]> {
-  try {
-    const supabase = createClient()
-    let query = (supabase.from('evaluations') as any).select('*')
-    if (filter?.report_id) {
-      query = query.eq('report_id', filter.report_id)
+// =============================================================================
+// PROJECT ASSIGNMENTS SERVICE
+// =============================================================================
+export async function fetchProjectAssignments(projectId?: string): Promise<ProjectAssignment[]> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    try {
+      let query = (supabase.from('project_assignments') as any).select('*')
+      if (projectId) {
+        query = query.eq('project_id', projectId)
+      }
+      const { data, error } = await query
+      if (!error && data && data.length > 0) {
+        return data as ProjectAssignment[]
+      }
+      if (error) console.warn('[okr-service] fetchProjectAssignments error:', error.message)
+    } catch (err) {
+      console.warn('[okr-service] fetchProjectAssignments exception:', err)
     }
-    if (filter?.dashboard_id) {
-      query = query.eq('dashboard_id', filter.dashboard_id)
-    }
-    const { data, error } = await query
-    if (error || !data || data.length === 0) {
-      return filterEvaluations(filter)
-    }
-    return data as Evaluation[]
-  } catch {
-    return filterEvaluations(filter)
   }
+
+  return projectId
+    ? inMemoryProjectAssignments.filter(a => a.project_id === projectId)
+    : inMemoryProjectAssignments
+}
+
+export async function assignProjectRole(data: {
+  project_id: string
+  user_id: string
+  role_type: 'Head' | 'Member'
+  assigned_by?: string
+}): Promise<ProjectAssignment> {
+  const newId = crypto.randomUUID()
+  const assignment: ProjectAssignment = {
+    assignment_id: newId,
+    project_id: data.project_id,
+    user_id: data.user_id,
+    role_type: data.role_type,
+    assigned_by: data.assigned_by || null,
+    created_at: new Date().toISOString()
+  }
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('project_assignments') as any).insert(assignment), 'assignProjectRole')
+  }
+
+  // Remove existing assignment of this user in this project if any
+  inMemoryProjectAssignments = inMemoryProjectAssignments.filter(
+    a => !(a.project_id === data.project_id && a.user_id === data.user_id)
+  )
+  inMemoryProjectAssignments.unshift(assignment)
+
+  // Update inMemoryProjects assignees or head
+  const proj = inMemoryProjects.find(p => p.project_id === data.project_id)
+  const targetUser = inMemoryUsers.find(u => u.user_id === data.user_id) || null
+
+  if (proj) {
+    if (data.role_type === 'Head') {
+      proj.head_of_project = data.user_id
+      proj.head = targetUser
+    } else {
+      if (!proj.assignees) proj.assignees = []
+      const exists = proj.assignees.some(a => a.user_id === data.user_id)
+      if (!exists) {
+        proj.assignees.push({
+          project_id: data.project_id,
+          user_id: data.user_id,
+          assigned_role: 'ผู้ร่วมรับผิดชอบโครงการ (Member)',
+          assigned_date: new Date().toISOString(),
+          user: targetUser || undefined
+        })
+      }
+    }
+  }
+
+  return assignment
+}
+
+export async function removeProjectRole(assignmentId: string): Promise<void> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('project_assignments') as any).delete().eq('assignment_id', assignmentId), 'removeProjectRole')
+  }
+
+  const target = inMemoryProjectAssignments.find(a => a.assignment_id === assignmentId)
+  if (target) {
+    inMemoryProjectAssignments = inMemoryProjectAssignments.filter(a => a.assignment_id !== assignmentId)
+    const proj = inMemoryProjects.find(p => p.project_id === target.project_id)
+    if (proj && proj.assignees) {
+      proj.assignees = proj.assignees.filter(a => a.user_id !== target.user_id)
+    }
+  }
+}
+
+// =============================================================================
+// DASHBOARD REPORTS (Executive Dashboard)
+// =============================================================================
+export async function fetchDashboardReports(): Promise<DashboardReport[]> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    const data = await dbCall<DashboardReport[]>(
+      () => (supabase.from('dashboard') as any).select('*').order('created_at', { ascending: false }),
+      'fetchDashboardReports'
+    )
+    if (data && data.length > 0) return data
+  }
+  return inMemoryDashboardReports
+}
+
+export async function createDashboardReport(reportData: {
+  overall_okr_info: string
+  okr_head_evaluation_score: number
+  head_id: string
+  head_name?: string
+  academic_year?: number
+}): Promise<DashboardReport> {
+  const newId = crypto.randomUUID()
+  const newReport: DashboardReport = {
+    dashboard_id: newId,
+    overall_okr_info: reportData.overall_okr_info,
+    okr_head_evaluation_score: reportData.okr_head_evaluation_score,
+    head_id: reportData.head_id,
+    head_name: reportData.head_name || 'หัวหน้าโครงการ OKR',
+    academic_year: reportData.academic_year || 2567,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('dashboard') as any).insert(newReport), 'createDashboardReport')
+  }
+
+  inMemoryDashboardReports.unshift(newReport)
+  return newReport
+}
+
+// =============================================================================
+// NORMAL REPORTS (Operational Reports)
+// =============================================================================
+export async function fetchNormalReports(): Promise<NormalReport[]> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    const data = await dbCall<NormalReport[]>(
+      () => (supabase.from('normal_reports') as any).select('*').order('created_at', { ascending: false }),
+      'fetchNormalReports'
+    )
+    if (data && data.length > 0) return data
+  }
+  return inMemoryNormalReports
+}
+
+export async function createNormalReport(reportData: {
+  project_id?: string
+  project_name: string
+  project_details?: string
+  responsible_person_name?: string
+  head_name?: string
+  project_outcome?: string
+  initial_expected_outcome?: string
+  head_evaluation_score: number
+  team_evaluation_score: number
+  created_by?: string
+}): Promise<NormalReport> {
+  const newId = crypto.randomUUID()
+  const newReport: NormalReport = {
+    report_id: newId,
+    project_id: reportData.project_id || null,
+    project_name: reportData.project_name,
+    project_details: reportData.project_details || null,
+    responsible_person_name: reportData.responsible_person_name || null,
+    head_name: reportData.head_name || null,
+    project_outcome: reportData.project_outcome || null,
+    initial_expected_outcome: reportData.initial_expected_outcome || null,
+    head_evaluation_score: reportData.head_evaluation_score,
+    team_evaluation_score: reportData.team_evaluation_score,
+    created_by: reportData.created_by || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('normal_reports') as any).insert(newReport), 'createNormalReport')
+  }
+
+  inMemoryNormalReports.unshift(newReport)
+  return newReport
+}
+
+// =============================================================================
+// EVALUATIONS SERVICE (1-5 Star Ratings)
+// =============================================================================
+export async function fetchEvaluations(filter?: { report_id?: string; dashboard_id?: string }): Promise<Evaluation[]> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    let query = (supabase.from('evaluations') as any).select('*')
+    if (filter?.report_id) query = query.eq('report_id', filter.report_id)
+    if (filter?.dashboard_id) query = query.eq('dashboard_id', filter.dashboard_id)
+    const data = await dbCall<Evaluation[]>(() => query, 'fetchEvaluations')
+    if (data && data.length > 0) return data
+  }
+  return filterEvaluations(filter)
 }
 
 function filterEvaluations(filter?: { report_id?: string; dashboard_id?: string }): Evaluation[] {
@@ -619,12 +939,11 @@ export async function saveEvaluationRecord(data: {
     created_at: new Date().toISOString()
   }
 
-  try {
-    const supabase = createClient()
-    await (supabase.from('evaluations') as any).insert(evaluation)
-  } catch {}
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    await dbCall(() => (supabase.from('evaluations') as any).insert(evaluation), 'saveEvaluationRecord')
+  }
 
-  // Update or add in memory
   const existingIdx = inMemoryEvaluations.findIndex(e =>
     (data.report_id && e.report_id === data.report_id) ||
     (data.dashboard_id && e.dashboard_id === data.dashboard_id)
@@ -636,11 +955,11 @@ export async function saveEvaluationRecord(data: {
     inMemoryEvaluations.unshift(evaluation)
   }
 
-  // Also update parent report scores if normal report
+  // Update parent report scores if normal report
   if (data.report_id) {
     const normalRep = inMemoryNormalReports.find(r => r.report_id === data.report_id)
     if (normalRep) {
-      normalRep.head_evaluation_score = data.head_score * 20 // map 1-5 to 20-100 for compatibility
+      normalRep.head_evaluation_score = data.head_score * 20
       if (data.team_score) {
         normalRep.team_evaluation_score = data.team_score * 20
       }

@@ -8,14 +8,16 @@ import { ExecutiveAnalytics } from '@/components/ExecutiveAnalytics'
 import { ProjectTable } from '@/components/ProjectTable'
 import { ProjectDetailModal } from '@/components/ProjectDetailModal'
 import { CreateProjectModal } from '@/components/CreateProjectModal'
+import { ChangePasswordModal } from '@/components/ChangePasswordModal'
+import { UserProfileModal } from '@/components/UserProfileModal'
 import { OKRView } from '@/components/OKRView'
 import { EvidenceGallery } from '@/components/EvidenceGallery'
 import { AdminUserManagement } from '@/components/AdminUserManagement'
+import { AdminPendingApprovals } from '@/components/AdminPendingApprovals'
 import { LoginPage } from '@/components/LoginPage'
 import { ExecutiveWorkspace } from '@/components/workspaces/ExecutiveWorkspace'
 import { HeadOKRWorkspace } from '@/components/workspaces/HeadOKRWorkspace'
 import { TeacherWorkspace } from '@/components/workspaces/TeacherWorkspace'
-import { AdminWorkspace } from '@/components/workspaces/AdminWorkspace'
 import { CreateDashboardView } from '@/components/CreateDashboardView'
 import { CreateNormalReportView } from '@/components/CreateNormalReportView'
 import { NormalReportView } from '@/components/NormalReportView'
@@ -23,10 +25,13 @@ import { HeadEvidenceView } from '@/components/HeadEvidenceView'
 import { useRole } from '@/components/RoleContext'
 import { fetchOKRs, fetchProjects } from '@/lib/services/okr-service'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
+import { SDULogo } from '@/components/SDULogo'
 
 export default function HomePage() {
-  const { currentUser, currentRole, isAuthenticated, allUsers } = useRole()
-  const [activeTab, setActiveTab] = useState('workspace')
+  const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers, refreshUsers } = useRole()
+  
+  const [mounted, setMounted] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>('workspace')
   const [selectedYear, setSelectedYear] = useState(2567)
   const [selectedQuarter, setSelectedQuarter] = useState('ALL')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -37,29 +42,76 @@ export default function HomePage() {
   const [selectedProject, setSelectedProject] = useState<ProjectWithHeadAndAssignees | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('sdu_okr_active_tab', tabId)
+      } catch {}
+    }
+  }
+
   const loadData = async () => {
     setIsRefreshing(true)
-    const [okrsData, projectsData] = await Promise.all([
-      fetchOKRs(selectedYear),
-      fetchProjects({ year: selectedYear })
-    ])
-    setOkrs(okrsData)
-    setProjects(projectsData)
-    setIsRefreshing(false)
+    try {
+      const [okrsData, projectsData] = await Promise.all([
+        fetchOKRs(selectedYear),
+        fetchProjects({ year: selectedYear }),
+        refreshUsers()
+      ])
+      setOkrs(okrsData)
+      setProjects(projectsData)
+    } catch (err) {
+      console.error('Failed to load data:', err)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadData()
+    setMounted(true)
+    if (typeof window !== 'undefined') {
+      try {
+        const savedTab = sessionStorage.getItem('sdu_okr_active_tab')
+        if (savedTab) {
+          setActiveTab(savedTab)
+        } else if (currentRole === 'admin') {
+          handleTabChange('pending_users')
+        }
+      } catch {}
     }
-  }, [selectedYear, isAuthenticated])
+  }, [])
 
   useEffect(() => {
-    setActiveTab('workspace')
-  }, [currentRole])
+    if (mounted && isAuthenticated) {
+      loadData()
+    }
+  }, [selectedYear, isAuthenticated, mounted])
+
+  useEffect(() => {
+    if (!mounted) return
+    if (currentRole === 'admin' && activeTab === 'workspace') {
+      handleTabChange('pending_users')
+    }
+  }, [currentRole, mounted])
 
   const handleExportPDF = () => {
     window.print()
+  }
+
+  // During SSR or while auth session is initializing, render smooth loading screen
+  if (!mounted || (isAuthLoading && !currentUser)) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <SDULogo size="lg" textColor="light" showText={true} />
+          <div className="flex items-center gap-2.5 text-sky-200 text-xs font-semibold mt-3">
+            <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+            <span>กำลังโหลดข้อมูลระบบและเชื่อมต่อเซสชัน...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated || !currentUser) {
@@ -70,7 +122,7 @@ export default function HomePage() {
     <div className="flex min-h-screen bg-white text-slate-900 font-sans">
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />
@@ -87,7 +139,7 @@ export default function HomePage() {
           isRefreshing={isRefreshing}
         />
 
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1680px] mx-auto w-full">
           {activeTab === 'workspace' && (
             <>
               {currentRole === 'executive' && (
@@ -115,15 +167,6 @@ export default function HomePage() {
                 />
               )}
 
-              {currentRole === 'admin' && (
-                <AdminWorkspace
-                  okrs={okrs}
-                  projects={projects}
-                  onSelectProject={(p) => setSelectedProject(p)}
-                  onOpenCreateModal={() => setIsCreateModalOpen(true)}
-                />
-              )}
-
               {currentRole === 'staff' && (
                 <div className="space-y-6">
                   <DashboardMetrics okrs={okrs} projects={projects} />
@@ -143,7 +186,7 @@ export default function HomePage() {
               projects={projects}
               onSuccess={() => {
                 loadData()
-                setActiveTab('workspace')
+                handleTabChange('workspace')
               }}
             />
           )}
@@ -153,7 +196,7 @@ export default function HomePage() {
               projects={projects}
               onSuccess={() => {
                 loadData()
-                setActiveTab('normal_reports')
+                handleTabChange('normal_reports')
               }}
             />
           )}
@@ -205,6 +248,10 @@ export default function HomePage() {
             <EvidenceGallery projects={projects} />
           )}
 
+          {activeTab === 'pending_users' && currentRole === 'admin' && (
+            <AdminPendingApprovals />
+          )}
+
           {activeTab === 'users' && currentRole === 'admin' && (
             <AdminUserManagement />
           )}
@@ -227,6 +274,9 @@ export default function HomePage() {
           onCreated={loadData}
         />
       )}
+
+      <ChangePasswordModal />
+      <UserProfileModal />
     </div>
   )
 }

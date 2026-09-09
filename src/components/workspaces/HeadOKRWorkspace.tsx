@@ -122,89 +122,92 @@ export function HeadOKRWorkspace({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#003B71]/10 flex items-center justify-center text-[#003B71] flex-shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-[#003B71]/10 flex items-center justify-center text-[#003B71] flex-shrink-0">
             <Target className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">โครงการในความดูแล</span>
-            <div className="text-2xl font-black text-slate-900 mt-0.5">{myDeptProjects.length} โครงการ</div>
+            <span className="text-xs sm:text-sm text-slate-600 font-bold uppercase tracking-wider">โครงการในความดูแล</span>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{myDeptProjects.length} โครงการ</div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">กำลังดำเนินการ / สำเร็จ</span>
-            <div className="text-2xl font-black text-emerald-600 mt-0.5">
+            <span className="text-xs sm:text-sm text-slate-600 font-bold uppercase tracking-wider">กำลังดำเนินการ / สำเร็จ</span>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">
               {myInProgress} / {myCompleted}
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 flex-shrink-0">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 flex-shrink-0">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">ติดปัญหาหรือล่าช้า</span>
-            <div className="text-2xl font-black text-rose-600 mt-0.5">{myDelayed} โครงการ</div>
+            <span className="text-xs sm:text-sm text-slate-600 font-bold uppercase tracking-wider">ติดปัญหาหรือล่าช้า</span>
+            <div className="text-2xl sm:text-3xl font-black text-rose-600 mt-1">{myDelayed} โครงการ</div>
           </div>
         </div>
       </div>
 
       {/* Projects List */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">
               โครงการในภาควิชาและโครงการที่คุณเป็นหัวหน้า ({myDeptProjects.length})
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">คลิกที่โครงการเพื่อดูรายละเอียด, แก้ไขความก้าวหน้า, หรือจัดการไฟล์แนบ</p>
+            <p className="text-xs sm:text-sm text-slate-600 mt-0.5 font-medium">
+              คลิกที่โครงการเพื่อดูรายละเอียด, แก้ไขความก้าวหน้า, หรือจัดการไฟล์แนบ
+            </p>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {myDeptProjects.map((p) => {
             const assigneesCount = p.assignees?.length || 0
             return (
               <div
                 key={p.project_id}
                 onClick={() => onSelectProject(p)}
-                className="p-5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-[#003B71] hover:bg-sky-50/30 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
+                className="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 hover:border-[#003B71] hover:bg-sky-50/30 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
               >
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
                       {p.project_type}
                     </span>
-                    <span className="text-xs text-slate-500 font-semibold">
-                      งบ: <b className="text-slate-900">{(Number(p.budget) / 1000).toLocaleString()}k ฿</b>
+                    <span className="text-xs sm:text-sm text-slate-600 font-semibold">
+                      งบประมาณ: <b className="text-slate-900">{(Number(p.budget) / 1000).toLocaleString()}k ฿</b>
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900">{p.project_name}</h4>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                    <Users className="w-3.5 h-3.5 text-[#003B71]" />
-                    <span>อาจารย์ลูกทีมผู้ร่วมรับผิดชอบ: <b className="text-slate-800">{assigneesCount} ท่าน</b></span>
+                  <h4 className="text-base sm:text-lg font-bold text-slate-900">{p.project_name}</h4>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 font-medium">
+                    <Users className="w-4 h-4 text-[#003B71]" />
+                    <span>อาจารย์ลูกทีมผู้ร่วมรับผิดชอบ: <b className="text-slate-900">{assigneesCount} ท่าน</b></span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 self-end md:self-auto flex-shrink-0">
                   <div className="text-right">
-                    <span className="text-xs font-bold text-[#003B71]">{p.progress_percentage}%</span>
-                    <div className="w-28 bg-slate-200 rounded-full h-2 mt-1 overflow-hidden">
+                    <span className="text-xs sm:text-sm font-bold text-[#003B71]">{p.progress_percentage}%</span>
+                    <div className="w-32 bg-slate-200 rounded-full h-2.5 mt-1.5 overflow-hidden">
                       <div
-                        className="bg-[#003B71] h-2 rounded-full"
+                        className="bg-[#003B71] h-2.5 rounded-full"
                         style={{ width: `${p.progress_percentage}%` }}
                       />
                     </div>
                   </div>
                   <button
                     type="button"
-                    className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-[#003B71] hover:bg-slate-50 transition-colors"
+                    className="p-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-[#003B71] hover:bg-slate-50 transition-colors shadow-xs"
+                    title="เปิดดูโครงการ"
                   >
                     <ArrowRight className="w-4 h-4" />
                   </button>

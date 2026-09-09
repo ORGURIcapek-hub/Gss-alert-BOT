@@ -61,18 +61,18 @@ export function TeacherWorkspace({
       </div>
 
       {/* Projects Grid */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
-        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100">
-          <Sparkles className="w-4 h-4 text-emerald-600" />
-          รายการโครงการที่คุณร่วมรับผิดชอบ ({myAssignedProjects.length})
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
+        <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100">
+          <Sparkles className="w-5 h-5 text-emerald-600" />
+          <span>รายการโครงการที่คุณร่วมรับผิดชอบ ({myAssignedProjects.length})</span>
         </h3>
 
         {myAssignedProjects.length === 0 ? (
           <div className="py-12 text-center text-slate-400">
-            <p className="text-sm font-medium">คุณยังไม่มีโครงการที่ได้รับมอบหมายในขณะนี้</p>
+            <p className="text-sm sm:text-base font-medium">คุณยังไม่มีโครงการที่ได้รับมอบหมายในขณะนี้</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             {myAssignedProjects.map((p) => {
               const headName = p.head ? `${p.head.first_name} ${p.head.last_name}` : 'อาจารย์หัวหน้าโครงการ'
               const isCompleted = p.progress_percentage === 100
@@ -80,51 +80,51 @@ export function TeacherWorkspace({
                 <div
                   key={p.project_id}
                   onClick={() => onSelectProject(p)}
-                  className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group space-y-4"
+                  className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group space-y-4"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {p.department.replace('ภาควิชา', '')}
                       </span>
-                      <span className="text-xs text-slate-500">
-                        หัวหน้า: <b className="text-slate-800">{headName}</b>
+                      <span className="text-xs sm:text-sm text-slate-600">
+                        หัวหน้า: <b className="text-slate-900">{headName}</b>
                       </span>
                     </div>
 
-                    <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
+                    <h4 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
                       {p.project_name}
                     </h4>
 
-                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-700 line-clamp-2 leading-relaxed font-medium">
                       {p.main_objective || p.description || 'ไม่มีข้อมูลเป้าหมายระบุ'}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 space-y-3">
+                  <div className="pt-3.5 border-t border-slate-100 space-y-3.5">
                     <div>
-                      <div className="flex items-center justify-between text-xs font-bold mb-1">
-                        <span className="text-slate-500">ความก้าวหน้าโครงการ</span>
+                      <div className="flex items-center justify-between text-xs sm:text-sm font-bold mb-1.5">
+                        <span className="text-slate-600">ความก้าวหน้าโครงการ</span>
                         <span className="text-emerald-700">{p.progress_percentage}%</span>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                         <div
-                          className={`h-2 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-[#003B71]'}`}
+                          className={`h-2.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-[#003B71]'}`}
                           style={{ width: `${p.progress_percentage}%` }}
                         />
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-xs text-slate-500 font-medium">
+                      <span className="text-xs sm:text-sm text-slate-600 font-medium">
                         หลักฐาน: <b className="text-slate-900">{p.evidences?.length || 0} ไฟล์</b>
                       </span>
                       <button
                         type="button"
-                        className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1 transition-all border border-emerald-200"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all border border-emerald-200 cursor-pointer active:scale-95"
                       >
                         <span>อัปเดตงาน & จัดการไฟล์</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
                   </div>

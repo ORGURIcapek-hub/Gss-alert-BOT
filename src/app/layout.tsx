@@ -5,6 +5,10 @@ import { RoleProvider } from '@/components/RoleContext'
 export const metadata: Metadata = {
   title: 'ระบบติดตาม OKR มหาวิทยาลัยสวนดุสิต | Suan Dusit University OKR System',
   description: 'ระบบติดตามและประเมินผล OKR มหาวิทยาลัยสวนดุสิต พัฒนาด้วย Next.js, TypeScript, และ Supabase',
+  icons: {
+    icon: '/IMG/sdu-logo.png',
+    apple: '/IMG/sdu-logo.png',
+  },
 }
 
 export default function RootLayout({
