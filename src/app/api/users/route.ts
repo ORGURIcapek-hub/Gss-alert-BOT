@@ -80,12 +80,15 @@ async function ensureDataFile(): Promise<StorageSchema> {
 async function saveStorage(data: StorageSchema): Promise<void> {
   memoryCache = data
   try {
+    if (process.env.VERCEL) {
+      return
+    }
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true })
     }
     await fs.promises.writeFile(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8')
   } catch (err) {
-    console.error('[api/users] Error saving storage:', err)
+    console.warn('[api/users] Error saving storage:', err)
   }
 }
 
@@ -94,12 +97,35 @@ async function saveStorage(data: StorageSchema): Promise<void> {
 // =============================================================================
 export async function GET(req: NextRequest) {
   try {
+    // 1. If Supabase is configured, fetch from Supabase (shared cloud database across all machines)
+    const supabase = getSafeSupabaseClient()
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('management_order', { ascending: true })
+
+        if (!error && data && data.length > 0) {
+          return NextResponse.json({
+            success: true,
+            users: data,
+            source: 'supabase'
+          })
+        }
+      } catch (dbErr) {
+        console.warn('[api/users] Supabase query fallback to local:', dbErr)
+      }
+    }
+
+    // 2. Fallback to local persistent file / memory cache
     const storage = await ensureDataFile()
     const activeUsers = storage.users.filter(u => !storage.deletedUserIds.includes(u.user_id))
 
     return NextResponse.json({
       success: true,
-      users: activeUsers
+      users: activeUsers,
+      source: 'local'
     })
   } catch (err: any) {
     return NextResponse.json(

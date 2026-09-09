@@ -139,6 +139,17 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Polling for Admin: Ensures new registrations from other machines show up in real-time
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== 'admin') return
+
+    const timer = setInterval(() => {
+      refreshUsers(true)
+    }, 5000)
+
+    return () => clearInterval(timer)
+  }, [currentUser?.role])
+
   useEffect(() => {
     let isMounted = true
     const initAuth = async () => {
