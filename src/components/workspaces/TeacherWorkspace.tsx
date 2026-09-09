@@ -4,6 +4,7 @@ import React from 'react'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { GraduationCap, FileCheck2, Clock, Upload, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
+import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 
 interface TeacherWorkspaceProps {
   projects: ProjectWithHeadAndAssignees[]
@@ -63,7 +64,7 @@ export function TeacherWorkspace({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             {myAssignedProjects.map((p) => {
-              const headName = p.head ? `${p.head.first_name} ${p.head.last_name}` : 'อาจารย์หัวหน้าโครงการ'
+              const headName = getUserFullName(p.head) || 'อาจารย์หัวหน้าโครงการ'
               const isCompleted = p.progress_percentage === 100
               return (
                 <div
@@ -74,7 +75,7 @@ export function TeacherWorkspace({
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {p.department.replace('ภาควิชา', '')}
+                        {formatDepartmentShort(p.department)}
                       </span>
                       <span className="text-xs sm:text-sm text-slate-600">
                         หัวหน้า: <b className="text-slate-900">{headName}</b>

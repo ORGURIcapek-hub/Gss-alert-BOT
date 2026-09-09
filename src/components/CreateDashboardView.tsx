@@ -5,6 +5,7 @@ import { ProjectWithHeadAndAssignees, OKR } from '@/types/database.types'
 import { useRole } from '@/components/RoleContext'
 import { createDashboardReport } from '@/lib/services/okr-service'
 import { Crown, Sparkles, CheckCircle2, Send, Layers, BarChart3 } from 'lucide-react'
+import { formatDepartmentShort, getUserFullName } from '@/lib/user-constants'
 
 interface CreateDashboardViewProps {
   okrs: OKR[]
@@ -38,7 +39,7 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
     if (chosen.length === 0) return
 
     const summaryText = chosen.map((p, idx) =>
-      `${idx + 1}. [${p.department.replace('ภาควิชา', '')}] ${p.project_name}: ความคืบหน้า ${p.progress_percentage}%, งบประมาณ ${(Number(p.budget) / 1000).toLocaleString()}k บาท ${p.bottleneck ? `(ติดปัญหา: ${p.bottleneck})` : '(ดำเนินการตามแผน)'}`
+      `${idx + 1}. [${formatDepartmentShort(p.department)}] ${p.project_name}: ความคืบหน้า ${p.progress_percentage}%, งบประมาณ ${(Number(p.budget) / 1000).toLocaleString()}k บาท ${p.bottleneck ? `(ติดปัญหา: ${p.bottleneck})` : '(ดำเนินการตามแผน)'}`
     ).join('\n')
 
     setOverallInfo(`สรุปภาพรวมผลการดำเนินงาน OKR ประจำปีงบประมาณ 2567 (${chosen.length} โครงการ):\n${summaryText}`)
@@ -53,7 +54,7 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
       overall_okr_info: overallInfo.trim(),
       okr_head_evaluation_score: 80, // Default baseline, evaluated interactively by Executive in view mode
       head_id: currentUser.user_id,
-      head_name: `${currentUser.first_name} ${currentUser.last_name}`,
+      head_name: getUserFullName(currentUser),
       academic_year: 2567
     })
 
@@ -138,7 +139,7 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold px-1.5 py-0.2 bg-slate-100 rounded text-slate-700">
-                          {p.department.replace('ภาควิชา', '')}
+                          {formatDepartmentShort(p.department)}
                         </span>
                         <span className="text-xs font-bold truncate block">{p.project_name}</span>
                       </div>
@@ -175,7 +176,7 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
             <div>
               <span className="text-slate-500 font-semibold block">ผู้บันทึก (Head Name):</span>
-              <span className="font-bold text-slate-900">{currentUser?.first_name} {currentUser?.last_name} ({currentUser?.department})</span>
+              <span className="font-bold text-slate-900">{getUserFullName(currentUser)} ({formatDepartmentShort(currentUser?.department)})</span>
             </div>
             <div className="text-right">
               <span className="text-slate-500 font-semibold block">เป้าหมายปลายทาง:</span>

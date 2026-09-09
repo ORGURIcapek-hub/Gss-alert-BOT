@@ -154,7 +154,7 @@ export function AdminUserManagement() {
                         className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm flex-shrink-0"
                       />
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-xs font-bold border border-slate-200">
-                        {u.username || u.email.split('@')[0]}
+                        {u.username || (u.email ? u.email.split('@')[0] : 'user')}
                       </span>
                     </div>
                   </td>

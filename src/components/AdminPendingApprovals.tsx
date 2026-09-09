@@ -22,7 +22,8 @@ import {
   ROLE_OPTIONS,
   getRoleBadge,
   filterUsersBySearchQuery,
-  getUserFullName
+  getUserFullName,
+  formatThaiDate
 } from '@/lib/user-constants'
 
 export function AdminPendingApprovals() {
@@ -319,7 +320,7 @@ export function AdminPendingApprovals() {
 
                       {/* Registered Date */}
                       <td className="py-4 px-4 text-slate-600 text-xs font-medium">
-                        {user.created_at ? new Date(user.created_at).toLocaleDateString('th-TH', {
+                        {user.created_at ? formatThaiDate(user.created_at, {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric',

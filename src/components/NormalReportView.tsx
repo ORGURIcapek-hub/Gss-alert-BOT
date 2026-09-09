@@ -5,6 +5,7 @@ import { NormalReport, Evaluation } from '@/types/database.types'
 import { fetchNormalReports, fetchEvaluations, saveEvaluationRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { FileText, Search, Star, User, Users, Target, Calendar, CheckCircle2, Award, Printer, Sparkles } from 'lucide-react'
+import { formatThaiDate } from '@/lib/user-constants'
 
 export function NormalReportView() {
   const { currentUser } = useRole()
@@ -157,7 +158,7 @@ export function NormalReportView() {
                     <div className="flex flex-col items-end flex-shrink-0">
                       <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {new Date(report.created_at).toLocaleDateString('th-TH', {
+                        {formatThaiDate(report.created_at, {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'

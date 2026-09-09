@@ -255,8 +255,10 @@ export async function registerUserRecord(userData: {
         throw new Error(data.error)
       }
     } catch (e: any) {
-      if (e.message && e.message.includes('มีอยู่ในระบบแล้ว')) throw e
-      console.warn('[okr-service] POST /api/users failed, fallback to local', e)
+      if (e.message && !e.message.includes('Failed to fetch') && !e.message.includes('NetworkError')) {
+        throw e
+      }
+      console.warn('[okr-service] POST /api/users network failed, fallback to local', e)
     }
   }
 
@@ -400,7 +402,7 @@ export async function createProjectRecord(projectData: {
   end_date: string
 }): Promise<ProjectWithHeadAndAssignees> {
   const newId = crypto.randomUUID()
-  const headUser = inMemoryUsers.find(u => u.user_id === projectData.head_of_project) || null
+  const headUser = inMemoryUsers.find(u => u.user_id === projectData.head_of_project) || getCachedUsers().find(u => u.user_id === projectData.head_of_project) || null
 
   const newProj: ProjectWithHeadAndAssignees = {
     project_id: newId,
@@ -529,7 +531,7 @@ export async function fetchEvidenceSubmissions(
   }
 
   return list.map(sub => {
-    const sender = inMemoryUsers.find(u => u.user_id === sub.sender_id) || undefined
+    const sender = inMemoryUsers.find(u => u.user_id === sub.sender_id) || getCachedUsers().find(u => u.user_id === sub.sender_id) || undefined
     const project = inMemoryProjects.find(p => p.project_id === sub.project_id) || undefined
     return {
       ...sub,

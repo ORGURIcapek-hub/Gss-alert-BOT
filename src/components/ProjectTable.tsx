@@ -5,6 +5,7 @@ import { ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { Search, Eye, Plus, AlertCircle, CheckCircle2, Clock, PauseCircle, Users } from 'lucide-react'
 import { mockDepartments } from '@/lib/mock-data'
 import { useRole } from '@/components/RoleContext'
+import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 
 interface ProjectTableProps {
   projects: ProjectWithHeadAndAssignees[]
@@ -19,10 +20,12 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
   const [selectedStatus, setSelectedStatus] = useState('all')
 
   const filteredProjects = projects.filter((p) => {
+    const term = searchTerm.toLowerCase().trim()
     const matchesSearch =
-      p.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.head && `${p.head.first_name} ${p.head.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      p.department.toLowerCase().includes(searchTerm.toLowerCase())
+      !term ||
+      (p.project_name || '').toLowerCase().includes(term) ||
+      getUserFullName(p.head).toLowerCase().includes(term) ||
+      (p.department || '').toLowerCase().includes(term)
 
     const matchesDept = selectedDept === 'ทั้งหมด' || p.department === selectedDept
     const matchesStatus = selectedStatus === 'all' || p.status === selectedStatus
@@ -106,7 +109,7 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
             >
               {mockDepartments.map((d) => (
                 <option key={d} value={d}>
-                  {d.replace('ภาควิชา', '')}
+                  {formatDepartmentShort(d)}
                 </option>
               ))}
             </select>
@@ -151,7 +154,7 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
             {filteredProjects.map((p) => {
-              const headName = p.head ? `${p.head.first_name} ${p.head.last_name}` : 'ไม่ระบุ'
+              const headName = getUserFullName(p.head)
               return (
                 <tr
                   key={p.project_id}
@@ -163,7 +166,7 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
                     <span className="text-xs text-slate-500 font-medium">{p.project_type}</span>
                   </td>
                   <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
-                    {p.department.replace('ภาควิชา', '')}
+                    {formatDepartmentShort(p.department)}
                   </td>
                   <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
                     {headName}

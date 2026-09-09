@@ -201,7 +201,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         const savedUserId = typeof window !== 'undefined' ? sessionStorage.getItem('sdu_okr_user_id') : null
         if (savedUserId) {
           const rawDeleted = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_deleted_user_ids') : null
-          const deletedIds: string[] = rawDeleted ? JSON.parse(rawDeleted) : []
+          let deletedIds: string[] = []
+          try {
+            deletedIds = rawDeleted ? JSON.parse(rawDeleted) : []
+          } catch {
+            deletedIds = []
+          }
 
           if (!deletedIds.includes(savedUserId)) {
             const foundInFetched = users.find(u => u.user_id === savedUserId)
@@ -212,9 +217,15 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
             } else {
               const cached = sessionStorage.getItem('sdu_okr_cached_user')
               if (cached) {
-                const parsed = JSON.parse(cached)
-                setCurrentUser(parsed)
-                setIsAuthenticated(true)
+                try {
+                  const parsed = JSON.parse(cached)
+                  if (parsed && typeof parsed === 'object') {
+                    setCurrentUser(parsed)
+                    setIsAuthenticated(true)
+                  }
+                } catch {
+                  sessionStorage.removeItem('sdu_okr_cached_user')
+                }
               }
             }
           } else {

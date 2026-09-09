@@ -16,6 +16,7 @@ import {
 } from 'chart.js'
 import { Doughnut, Bar, Line } from 'react-chartjs-2'
 import { ProjectWithHeadAndAssignees } from '@/types/database.types'
+import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 import {
   CheckCircle2,
   Clock,
@@ -101,13 +102,13 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
-      list = list.filter(p =>
-        p.project_name.toLowerCase().includes(q) ||
-        p.department.toLowerCase().includes(q) ||
-        (p.head?.first_name && p.head.first_name.toLowerCase().includes(q)) ||
-        (p.head?.name && p.head.name.toLowerCase().includes(q)) ||
-        (p.bottleneck && p.bottleneck.toLowerCase().includes(q))
-      )
+      list = list.filter(p => {
+        const projName = (p.project_name || '').toLowerCase()
+        const deptName = (p.department || '').toLowerCase()
+        const headName = getUserFullName(p.head).toLowerCase()
+        const bottleneck = (p.bottleneck || '').toLowerCase()
+        return projName.includes(q) || deptName.includes(q) || headName.includes(q) || bottleneck.includes(q)
+      })
     }
 
     return list
@@ -660,7 +661,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 truncate">
                         <Building2 className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                        <span className="truncate">{p.department}</span>
+                        <span className="truncate">{formatDepartmentShort(p.department)}</span>
                       </span>
 
                       <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border flex items-center gap-1 flex-shrink-0 ${statusBadge.bg}`}>
@@ -679,7 +680,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                       <User className="w-3.5 h-3.5 text-slate-400" />
                       <span>หัวหน้าโครงการ: </span>
                       <span className="font-bold text-slate-800">
-                        {p.head?.first_name || p.head?.name || 'ผศ.ดร.สมชาย ใจดี'}
+                        {getUserFullName(p.head) || 'ผศ.ดร.สมชาย ใจดี'}
                       </span>
                     </div>
                   </div>

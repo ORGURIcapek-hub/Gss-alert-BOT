@@ -5,6 +5,7 @@ import { ProjectWithHeadAndAssignees, ProjectStatus, ProjectAssignment } from '@
 import { X, Calendar, DollarSign, Upload, FileText, CheckCircle, UserCheck, Trash2, Download, ExternalLink, FileUp, AlertCircle, FileImage } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments } from '@/lib/services/okr-service'
+import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 import confetti from 'canvas-confetti'
 
 interface ProjectDetailModalProps {
@@ -138,7 +139,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
     onUpdated()
   }
 
-  const headName = project.head ? `${project.head.first_name} ${project.head.last_name}` : 'ไม่ระบุ'
+  const headName = getUserFullName(project.head)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
@@ -154,7 +155,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
         {/* Department and Type Badge */}
         <div className="flex items-center gap-2 mb-2 pr-12">
           <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
-            {project.department.replace('ภาควิชา', '')}
+            {formatDepartmentShort(project.department)}
           </span>
           <span className="text-xs text-slate-500 font-medium truncate">
             {project.project_type}

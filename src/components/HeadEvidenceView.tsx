@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { EvidenceSubmission, ProjectWithHeadAndAssignees, UserProfile } from '@/types/database.types'
 import { fetchEvidenceSubmissions, deleteEvidenceSubmission } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
+import { getUserFullName, formatDepartmentShort, formatThaiDate } from '@/lib/user-constants'
 import {
   FileCheck2,
   Search,
@@ -57,7 +58,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
     const matchesProject =
       selectedProjectId === 'ALL' || item.project_id === selectedProjectId
     
-    const senderName = item.sender ? `${item.sender.first_name} ${item.sender.last_name}` : ''
+    const senderName = getUserFullName(item.sender)
     const senderId = item.sender_id || ''
     const projectName = item.project?.project_name || ''
     const fileName = item.file_name || ''
@@ -129,7 +130,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
               <option value="ALL">🌟 โครงการทั้งหมด ({projects.length})</option>
               {projects.map((p) => (
                 <option key={p.project_id} value={p.project_id}>
-                  [{p.department.replace('ภาควิชา', '')}] {p.project_name}
+                  [{formatDepartmentShort(p.department)}] {p.project_name}
                 </option>
               ))}
             </select>
@@ -178,9 +179,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredEvidences.map((item) => {
-                  const senderName = item.sender
-                    ? `${item.sender.first_name} ${item.sender.last_name}`
-                    : 'อาจารย์ลูกทีม'
+                  const senderName = getUserFullName(item.sender) || 'อาจารย์ลูกทีม'
                   const senderEmail = item.sender?.email || '-'
                   const projectName = item.project?.project_name || 'โครงการ OKR'
                   const department = item.project?.department || item.sender?.department || '-'
@@ -210,7 +209,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                       <td className="py-4 px-4">
                         <div className="space-y-0.5 max-w-xs">
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-[#003B71] border border-sky-200 inline-block">
-                            {department.replace('ภาควิชา', '')}
+                            {formatDepartmentShort(department)}
                           </span>
                           <p className="text-xs font-semibold text-slate-800 line-clamp-1">
                             {projectName}
@@ -240,7 +239,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                           </span>
                           <span className="text-[11px] text-slate-400 flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(item.submitted_at).toLocaleDateString('th-TH', {
+                            {formatThaiDate(item.submitted_at, {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric'
@@ -309,7 +308,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                     {previewFile.file_name}
                   </h3>
                   <p className="text-xs text-slate-500 truncate">
-                    ผู้ส่ง: {previewFile.sender ? `${previewFile.sender.first_name} ${previewFile.sender.last_name}` : 'อาจารย์ลูกทีม'} • โครงการ: {previewFile.project?.project_name || '-'}
+                    ผู้ส่ง: {getUserFullName(previewFile.sender) || 'อาจารย์ลูกทีม'} • โครงการ: {previewFile.project?.project_name || '-'}
                   </p>
                 </div>
               </div>
@@ -357,7 +356,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
             {/* Modal Footer */}
             <div className="p-3.5 border-t border-slate-200 bg-white flex items-center justify-between text-xs text-slate-500">
               <span>ประเภทไฟล์: <b className="text-slate-800 uppercase">{previewFile.file_type}</b></span>
-              <span>ส่งเมื่อ: <b className="text-slate-800">{new Date(previewFile.submitted_at).toLocaleString('th-TH')}</b></span>
+              <span>ส่งเมื่อ: <b className="text-slate-800">{formatThaiDate(previewFile.submitted_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</b></span>
             </div>
           </div>
         </div>

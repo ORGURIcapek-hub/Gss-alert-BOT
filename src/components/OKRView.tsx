@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { Target, ChevronDown, ChevronRight, Plus, FolderGit2, Calendar, CheckCircle2, Clock } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
+import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 
 interface OKRViewProps {
   okrs: OKR[]
@@ -109,7 +110,7 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject }
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       {okrProjects.map((p) => {
-                        const headName = p.head ? `${p.head.first_name} ${p.head.last_name}` : 'ไม่ระบุ'
+                        const headName = getUserFullName(p.head)
                         return (
                           <div
                             key={p.project_id}
@@ -118,7 +119,7 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject }
                           >
                             <div className="flex items-center justify-between">
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-                                {p.department.replace('ภาควิชา', '')}
+                                {formatDepartmentShort(p.department)}
                               </span>
                               <span className="text-xs text-slate-500">
                                 หัวหน้า: <b className="text-slate-800">{headName}</b>

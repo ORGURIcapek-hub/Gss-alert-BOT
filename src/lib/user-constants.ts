@@ -179,3 +179,22 @@ export function filterUsersBySearchQuery(users: UserProfile[], query: string): U
     )
   })
 }
+
+/** Safely format a department name by stripping "ภาควิชา" prefix without crashing on null/undefined */
+export function formatDepartmentShort(dept?: string | null): string {
+  if (!dept) return 'ส่วนกลาง'
+  return dept.replace('ภาควิชา', '').trim() || 'ส่วนกลาง'
+}
+
+/** Safely format ISO date string into Thai locale date without throwing on invalid date */
+export function formatThaiDate(dateStr?: string | null, options?: Intl.DateTimeFormatOptions): string {
+  if (!dateStr) return '-'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return '-'
+    return d.toLocaleDateString('th-TH', options)
+  } catch {
+    return '-'
+  }
+}
+

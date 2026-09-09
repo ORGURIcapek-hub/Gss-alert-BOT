@@ -98,6 +98,7 @@ async function saveStorage(data: StorageSchema): Promise<void> {
 export async function GET(req: NextRequest) {
   try {
     // 1. If Supabase is configured, fetch from Supabase (shared cloud database across all machines)
+    const storage = await ensureDataFile()
     const supabase = getSafeSupabaseClient()
     if (supabase) {
       try {
@@ -107,9 +108,16 @@ export async function GET(req: NextRequest) {
           .order('management_order', { ascending: true })
 
         if (!error && data && data.length > 0) {
+          // Filter out any users deleted locally
+          const validSupabaseUsers = data.filter((u: any) => !storage.deletedUserIds.includes(u.user_id))
+          // Merge with any local users that might not yet be in Supabase
+          const supabaseIds = new Set(validSupabaseUsers.map((u: any) => u.user_id))
+          const localOnlyUsers = storage.users.filter(u => !storage.deletedUserIds.includes(u.user_id) && !supabaseIds.has(u.user_id))
+          const mergedUsers = [...validSupabaseUsers, ...localOnlyUsers]
+
           return NextResponse.json({
             success: true,
-            users: data,
+            users: mergedUsers,
             source: 'supabase'
           })
         }
@@ -119,7 +127,6 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Fallback to local persistent file / memory cache
-    const storage = await ensureDataFile()
     const activeUsers = storage.users.filter(u => !storage.deletedUserIds.includes(u.user_id))
 
     return NextResponse.json({

@@ -26,6 +26,7 @@ import {
 import { ExecutiveAnalytics } from '@/components/ExecutiveAnalytics'
 import { fetchDashboardReports, fetchUsers, assignProjectRole, fetchEvaluations, saveEvaluationRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
+import { formatDepartmentShort, formatThaiDate, getUserFullName } from '@/lib/user-constants'
 
 interface ExecutiveWorkspaceProps {
   okrs: OKR[]
@@ -293,7 +294,7 @@ export function ExecutiveWorkspace({
                         </h4>
                         <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
                           <Calendar className="w-3.5 h-3.5" />
-                          ปีการศึกษา {report.academic_year || 2567} • {new Date(report.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          ปีการศึกษา {report.academic_year || 2567} • {formatThaiDate(report.created_at, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                     </div>
@@ -427,7 +428,7 @@ export function ExecutiveWorkspace({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                      {p.department.replace('ภาควิชา', '')}
+                      {formatDepartmentShort(p.department)}
                     </span>
                     <h4 className="text-xs sm:text-sm font-bold text-slate-900">{p.project_name}</h4>
                   </div>
@@ -494,7 +495,7 @@ export function ExecutiveWorkspace({
                 >
                   {projects.map((p) => (
                     <option key={p.project_id} value={p.project_id}>
-                      [{p.department.replace('ภาควิชา', '')}] {p.project_name}
+                      [{formatDepartmentShort(p.department)}] {p.project_name}
                     </option>
                   ))}
                 </select>
@@ -514,7 +515,7 @@ export function ExecutiveWorkspace({
                   <option value="">-- กรุณาเลือกรายชื่อผู้ใช้งาน --</option>
                   {allUsers.map((u) => (
                     <option key={u.user_id} value={u.user_id}>
-                      [{u.role}] {u.first_name} {u.last_name} ({u.department})
+                      [{u.role}] {getUserFullName(u)} ({formatDepartmentShort(u.department)})
                     </option>
                   ))}
                 </select>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { assignProjectRole } from '@/lib/services/okr-service'
+import { formatDepartmentShort, getUserFullName } from '@/lib/user-constants'
 
 interface HeadOKRWorkspaceProps {
   okrs: OKR[]
@@ -252,7 +253,7 @@ export function HeadOKRWorkspace({
                 >
                   {myDeptProjects.map((p) => (
                     <option key={p.project_id} value={p.project_id}>
-                      [{p.department.replace('ภาควิชา', '')}] {p.project_name}
+                      [{formatDepartmentShort(p.department)}] {p.project_name}
                     </option>
                   ))}
                 </select>
@@ -272,7 +273,7 @@ export function HeadOKRWorkspace({
                   <option value="">-- เลือกอาจารย์ผู้รับผิดชอบ --</option>
                   {availableTeachers.map((u) => (
                     <option key={u.user_id} value={u.user_id}>
-                      [{u.role}] {u.first_name} {u.last_name} ({u.department})
+                      [{u.role}] {getUserFullName(u)} ({formatDepartmentShort(u.department)})
                     </option>
                   ))}
                 </select>

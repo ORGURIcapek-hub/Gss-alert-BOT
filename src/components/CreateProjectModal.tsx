@@ -5,6 +5,7 @@ import { OKR, UserProfile } from '@/types/database.types'
 import { X, FolderPlus, CheckCircle } from 'lucide-react'
 import { mockDepartments } from '@/lib/mock-data'
 import { createProjectRecord } from '@/lib/services/okr-service'
+import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 
 interface CreateProjectModalProps {
   okrs: OKR[]
@@ -150,7 +151,7 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
               >
                 {users.map((u) => (
                   <option key={u.user_id} value={u.user_id}>
-                    {u.first_name} {u.last_name} ({u.department.replace('ภาควิชา', '')})
+                    {getUserFullName(u)} ({formatDepartmentShort(u.department)})
                   </option>
                 ))}
               </select>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { ProjectWithHeadAndAssignees, Evidence } from '@/types/database.types'
 import { FileCheck2, Download, Search, FolderGit2, Calendar, FileText } from 'lucide-react'
+import { formatDepartmentShort, formatThaiDate } from '@/lib/user-constants'
 
 interface EvidenceGalleryProps {
   projects: ProjectWithHeadAndAssignees[]
@@ -11,19 +12,25 @@ interface EvidenceGalleryProps {
 export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const allEvidences: { evidence: Evidence; project: ProjectWithHeadAndAssignees }[] = []
-  projects.forEach((p) => {
-    p.evidences?.forEach((e) => {
-      allEvidences.push({ evidence: e, project: p })
-    })
-  })
+  const allEvidences = projects.flatMap((p) =>
+    (p.evidences || []).map((e) => ({
+      evidence: e,
+      project: p,
+    }))
+  )
 
   const filteredEvidences = allEvidences.filter((item) => {
+    const term = searchTerm.toLowerCase().trim()
+    if (!term) return true
+    const fileName = (item.evidence.file_name || '').toLowerCase()
+    const desc = (item.evidence.description || '').toLowerCase()
+    const projName = (item.project.project_name || '').toLowerCase()
+    const dept = (item.project.department || '').toLowerCase()
     return (
-      item.evidence.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.evidence.description && item.evidence.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      item.project.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.project.department.toLowerCase().includes(searchTerm.toLowerCase())
+      fileName.includes(term) ||
+      desc.includes(term) ||
+      projName.includes(term) ||
+      dept.includes(term)
     )
   })
 
@@ -74,11 +81,11 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-[#003B71] border border-sky-200">
-                    {item.project.department.replace('ภาควิชา', '')}
+                    {formatDepartmentShort(item.project.department)}
                   </span>
                   <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
                     <Calendar className="w-3 h-3" />
-                    {new Date(item.evidence.upload_date).toLocaleDateString('th-TH')}
+                    {formatThaiDate(item.evidence.upload_date)}
                   </span>
                 </div>
 

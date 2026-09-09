@@ -5,6 +5,7 @@ import { ProjectWithHeadAndAssignees, UserProfile } from '@/types/database.types
 import { useRole } from '@/components/RoleContext'
 import { createNormalReport } from '@/lib/services/okr-service'
 import { FileSpreadsheet, CheckCircle2, Send, FolderGit2, User, Users, Target, Plus, X, UserCheck } from 'lucide-react'
+import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 
 interface CreateNormalReportViewProps {
   projects: ProjectWithHeadAndAssignees[]
@@ -22,7 +23,7 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([])
   const [assigneeSelectValue, setAssigneeSelectValue] = useState<string>('')
   
-  const [headName, setHeadName] = useState<string>(currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : '')
+  const [headName, setHeadName] = useState<string>(currentUser ? getUserFullName(currentUser) : '')
   const [projectOutcome, setProjectOutcome] = useState<string>('')
   const [initialExpectedOutcome, setInitialExpectedOutcome] = useState<string>(projects[0]?.main_objective || '')
   
@@ -36,13 +37,13 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
       setProjectName(proj.project_name)
       setInitialExpectedOutcome(proj.main_objective || proj.description || '')
       
-      const headStr = proj.head ? `${proj.head.first_name} ${proj.head.last_name}` : (currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : '')
+      const headStr = proj.head ? getUserFullName(proj.head) : (currentUser ? getUserFullName(currentUser) : '')
       setHeadName(headStr)
 
       // Initialize default assignees from project
       if (proj.assignees && proj.assignees.length > 0) {
         const initialNames = proj.assignees
-          .map(a => a.user ? `${a.user.first_name} ${a.user.last_name}` : '')
+          .map(a => a.user ? getUserFullName(a.user) : '')
           .filter(Boolean)
         setSelectedAssignees(initialNames)
       } else {
@@ -128,7 +129,7 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
             >
               {projects.map((p) => (
                 <option key={p.project_id} value={p.project_id}>
-                  [{p.department.replace('ภาควิชา', '')}] {p.project_name} ({p.progress_percentage}%)
+                  [{formatDepartmentShort(p.department)}] {p.project_name} ({p.progress_percentage}%)
                 </option>
               ))}
             </select>
@@ -182,10 +183,10 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
                 >
                   <option value="">+ เพิ่มอาจารย์ผู้รับผิดชอบจากรายชื่อ...</option>
                   {allUsers.map((u) => {
-                    const fullName = `${u.first_name} ${u.last_name}`
+                    const fullName = getUserFullName(u)
                     return (
                       <option key={u.user_id} value={fullName}>
-                        [{u.role}] {fullName} ({u.department})
+                        [{u.role}] {fullName} ({formatDepartmentShort(u.department)})
                       </option>
                     )
                   })}
