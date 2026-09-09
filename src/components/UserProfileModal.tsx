@@ -18,23 +18,13 @@ import {
   Sparkles
 } from 'lucide-react'
 
-// Curated academic preset avatars
-const PRESET_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-]
-
-const ROLE_DISPLAY_MAP: Record<string, { label: string; color: string }> = {
-  admin: { label: '🛡️ ผู้ดูแลระบบ (Admin)', color: 'bg-rose-50 text-rose-700 border-rose-200' },
-  executive: { label: '👑 ผู้บริหารระดับสูง (Executive)', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  head_okr: { label: '🎯 หัวหน้าโครงการ OKR (Head OKR)', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  teacher: { label: '🎓 อาจารย์ลูกทีม (Teacher / Member)', color: 'bg-teal-50 text-teal-700 border-teal-200' },
-  staff: { label: '📋 บุคลากร / เจ้าหน้าที่ (Staff)', color: 'bg-slate-50 text-slate-700 border-slate-200' },
-}
+import {
+  PRESET_AVATARS,
+  DEPARTMENT_OPTIONS,
+  DEFAULT_DEPARTMENT,
+  getRoleBadge,
+  splitFullName
+} from '@/lib/user-constants'
 
 export function UserProfileModal() {
   const {
@@ -47,7 +37,7 @@ export function UserProfileModal() {
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [department, setDepartment] = useState('ภาควิชาวิทยาการคอมพิวเตอร์')
+  const [department, setDepartment] = useState(DEFAULT_DEPARTMENT)
   const [position, setPosition] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
 
@@ -65,9 +55,10 @@ export function UserProfileModal() {
     if (isProfileModalOpen) {
       if (!prevOpenRef.current || currentLoadedUserIdRef.current !== currentUser?.user_id) {
         if (currentUser) {
-          setFirstName(currentUser.first_name || (currentUser.name ? currentUser.name.split(' ')[0] : ''))
-          setLastName(currentUser.last_name || (currentUser.name ? currentUser.name.split(' ').slice(1).join(' ') : ''))
-          setDepartment(currentUser.department || 'ภาควิชาวิทยาการคอมพิวเตอร์')
+          const split = splitFullName(currentUser.name || '')
+          setFirstName(currentUser.first_name || split.firstName)
+          setLastName(currentUser.last_name || split.lastName)
+          setDepartment(currentUser.department || DEFAULT_DEPARTMENT)
           setPosition(currentUser.position || '')
           setAvatarUrl(currentUser.avatar_url || PRESET_AVATARS[0])
           setErrorMsg('')
@@ -132,7 +123,7 @@ export function UserProfileModal() {
     }
   }
 
-  const roleInfo = ROLE_DISPLAY_MAP[currentUser.role] || ROLE_DISPLAY_MAP.teacher
+  const roleInfo = getRoleBadge(currentUser.role)
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
@@ -307,12 +298,11 @@ export function UserProfileModal() {
                 onChange={(e) => setDepartment(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-800 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
               >
-                <option value="ภาควิชาวิทยาการคอมพิวเตอร์">ภาควิชาวิทยาการคอมพิวเตอร์</option>
-                <option value="ภาควิชาเคมี">ภาควิชาเคมี</option>
-                <option value="ภาควิชาชีววิทยา">ภาควิชาชีววิทยา</option>
-                <option value="ภาควิชาฟิสิกส์">ภาควิชาฟิสิกส์</option>
-                <option value="ภาควิชาคณิตศาสตร์">ภาควิชาคณิตศาสตร์</option>
-                <option value="สำนักงานคณบดี">สำนักงานคณบดี</option>
+                {DEPARTMENT_OPTIONS.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
               </select>
             </div>
 

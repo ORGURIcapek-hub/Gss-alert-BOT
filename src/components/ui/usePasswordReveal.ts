@@ -12,7 +12,7 @@ export interface UsePasswordRevealReturn {
   showAllPasswords: boolean
   copiedId: string | null
   toggleRevealPassword: (userId: string) => void
-  handleCopyPassword: (userId: string, pass: string) => void
+  handleCopyPassword: (userId: string, pass?: string) => void
   setShowAllPasswords: (show: boolean) => void
 }
 
@@ -25,8 +25,8 @@ export function usePasswordReveal(): UsePasswordRevealReturn {
     setRevealedPasswords(prev => ({ ...prev, [userId]: !prev[userId] }))
   }
 
-  const handleCopyPassword = (userId: string, pass: string) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+  const handleCopyPassword = (userId: string, pass?: string) => {
+    if (pass && typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(pass)
     }
     setCopiedId(userId)

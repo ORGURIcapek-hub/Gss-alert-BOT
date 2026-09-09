@@ -3,8 +3,18 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { mockUsers } from '@/lib/mock-data'
-import { fetchUsers } from '@/lib/services/okr-service'
+import {
+  fetchUsers,
+  registerUserRecord,
+  approveUserRecord,
+  rejectUserRecord,
+  updateUserRoleRecord,
+  updateUserPasswordRecord,
+  updateUserProfileRecord,
+  deleteUserRecord
+} from '@/lib/services/okr-service'
 import { validatePassword, validateEmail } from '@/lib/password-utils'
+import { splitFullName } from '@/lib/user-constants'
 
 interface LoginResult {
   success: boolean
@@ -333,7 +343,6 @@ function notifySyncChannel() {
         }
       }
 
-      const { registerUserRecord } = await import('@/lib/services/okr-service')
       const createdUser = await registerUserRecord({
         ...userData,
         email: cleanEmail,
@@ -357,7 +366,6 @@ function notifySyncChannel() {
 
   const approveUser = async (userId: string, assignedRole?: UserRole): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { approveUserRecord } = await import('@/lib/services/okr-service')
       await approveUserRecord(userId, assignedRole)
       notifySyncChannel()
       await refreshUsers()
@@ -369,7 +377,6 @@ function notifySyncChannel() {
 
   const rejectUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { rejectUserRecord } = await import('@/lib/services/okr-service')
       await rejectUserRecord(userId)
       notifySyncChannel()
       await refreshUsers()
@@ -390,7 +397,6 @@ function notifySyncChannel() {
       }
 
       // 3. Call backend / service delete
-      const { deleteUserRecord } = await import('@/lib/services/okr-service')
       await deleteUserRecord(userId)
 
       notifySyncChannel()
@@ -466,7 +472,6 @@ function notifySyncChannel() {
     }
 
     try {
-      const { updateUserPasswordRecord } = await import('@/lib/services/okr-service')
       await updateUserPasswordRecord(currentUser.user_id, newPassword)
 
       // Update current user state with new password
@@ -491,7 +496,6 @@ function notifySyncChannel() {
     }
 
     try {
-      const { updateUserProfileRecord } = await import('@/lib/services/okr-service')
       const updated = await updateUserProfileRecord(currentUser.user_id, updates)
 
       const mergedUser: UserProfile = {

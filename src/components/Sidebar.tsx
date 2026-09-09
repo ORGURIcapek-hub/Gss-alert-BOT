@@ -24,6 +24,7 @@ import {
   KeyRound,
   User
 } from 'lucide-react'
+import { getRoleBadge, getUserFullName, DEFAULT_AVATAR } from '@/lib/user-constants'
 
 interface SidebarProps {
   activeTab: string
@@ -37,24 +38,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
 
   if (!currentUser) return null
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return { label: 'ผู้ดูแลระบบ (Admin)', color: 'bg-rose-50 text-rose-700 border-rose-200' }
-      case 'executive':
-        return { label: 'ผู้บริหารระดับสูง (Executive)', color: 'bg-purple-50 text-purple-700 border-purple-200' }
-      case 'head_okr':
-        return { label: 'หัวหน้าโครงการ OKR', color: 'bg-sky-50 text-[#003B71] border-sky-200' }
-      case 'teacher':
-        return { label: 'อาจารย์ลูกทีมโครงการ OKR', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-      case 'staff':
-        return { label: 'บุคลากรทั่วไป (Staff)', color: 'bg-amber-50 text-amber-700 border-amber-200' }
-      default:
-        return { label: role, color: 'bg-slate-50 text-slate-700 border-slate-200' }
-    }
-  }
-
-  const roleInfo = getRoleBadge(currentRole || currentUser.role || 'teacher')
+  const roleInfo = getRoleBadge(currentRole || currentUser.role)
 
   const getMenuItems = () => {
     switch (currentRole) {
@@ -154,7 +138,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
           >
             <div className="relative flex-shrink-0">
               <img
-                src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                src={currentUser?.avatar_url || DEFAULT_AVATAR}
                 alt="Profile"
                 className="w-12 h-12 rounded-full object-cover border-2 border-[#003B71]/30 shadow-sm group-hover:border-[#003B71] transition-all"
               />
@@ -165,7 +149,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate group-hover:text-[#003B71] transition-colors">
-                  {currentUser?.first_name || 'ผู้ใช้งาน'} {currentUser?.last_name || ''}
+                  {getUserFullName(currentUser)}
                 </h2>
               </div>
               <div className={`mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${roleInfo.color}`}>

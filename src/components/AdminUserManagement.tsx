@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
-import { Shield, Check, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound, Clock } from 'lucide-react'
-import { updateUserRoleRecord, deleteUserRecord } from '@/lib/services/okr-service'
+import { Shield, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Clock } from 'lucide-react'
+import { updateUserRoleRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
+import { PasswordCell } from '@/components/ui/PasswordCell'
+import { ROLE_OPTIONS, filterUsersBySearchQuery, getUserFullName } from '@/lib/user-constants'
 
 export function AdminUserManagement() {
   const { currentUser, allUsers, pendingUsers, deleteUser, refreshUsers } = useRole()
@@ -40,7 +42,7 @@ export function AdminUserManagement() {
     try {
       const res = await deleteUser(targetUser.user_id)
       if (res.success) {
-        setDeleteSuccess(`ลบผู้ใช้งาน "${targetUser.first_name} ${targetUser.last_name}" ออกจากระบบเรียบร้อยแล้ว`)
+        setDeleteSuccess(`ลบผู้ใช้งาน "${getUserFullName(targetUser)}" ออกจากระบบเรียบร้อยแล้ว`)
         setUserToDelete(null)
         setTimeout(() => setDeleteSuccess(null), 3500)
       } else {
@@ -53,30 +55,7 @@ export function AdminUserManagement() {
     }
   }
 
-  const filteredUsers = allUsers.filter(u => {
-    const term = searchTerm.toLowerCase().trim()
-    if (!term) return true
-    const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase()
-    const name = (u.name || '').toLowerCase()
-    const email = (u.email || '').toLowerCase()
-    const username = (u.username || '').toLowerCase()
-    const dept = (u.department || '').toLowerCase()
-    return (
-      name.includes(term) ||
-      fullName.includes(term) ||
-      email.includes(term) ||
-      username.includes(term) ||
-      dept.includes(term)
-    )
-  })
-
-  const roleOptions: { value: UserRole; label: string }[] = [
-    { value: 'admin', label: 'ผู้ดูแลระบบ (Admin)' },
-    { value: 'executive', label: 'ผู้บริหารระดับสูง (Executive)' },
-    { value: 'head_okr', label: 'หัวหน้า OKR (Head OKR)' },
-    { value: 'teacher', label: 'อาจารย์ผู้รับผิดชอบ (Teacher)' },
-    { value: 'staff', label: 'บุคลากรทั่วไป (Staff)' }
-  ]
+  const filteredUsers = filterUsersBySearchQuery(allUsers, searchTerm)
 
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
@@ -180,7 +159,7 @@ export function AdminUserManagement() {
                     </div>
                   </td>
                   <td className="py-4 px-4 font-bold text-slate-900 text-sm sm:text-base">
-                    {u.first_name} {u.last_name}
+                    {getUserFullName(u)}
                   </td>
                   <td className="py-4 px-4 text-slate-700 font-medium text-sm">
                     {u.email}
@@ -198,7 +177,7 @@ export function AdminUserManagement() {
                       onChange={(e) => handleRoleChange(u.user_id, e.target.value as UserRole)}
                       className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
                     >
-                      {roleOptions.map((opt) => (
+                      {ROLE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
@@ -208,32 +187,14 @@ export function AdminUserManagement() {
 
                   {/* Admin Password Inspection Column */}
                   <td className="py-4 px-4">
-                    <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 transition-colors">
-                      <KeyRound className="w-4 h-4 text-[#003B71] flex-shrink-0" />
-                      <span className={`font-mono text-xs sm:text-sm font-bold select-all ${isPasswordVisible ? 'text-[#003B71]' : 'text-slate-400'}`}>
-                        {isPasswordVisible ? userPassword : '••••••••'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleRevealPassword(u.user_id)}
-                        className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors ml-0.5 cursor-pointer"
-                        title={isPasswordVisible ? 'ซ่อนรหัสผ่าน' : 'ดูรหัสผ่าน'}
-                      >
-                        {isPasswordVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyPassword(u.user_id, userPassword)}
-                        className="p-1 text-slate-400 hover:text-[#003B71] rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
-                        title="คัดลอกรหัสผ่าน"
-                      >
-                        {copiedId === u.user_id ? (
-                          <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
+                    <PasswordCell
+                      userId={u.user_id}
+                      password={userPassword}
+                      isVisible={isPasswordVisible}
+                      isCopied={copiedId === u.user_id}
+                      onToggleReveal={toggleRevealPassword}
+                      onCopy={handleCopyPassword}
+                    />
                   </td>
 
                   <td className="py-4 px-4 text-center">
@@ -293,7 +254,7 @@ export function AdminUserManagement() {
                 />
                 <div>
                   <div className="text-sm font-bold text-slate-900">
-                    {userToDelete.first_name} {userToDelete.last_name}
+                    {getUserFullName(userToDelete)}
                   </div>
                   <div className="text-xs text-slate-500 font-mono">
                     {userToDelete.email}

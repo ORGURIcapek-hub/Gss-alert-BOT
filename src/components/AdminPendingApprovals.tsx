@@ -11,20 +11,19 @@ import {
   CheckCircle2,
   AlertCircle,
   Search,
-  Shield,
   Building2,
   Mail,
   User,
-  Crown,
-  Layers,
-  GraduationCap,
-  Briefcase,
-  KeyRound,
   Eye,
-  EyeOff,
-  Copy,
-  Check
+  EyeOff
 } from 'lucide-react'
+import { PasswordCell } from '@/components/ui/PasswordCell'
+import {
+  ROLE_OPTIONS,
+  getRoleBadge,
+  filterUsersBySearchQuery,
+  getUserFullName
+} from '@/lib/user-constants'
 
 export function AdminPendingApprovals() {
   const { allUsers, pendingUsers, approveUser, rejectUser } = useRole()
@@ -54,39 +53,7 @@ export function AdminPendingApprovals() {
   const approvedUsersCount = allUsers.filter(u => (u.status || 'approved') === 'approved').length
   const rejectedUsersCount = allUsers.filter(u => u.status === 'rejected').length
 
-  const filteredPending = pendingUsers.filter(u => {
-    const query = searchQuery.toLowerCase().trim()
-    if (!query) return true
-    const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase()
-    const name = (u.name || '').toLowerCase()
-    const email = (u.email || '').toLowerCase()
-    const username = (u.username || '').toLowerCase()
-    const dept = (u.department || '').toLowerCase()
-    return (
-      name.includes(query) ||
-      fullName.includes(query) ||
-      email.includes(query) ||
-      username.includes(query) ||
-      dept.includes(query)
-    )
-  })
-
-  const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case 'executive':
-        return { label: 'ผู้บริหารระดับสูง (Executive)', color: 'bg-purple-50 text-purple-700 border-purple-200', icon: Crown }
-      case 'head_okr':
-        return { label: 'หัวหน้าโครงการ OKR (Head OKR)', color: 'bg-sky-50 text-[#003B71] border-sky-200', icon: Layers }
-      case 'teacher':
-        return { label: 'อาจารย์ลูกทีม OKR (Teacher)', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: GraduationCap }
-      case 'staff':
-        return { label: 'เจ้าหน้าที่ / บุคลากร (Staff)', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: Briefcase }
-      case 'admin':
-        return { label: 'ผู้ดูแลระบบ (Admin)', color: 'bg-rose-50 text-rose-700 border-rose-200', icon: Shield }
-      default:
-        return { label: role, color: 'bg-slate-50 text-slate-700 border-slate-200', icon: User }
-    }
-  }
+  const filteredPending = filterUsersBySearchQuery(pendingUsers, searchQuery)
 
   const handleRoleChange = (userId: string, newRole: UserRole) => {
     setSelectedRoleOverrides(prev => ({ ...prev, [userId]: newRole }))
@@ -113,7 +80,7 @@ export function AdminPendingApprovals() {
       if (res.success) {
         setNotification({
           type: 'success',
-          message: `อนุมัติสิทธิ์สำหรับ ${user.first_name} ${user.last_name} เรียบร้อยแล้ว (บทบาท: ${getRoleBadge(assignedRole).label})`
+          message: `อนุมัติสิทธิ์สำหรับ ${getUserFullName(user)} เรียบร้อยแล้ว (บทบาท: ${getRoleBadge(assignedRole).label})`
         })
       } else {
         setNotification({
@@ -126,7 +93,7 @@ export function AdminPendingApprovals() {
       if (res.success) {
         setNotification({
           type: 'success',
-          message: `ปฏิเสธคำขอสมัครของ ${user.first_name} ${user.last_name} เรียบร้อยแล้ว`
+          message: `ปฏิเสธคำขอสมัครของ ${getUserFullName(user)} เรียบร้อยแล้ว`
         })
       } else {
         setNotification({
@@ -283,12 +250,12 @@ export function AdminPendingApprovals() {
                         <div className="flex items-center gap-3.5">
                           <img
                             src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                            alt={user.first_name}
+                            alt={getUserFullName(user)}
                             className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-sm"
                           />
                           <div>
-                            <div className="font-bold text-slate-900 text-sm sm:text-base">
-                              {user.first_name} {user.last_name}
+                            <div className="text-sm font-bold text-slate-900">
+                              {getUserFullName(user)}
                             </div>
                             <div className="flex items-center gap-1.5 text-slate-600 text-xs mt-0.5 font-medium">
                               <Mail className="w-3.5 h-3.5 text-slate-400" />
@@ -325,32 +292,14 @@ export function AdminPendingApprovals() {
 
                       {/* Password Column */}
                       <td className="py-4 px-4">
-                        <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 transition-colors">
-                          <KeyRound className="w-4 h-4 text-[#003B71] flex-shrink-0" />
-                          <span className={`font-mono text-xs sm:text-sm font-bold select-all ${isPasswordVisible ? 'text-[#003B71]' : 'text-slate-400'}`}>
-                            {isPasswordVisible ? userPassword : '••••••••'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => toggleRevealPassword(user.user_id)}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors ml-0.5 cursor-pointer"
-                            title={isPasswordVisible ? 'ซ่อนรหัสผ่าน' : 'ดูรหัสผ่าน'}
-                          >
-                            {isPasswordVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyPassword(user.user_id, userPassword)}
-                            className="p-1 text-slate-400 hover:text-[#003B71] rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
-                            title="คัดลอกรหัสผ่าน"
-                          >
-                            {copiedId === user.user_id ? (
-                              <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
+                        <PasswordCell
+                          userId={user.user_id}
+                          password={userPassword}
+                          isVisible={isPasswordVisible}
+                          isCopied={copiedId === user.user_id}
+                          onToggleReveal={toggleRevealPassword}
+                          onCopy={handleCopyPassword}
+                        />
                       </td>
 
                       {/* Role Selector Override */}
@@ -360,11 +309,11 @@ export function AdminPendingApprovals() {
                           onChange={(e) => handleRoleChange(user.user_id, e.target.value as UserRole)}
                           className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-bold focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71] cursor-pointer"
                         >
-                          <option value="teacher">🎓 อาจารย์ลูกทีม (Teacher)</option>
-                          <option value="head_okr">🎯 หัวหน้าโครงการ (Head OKR)</option>
-                          <option value="executive">👑 ผู้บริหาร (Executive)</option>
-                          <option value="staff">📋 เจ้าหน้าที่ (Staff)</option>
-                          <option value="admin">🛡️ ผู้ดูแลระบบ (Admin)</option>
+                          {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
                         </select>
                       </td>
 
@@ -437,7 +386,7 @@ export function AdminPendingApprovals() {
                 <>
                   คุณต้องการอนุมัติสิทธิ์ให้กับ{' '}
                   <span className="font-bold text-slate-900">
-                    {confirmModal.user.first_name} {confirmModal.user.last_name}
+                    {getUserFullName(confirmModal.user)}
                   </span>{' '}
                   ในบทบาท{' '}
                   <span className="font-bold text-[#003B71]">
@@ -449,7 +398,7 @@ export function AdminPendingApprovals() {
                 <>
                   คุณต้องการปฏิเสธคำขอสมัครของ{' '}
                   <span className="font-bold text-slate-900">
-                    {confirmModal.user.first_name} {confirmModal.user.last_name}
+                    {getUserFullName(confirmModal.user)}
                   </span>{' '}
                   ใช่หรือไม่? ผู้ใช้นี้จะไม่สามารถล็อกอินเข้าสู่ระบบได้
                 </>

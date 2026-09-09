@@ -5,7 +5,17 @@ import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 import { UserRole } from '@/types/database.types'
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal'
-import { validateEmail } from '@/lib/password-utils'
+import { validateEmail, validatePassword, getPasswordStrengthMeta } from '@/lib/password-utils'
+import { PasswordChecklist } from '@/components/ui/PasswordChecklist'
+import {
+  PRESET_AVATARS,
+  DEFAULT_AVATAR,
+  DEFAULT_DEPARTMENT,
+  DEFAULT_ROLE_POSITIONS,
+  ROLE_OPTIONS,
+  ROLE_CONFIG,
+  DEPARTMENT_OPTIONS
+} from '@/lib/user-constants'
 import {
   Lock,
   Mail,
@@ -19,28 +29,9 @@ import {
   LogIn,
   Eye,
   EyeOff,
-  Check,
-  X,
   Camera,
   Upload
 } from 'lucide-react'
-
-const PRESET_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-]
-
-const DEFAULT_ROLE_POSITIONS: Record<UserRole, string> = {
-  teacher: 'อาจารย์ประจำภาควิชา',
-  head_okr: 'หัวหน้าโครงการ OKR',
-  executive: 'ผู้บริหารระดับสูง',
-  staff: 'เจ้าหน้าที่ / บุคลากรทั่วไป',
-  admin: 'ผู้ดูแลระบบ'
-}
 
 export function LoginPage() {
   const { login, register } = useRole()
@@ -60,8 +51,8 @@ export function LoginPage() {
   const [regPassword, setRegPassword] = useState('')
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [regRole, setRegRole] = useState<UserRole>('teacher')
-  const [regDepartment, setRegDepartment] = useState('ภาควิชาวิทยาการคอมพิวเตอร์')
-  const [regAvatarUrl, setRegAvatarUrl] = useState(PRESET_AVATARS[0])
+  const [regDepartment, setRegDepartment] = useState(DEFAULT_DEPARTMENT)
+  const [regAvatarUrl, setRegAvatarUrl] = useState(DEFAULT_AVATAR)
 
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -89,60 +80,8 @@ export function LoginPage() {
   }
 
   // Sign Up Password Strength Criteria Evaluation
-  const isPasswordValidLength = regPassword.length >= 8 && regPassword.length <= 15
-  const hasLetter = /[a-zA-Z]/.test(regPassword)
-  const hasNumber = /[0-9]/.test(regPassword)
-  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(regPassword)
-  const isPasswordAllValid = isPasswordValidLength && hasLetter && hasNumber && hasSpecial
-  const passedCriteriaCount = [isPasswordValidLength, hasLetter, hasNumber, hasSpecial].filter(Boolean).length
-
-  const getStrengthMeta = () => {
-    if (!regPassword) {
-      return {
-        label: 'ระบุรหัสผ่าน',
-        barColor: 'bg-slate-200',
-        textColor: 'text-slate-400',
-        widthClass: 'w-0',
-        badgeBg: 'bg-slate-100 text-slate-500 border-slate-200'
-      }
-    }
-    if (passedCriteriaCount <= 1) {
-      return {
-        label: 'ความปลอดภัยต่ำ (Weak)',
-        barColor: 'bg-rose-500',
-        textColor: 'text-rose-600',
-        widthClass: 'w-1/4',
-        badgeBg: 'bg-rose-50 text-rose-700 border-rose-200'
-      }
-    }
-    if (passedCriteriaCount === 2) {
-      return {
-        label: 'ปานกลาง (Medium)',
-        barColor: 'bg-amber-500',
-        textColor: 'text-amber-600',
-        widthClass: 'w-2/4',
-        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200'
-      }
-    }
-    if (passedCriteriaCount === 3) {
-      return {
-        label: 'เกือบสมบูรณ์ (Good)',
-        barColor: 'bg-sky-500',
-        textColor: 'text-sky-600',
-        widthClass: 'w-3/4',
-        badgeBg: 'bg-sky-50 text-sky-700 border-sky-200'
-      }
-    }
-    return {
-      label: 'แข็งแกร่ง ปลอดภัยสูง (Strong)',
-      barColor: 'bg-emerald-500',
-      textColor: 'text-emerald-600',
-      widthClass: 'w-full',
-      badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    }
-  }
-
-  const strengthMeta = getStrengthMeta()
+  const isPasswordAllValid = validatePassword(regPassword).isValid
+  const strengthMeta = getPasswordStrengthMeta(regPassword)
 
   // -------------------------------------------------------------
   // Sign In Handler
@@ -533,11 +472,11 @@ export function LoginPage() {
                   onChange={(e) => setRegRole(e.target.value as UserRole)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
                 >
-                  <option value="teacher">🎓 อาจารย์ลูกทีม (Teacher / Member)</option>
-                  <option value="head_okr">🎯 หัวหน้าโครงการ OKR (Head OKR)</option>
-                  <option value="executive">👑 ผู้บริหารระดับสูง (Executive)</option>
-                  <option value="staff">📋 เจ้าหน้าที่ / บุคลากรทั่วไป (Staff)</option>
-                  <option value="admin">🛡️ ผู้ดูแลระบบ (Admin)</option>
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {ROLE_CONFIG[opt.value]?.emoji} {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -578,46 +517,9 @@ export function LoginPage() {
                 </button>
               </div>
 
-              {/* Password Strength Progress Bar */}
+              {/* Centralized Password Checklist & Strength Bar */}
               {regPassword && (
-                <div className="space-y-2 pt-1">
-                  <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${strengthMeta.barColor} ${strengthMeta.widthClass} transition-all duration-300 rounded-full`}
-                    />
-                  </div>
-
-                  {/* Requirements Checklist */}
-                  <div className="bg-white p-3 rounded-xl border border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className={`flex items-center gap-2 ${isPasswordValidLength ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 ${isPasswordValidLength ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                        {isPasswordValidLength ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3" />}
-                      </span>
-                      <span>ความยาว 8-15 ตัวอักษร ({regPassword.length}/15)</span>
-                    </div>
-
-                    <div className={`flex items-center gap-2 ${hasLetter ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 ${hasLetter ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                        {hasLetter ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3" />}
-                      </span>
-                      <span>มีตัวอักษรภาษาอังกฤษ (A-Z, a-z)</span>
-                    </div>
-
-                    <div className={`flex items-center gap-2 ${hasNumber ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 ${hasNumber ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                        {hasNumber ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3" />}
-                      </span>
-                      <span>มีตัวเลขอารบิก (0-9)</span>
-                    </div>
-
-                    <div className={`flex items-center gap-2 ${hasSpecial ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 ${hasSpecial ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                        {hasSpecial ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3" />}
-                      </span>
-                      <span>มีอักขระพิเศษ (@, #, $, %, !, ฯลฯ)</span>
-                    </div>
-                  </div>
-                </div>
+                <PasswordChecklist password={regPassword} />
               )}
             </div>
 
@@ -632,12 +534,11 @@ export function LoginPage() {
                 onChange={(e) => setRegDepartment(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
               >
-                <option value="ภาควิชาวิทยาการคอมพิวเตอร์">ภาควิชาวิทยาการคอมพิวเตอร์</option>
-                <option value="ภาควิชาเคมี">ภาควิชาเคมี</option>
-                <option value="ภาควิชาชีววิทยา">ภาควิชาชีววิทยา</option>
-                <option value="ภาควิชาฟิสิกส์">ภาควิชาฟิสิกส์</option>
-                <option value="ภาควิชาคณิตศาสตร์">ภาควิชาคณิตศาสตร์</option>
-                <option value="สำนักงานคณบดี">สำนักงานคณบดี</option>
+                {DEPARTMENT_OPTIONS.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
               </select>
             </div>
 
