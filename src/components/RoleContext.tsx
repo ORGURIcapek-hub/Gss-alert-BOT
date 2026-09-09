@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { mockUsers } from '@/lib/mock-data'
 import { fetchUsers } from '@/lib/services/okr-service'
@@ -48,7 +48,7 @@ interface RoleContextType {
   rejectUser: (userId: string) => Promise<{ success: boolean; error?: string }>
   switchUser: (userId: string) => void
   logout: () => void
-  refreshUsers: () => Promise<void>
+  refreshUsers: (force?: boolean) => Promise<void>
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
   updateProfile: (updates: UpdateProfileData) => Promise<{ success: boolean; error?: string }>
   isChangePasswordOpen: boolean
@@ -76,9 +76,20 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const openProfileModal = () => setIsProfileModalOpen(true)
   const closeProfileModal = () => setIsProfileModalOpen(false)
 
-  const refreshUsers = async () => {
+  const lastFetchTimeRef = useRef<number>(0)
+  const isFetchingRef = useRef<boolean>(false)
+
+  const refreshUsers = async (force: boolean = false) => {
+    const now = Date.now()
+    if (!force && now - lastFetchTimeRef.current < 3000) {
+      return
+    }
+    if (isFetchingRef.current) return
+    isFetchingRef.current = true
+
     try {
       const users = await fetchUsers()
+      lastFetchTimeRef.current = Date.now()
       setAllUsers(users)
       if (currentUser) {
         const updated = users.find(u => u.user_id === currentUser.user_id)
@@ -91,10 +102,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e) {
       console.error('Failed to refresh users', e)
+    } finally {
+      isFetchingRef.current = false
     }
   }
 
-  // Cross-tab and cross-session real-time sync
+  // Cross-tab and window sync (Event-driven without spammy intervals)
   useEffect(() => {
     let channel: BroadcastChannel | null = null
     try {
@@ -102,36 +115,24 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         channel = new BroadcastChannel('sdu_okr_sync_channel')
         channel.onmessage = (event) => {
           if (event.data?.type === 'USERS_UPDATED') {
-            refreshUsers()
+            refreshUsers(true)
           }
         }
       }
-    } catch (e) {
-      // BroadcastChannel optional fallback
-    }
+    } catch {}
 
-    // Auto-refresh when window gains focus (e.g. switching back from incognito or another browser)
-    const handleFocus = () => {
-      refreshUsers()
-    }
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        refreshUsers()
+    const handleSync = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshUsers(false)
       }
     }
 
-    window.addEventListener('focus', handleFocus)
-    document.addEventListener('visibilitychange', handleVisibility)
-
-    // Periodic polling every 8 seconds to automatically display new applicants and approval changes
-    const interval = setInterval(() => {
-      refreshUsers()
-    }, 8000)
+    window.addEventListener('focus', handleSync)
+    document.addEventListener('visibilitychange', handleSync)
 
     return () => {
-      window.removeEventListener('focus', handleFocus)
-      document.removeEventListener('visibilitychange', handleVisibility)
-      clearInterval(interval)
+      window.removeEventListener('focus', handleSync)
+      document.removeEventListener('visibilitychange', handleSync)
       if (channel) {
         channel.close()
       }

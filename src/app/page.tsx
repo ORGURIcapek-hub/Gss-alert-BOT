@@ -28,7 +28,7 @@ import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { SDULogo } from '@/components/SDULogo'
 
 export default function HomePage() {
-  const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers, refreshUsers } = useRole()
+  const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers } = useRole()
   
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('workspace')
@@ -56,8 +56,7 @@ export default function HomePage() {
     try {
       const [okrsData, projectsData] = await Promise.all([
         fetchOKRs(selectedYear),
-        fetchProjects({ year: selectedYear }),
-        refreshUsers()
+        fetchProjects({ year: selectedYear })
       ])
       setOkrs(okrsData)
       setProjects(projectsData)

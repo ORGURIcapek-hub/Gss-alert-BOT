@@ -35,101 +35,28 @@ let inMemoryEvidenceSubmissions = [...mockEvidenceSubmissions]
 let inMemoryEvaluations = [...mockEvaluations]
 
 // =============================================================================
-// STORAGE KEYS & ROBUST HELPERS (SSR Safe)
+// STORAGE & HELPERS (SSR Safe)
 // =============================================================================
-const DELETED_USERS_STORAGE_KEY = 'sdu_okr_deleted_user_ids'
-const USER_STATUS_STORAGE_KEY = 'sdu_okr_user_status_map'
-const REGISTERED_USERS_STORAGE_KEY = 'sdu_okr_registered_users'
-const USER_PASSWORDS_STORAGE_KEY = 'sdu_okr_user_passwords'
+const USERS_CACHE_KEY = 'sdu_okr_users_cache'
 
-function safeGetStorage<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined') return defaultValue
+function getCachedUsers(): UserProfile[] {
+  if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : defaultValue
-  } catch (err) {
-    console.warn(`[okr-storage] Error reading key "${key}":`, err)
-    return defaultValue
+    const raw = localStorage.getItem(USERS_CACHE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
   }
 }
 
-function safeSetStorage<T>(key: string, value: T): void {
+function setCachedUsers(users: UserProfile[]): void {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch (err) {
-    console.warn(`[okr-storage] Error writing key "${key}":`, err)
-  }
+    localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(users))
+  } catch {}
 }
 
-export function getUserStatusMap(): Record<string, 'pending' | 'approved' | 'rejected'> {
-  return safeGetStorage(USER_STATUS_STORAGE_KEY, {})
-}
-
-export function setUserStatusInMap(userId: string, status: 'pending' | 'approved' | 'rejected'): void {
-  const map = getUserStatusMap()
-  map[userId] = status
-  safeSetStorage(USER_STATUS_STORAGE_KEY, map)
-}
-
-export function getRegisteredUsers(): UserProfile[] {
-  return safeGetStorage<UserProfile[]>(REGISTERED_USERS_STORAGE_KEY, [])
-}
-
-export function saveRegisteredUser(user: UserProfile): void {
-  const list = getRegisteredUsers()
-  const idx = list.findIndex(u => u.user_id === user.user_id || u.email.toLowerCase() === user.email.toLowerCase())
-  if (idx !== -1) {
-    list[idx] = user
-  } else {
-    list.unshift(user)
-  }
-  safeSetStorage(REGISTERED_USERS_STORAGE_KEY, list)
-}
-
-export const USER_PROFILES_STORAGE_KEY = 'sdu_okr_user_profile_overrides'
-
-export function getUserProfileOverrides(): Record<string, Partial<UserProfile>> {
-  return safeGetStorage<Record<string, Partial<UserProfile>>>(USER_PROFILES_STORAGE_KEY, {})
-}
-
-export function saveUserProfileOverride(userId: string, updates: Partial<UserProfile>): void {
-  const map = getUserProfileOverrides()
-  map[userId] = { ...(map[userId] || {}), ...updates }
-  safeSetStorage(USER_PROFILES_STORAGE_KEY, map)
-}
-
-export function getUserPasswordsMap(): Record<string, string> {
-  return safeGetStorage<Record<string, string>>(USER_PASSWORDS_STORAGE_KEY, {})
-}
-
-export function setUserPasswordInMap(userId: string, newPassword: string): void {
-  const map = getUserPasswordsMap()
-  map[userId] = newPassword
-  safeSetStorage(USER_PASSWORDS_STORAGE_KEY, map)
-}
-
-export function getDeletedUserIds(): string[] {
-  return safeGetStorage(DELETED_USERS_STORAGE_KEY, [])
-}
-
-export function recordDeletedUserId(userId: string): void {
-  const list = getDeletedUserIds()
-  if (!list.includes(userId)) {
-    list.push(userId)
-    safeSetStorage(DELETED_USERS_STORAGE_KEY, list)
-  }
-}
-
-export function unrecordDeletedUserId(userId: string): void {
-  const list = getDeletedUserIds().filter(id => id !== userId)
-  safeSetStorage(DELETED_USERS_STORAGE_KEY, list)
-}
-
-/**
- * Safe Supabase Client Initializer:
- * Avoids uncaught fatal exceptions when environment variables are not set during local mock development.
- */
+/** Safe Supabase Client Initializer */
 function getSafeSupabaseClient() {
   try {
     return createClient()
@@ -138,10 +65,6 @@ function getSafeSupabaseClient() {
   }
 }
 
-/**
- * Wraps a Supabase async call with a consistent try/catch + console.warn.
- * Returns null on any error so callers can fall through to in-memory data.
- */
 async function dbCall<T>(fn: () => Promise<{ data: T | null; error: { message: string } | null }>, label: string): Promise<T | null> {
   try {
     const { data, error } = await fn()
@@ -158,74 +81,40 @@ async function dbCall<T>(fn: () => Promise<{ data: T | null; error: { message: s
 
 /** Maps a UserRole to its management_order integer. */
 function getManagementOrder(role?: string): number {
+  if (role === 'admin') return 1
   if (role === 'executive') return 2
   if (role === 'head_okr') return 3
   return 4
 }
 
 // =============================================================================
-// USER SERVICE
+// USER SERVICE (Unified via Server-Side Persistent API /api/users)
 // =============================================================================
+
 export async function fetchUsers(): Promise<UserProfile[]> {
-  const deletedIds = getDeletedUserIds()
-  const statusMap = getUserStatusMap()
-  const passwordMap = getUserPasswordsMap()
-  const profileOverrides = getUserProfileOverrides()
-  const registeredUsers = getRegisteredUsers()
-
-  const enrichUser = (u: UserProfile): UserProfile => {
-    const override = profileOverrides[u.user_id] || {}
-    return {
-      ...u,
-      ...override,
-      status: statusMap[u.user_id] || override.status || u.status || 'approved',
-      password: passwordMap[u.user_id] || override.password || u.password || 'password123'
-    }
-  }
-
-  let baseUsers: UserProfile[] = []
-
-  // 1. Fetch from server persistent storage API
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/users', { cache: 'no-store' })
+      const res = await fetch('/api/users')
       if (res.ok) {
         const data = await res.json()
-        if (data && data.success && Array.isArray(data.users)) {
-          baseUsers = data.users
+        if (data?.success && Array.isArray(data.users) && data.users.length > 0) {
           inMemoryUsers = data.users
+          setCachedUsers(data.users)
+          return data.users
         }
       }
-    } catch (e) {
-      console.warn('[okr-service] fetch /api/users failed, falling back to local storage / mock:', e)
+    } catch {
+      // Fall through to cache/in-memory
     }
   }
 
-  // 2. Supabase fallback
-  if (baseUsers.length === 0) {
-    const supabase = getSafeSupabaseClient()
-    if (supabase) {
-      const data = await dbCall<UserProfile[]>(
-        () => (supabase.from('users') as any).select('*').order('management_order', { ascending: true }),
-        'fetchUsers'
-      )
-      if (data && data.length > 0) baseUsers = data
-    }
+  const cached = getCachedUsers()
+  if (cached.length > 0) {
+    inMemoryUsers = cached
+    return cached
   }
 
-  // 3. Fallback to in-memory
-  if (baseUsers.length === 0) {
-    baseUsers = inMemoryUsers
-  }
-
-  // Merge registered users from localStorage to ensure NO registered applicant is ever lost
-  const mergedMap = new Map<string, UserProfile>()
-  baseUsers.forEach(u => mergedMap.set(u.user_id, u))
-  registeredUsers.forEach(u => mergedMap.set(u.user_id, u))
-
-  return Array.from(mergedMap.values())
-    .filter(u => !deletedIds.includes(u.user_id))
-    .map(enrichUser)
+  return inMemoryUsers
 }
 
 export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
@@ -236,32 +125,14 @@ export async function updateUserRoleRecord(userId: string, role: UserRole): Prom
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'update_role', userId, role })
       })
-    } catch (e) {
-      console.warn('[okr-service] PUT /api/users update_role error:', e)
-    }
+    } catch {}
   }
 
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('users') as any).update({ role }).eq('user_id', userId), 'updateUserRoleRecord')
-  }
-
-  const user = inMemoryUsers.find(u => u.user_id === userId)
-  if (user) {
-    user.role = role
-  }
-
-  const regUsers = getRegisteredUsers()
-  const regUser = regUsers.find(u => u.user_id === userId)
-  if (regUser) {
-    regUser.role = role
-    saveRegisteredUser(regUser)
-  }
+  inMemoryUsers = inMemoryUsers.map(u => (u.user_id === userId ? { ...u, role, management_order: getManagementOrder(role) } : u))
+  setCachedUsers(inMemoryUsers)
 }
 
 export async function updateUserPasswordRecord(userId: string, newPassword: string): Promise<void> {
-  setUserPasswordInMap(userId, newPassword)
-
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/users', {
@@ -269,51 +140,18 @@ export async function updateUserPasswordRecord(userId: string, newPassword: stri
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'update_password', userId, password: newPassword })
       })
-    } catch (e) {
-      console.warn('[okr-service] PUT /api/users update_password error:', e)
-    }
+    } catch {}
   }
 
-  // Update inMemoryUsers
-  const user = inMemoryUsers.find(u => u.user_id === userId)
-  if (user) {
-    user.password = newPassword
-  }
-
-  // Update registeredUsers in localStorage if present
-  const regUsers = getRegisteredUsers()
-  const regUser = regUsers.find(u => u.user_id === userId)
-  if (regUser) {
-    regUser.password = newPassword
-    saveRegisteredUser(regUser)
-  }
-
-  // Update in Supabase
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(
-      () => (supabase.from('users') as any).update({ password: newPassword, updated_at: new Date().toISOString() }).eq('user_id', userId),
-      'updateUserPasswordRecord'
-    )
-  }
+  inMemoryUsers = inMemoryUsers.map(u => (u.user_id === userId ? { ...u, password: newPassword } : u))
+  setCachedUsers(inMemoryUsers)
 }
 
 export async function deleteUserRecord(userId: string): Promise<void> {
-  recordDeletedUserId(userId)
-
   if (typeof window !== 'undefined') {
     try {
-      await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, {
-        method: 'DELETE'
-      })
-    } catch (e) {
-      console.warn('[okr-service] DELETE /api/users error:', e)
-    }
-  }
-
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('users') as any).delete().eq('user_id', userId), 'deleteUserRecord')
+      await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' })
+    } catch {}
   }
 
   inMemoryUsers = inMemoryUsers.filter(u => u.user_id !== userId)
@@ -327,9 +165,7 @@ export async function deleteUserRecord(userId: string): Promise<void> {
       p.assignees = p.assignees.filter(a => a.user_id !== userId)
     }
   })
-
-  const regUsers = getRegisteredUsers().filter(u => u.user_id !== userId)
-  safeSetStorage(REGISTERED_USERS_STORAGE_KEY, regUsers)
+  setCachedUsers(inMemoryUsers)
 }
 
 export async function updateUserProfileRecord(
@@ -362,38 +198,12 @@ export async function updateUserProfileRecord(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'update_profile', userId, updates: sanitizedUpdates })
       })
-    } catch (e) {
-      console.warn('[okr-service] PUT /api/users update_profile error:', e)
-    }
+    } catch {}
   }
 
-  // 1. Save in local override storage for persistent hydration
-  saveUserProfileOverride(userId, sanitizedUpdates)
-
-  // 2. Update inMemoryUsers
-  const user = inMemoryUsers.find(u => u.user_id === userId)
-  if (user) {
-    Object.assign(user, sanitizedUpdates)
-  }
-
-  // 3. Update registeredUsers if applicable
-  const regUsers = getRegisteredUsers()
-  const regUser = regUsers.find(u => u.user_id === userId)
-  if (regUser) {
-    Object.assign(regUser, sanitizedUpdates)
-    saveRegisteredUser(regUser)
-  }
-
-  // 4. Update in Supabase
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(
-      () => (supabase.from('users') as any).update(sanitizedUpdates).eq('user_id', userId),
-      'updateUserProfileRecord'
-    )
-  }
-
-  return user || null
+  inMemoryUsers = inMemoryUsers.map(u => (u.user_id === userId ? { ...u, ...sanitizedUpdates } : u))
+  setCachedUsers(inMemoryUsers)
+  return inMemoryUsers.find(u => u.user_id === userId) || null
 }
 
 export async function registerUserRecord(userData: {
@@ -414,12 +224,13 @@ export async function registerUserRecord(userData: {
   const computedLastName = userData.last_name || (userData.name ? userData.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
   const computedName = userData.name || `${computedFirstName} ${computedLastName}`
   const computedUsername = userData.username || cleanEmail.split('@')[0]
+  const userRole: UserRole = userData.role || 'teacher'
   const userStatus = userData.status || 'pending'
   const userPassword = userData.password || 'password123'
-  const userAvatar = userData.avatar_url || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`
+  const userAvatar = userData.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
 
-  // 1. Persist to server disk via API
-  let serverUser: UserProfile | null = null
+  let createdUser: UserProfile | null = null
+
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/users', {
@@ -437,31 +248,20 @@ export async function registerUserRecord(userData: {
           avatar_url: userAvatar
         })
       })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.success && data.user) {
-          serverUser = data.user
-        }
-      } else {
-        const data = await res.json().catch(() => ({}))
-        if (data && data.error) {
-          throw new Error(data.error)
-        }
+      const data = await res.json()
+      if (res.ok && data.success && data.user) {
+        createdUser = data.user
+      } else if (data.error) {
+        throw new Error(data.error)
       }
     } catch (e: any) {
-      if (e.message && e.message.includes('มีอยู่ในระบบแล้ว')) {
-        throw e
-      }
-      console.warn('[okr-service] API POST /api/users failed, using local fallback:', e)
+      if (e.message && e.message.includes('มีอยู่ในระบบแล้ว')) throw e
+      console.warn('[okr-service] POST /api/users failed, fallback to local', e)
     }
   }
 
-  const newId = serverUser?.user_id || crypto.randomUUID()
-  setUserStatusInMap(newId, userStatus)
-  setUserPasswordInMap(newId, userPassword)
-
-  const newUser: UserProfile = serverUser || {
-    user_id: newId,
+  const newUser: UserProfile = createdUser || {
+    user_id: crypto.randomUUID(),
     username: computedUsername,
     name: computedName,
     email: cleanEmail,
@@ -470,35 +270,23 @@ export async function registerUserRecord(userData: {
     last_name: computedLastName,
     position: userData.position || 'อาจารย์ประจำภาควิชา',
     department: userData.department || 'ภาควิชาวิทยาการคอมพิวเตอร์',
-    role: userData.role || 'teacher',
-    admin_type: userData.role === 'admin' ? 'Super Admin' : null,
+    role: userRole,
+    admin_type: userRole === 'admin' ? 'Super Admin' : null,
     executive_level: null,
     employment_status: 'Full-Time',
-    management_order: getManagementOrder(userData.role),
+    management_order: getManagementOrder(userRole),
     avatar_url: userAvatar,
     status: userStatus,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
 
-  // Always save in localStorage so admin sees it regardless of DB failures
-  saveRegisteredUser(newUser)
-
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('users') as any).insert(newUser), 'registerUserRecord')
-  }
-
-  inMemoryUsers.push(newUser)
-  unrecordDeletedUserId(newId)
+  inMemoryUsers = [newUser, ...inMemoryUsers.filter(u => u.user_id !== newUser.user_id)]
+  setCachedUsers(inMemoryUsers)
   return newUser
 }
 
 export async function approveUserRecord(userId: string, assignedRole?: UserRole): Promise<UserProfile> {
-  setUserStatusInMap(userId, 'approved')
-  const mgmtOrder = assignedRole ? getManagementOrder(assignedRole) : undefined
-
-  // 1. Update on server disk via API
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/users', {
@@ -506,39 +294,24 @@ export async function approveUserRecord(userId: string, assignedRole?: UserRole)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve', userId, assignedRole })
       })
-    } catch (e) {
-      console.warn('[okr-service] API PUT /api/users approve failed:', e)
+    } catch {}
+  }
+
+  inMemoryUsers = inMemoryUsers.map(u => {
+    if (u.user_id === userId) {
+      return {
+        ...u,
+        status: 'approved',
+        ...(assignedRole ? { role: assignedRole, management_order: getManagementOrder(assignedRole) } : {})
+      }
     }
-  }
-
-  const user = inMemoryUsers.find(u => u.user_id === userId)
-  if (user) {
-    user.status = 'approved'
-    if (assignedRole) { user.role = assignedRole; user.management_order = mgmtOrder! }
-  }
-
-  const regUsers = getRegisteredUsers()
-  const regUser = regUsers.find(u => u.user_id === userId)
-  if (regUser) {
-    regUser.status = 'approved'
-    if (assignedRole) { regUser.role = assignedRole; regUser.management_order = mgmtOrder! }
-    saveRegisteredUser(regUser)
-  }
-
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    const payload: any = { status: 'approved' }
-    if (assignedRole) { payload.role = assignedRole; payload.management_order = mgmtOrder }
-    await dbCall(() => (supabase.from('users') as any).update(payload).eq('user_id', userId), 'approveUserRecord')
-  }
-
-  return user || (await fetchUsers()).find(u => u.user_id === userId)!
+    return u
+  })
+  setCachedUsers(inMemoryUsers)
+  return inMemoryUsers.find(u => u.user_id === userId)!
 }
 
 export async function rejectUserRecord(userId: string): Promise<void> {
-  setUserStatusInMap(userId, 'rejected')
-
-  // 1. Update on server disk via API
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/users', {
@@ -546,22 +319,11 @@ export async function rejectUserRecord(userId: string): Promise<void> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reject', userId })
       })
-    } catch (e) {
-      console.warn('[okr-service] API PUT /api/users reject failed:', e)
-    }
+    } catch {}
   }
 
-  const user = inMemoryUsers.find(u => u.user_id === userId)
-  if (user) user.status = 'rejected'
-
-  const regUsers = getRegisteredUsers()
-  const regUser = regUsers.find(u => u.user_id === userId)
-  if (regUser) { regUser.status = 'rejected'; saveRegisteredUser(regUser) }
-
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('users') as any).update({ status: 'rejected' }).eq('user_id', userId), 'rejectUserRecord')
-  }
+  inMemoryUsers = inMemoryUsers.map(u => (u.user_id === userId ? { ...u, status: 'rejected' } : u))
+  setCachedUsers(inMemoryUsers)
 }
 
 export async function fetchPendingUsers(): Promise<UserProfile[]> {

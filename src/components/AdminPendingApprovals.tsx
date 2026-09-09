@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useRole } from '@/components/RoleContext'
 import { UserRole, UserProfile } from '@/types/database.types'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 
 export function AdminPendingApprovals() {
-  const { allUsers, pendingUsers, approveUser, rejectUser, refreshUsers } = useRole()
+  const { allUsers, pendingUsers, approveUser, rejectUser } = useRole()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRoleOverrides, setSelectedRoleOverrides] = useState<Record<string, UserRole>>({})
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -50,11 +50,6 @@ export function AdminPendingApprovals() {
     action: 'approve',
     user: null
   })
-
-  // Ensure fresh list on component mount
-  useEffect(() => {
-    refreshUsers()
-  }, [])
 
   const approvedUsersCount = allUsers.filter(u => (u.status || 'approved') === 'approved').length
   const rejectedUsersCount = allUsers.filter(u => u.status === 'rejected').length

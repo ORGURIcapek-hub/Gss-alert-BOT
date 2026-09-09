@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { Shield, Check, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound, Clock } from 'lucide-react'
 import { updateUserRoleRecord, deleteUserRecord } from '@/lib/services/okr-service'
@@ -15,10 +15,6 @@ export function AdminUserManagement() {
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null)
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-
-  useEffect(() => {
-    refreshUsers()
-  }, [])
 
   const {
     revealedPasswords,
