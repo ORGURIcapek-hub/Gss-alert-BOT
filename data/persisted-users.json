@@ -79,6 +79,26 @@
       "status": "approved",
       "created_at": "2026-09-09T16:15:35.899Z",
       "updated_at": "2026-09-09T16:15:43.749Z"
+    },
+    {
+      "user_id": "df89070e-23fb-4211-a391-0fce520acf23",
+      "username": "prem",
+      "name": "นาย เปรมศักดิ์ บรรจงชาติ",
+      "email": "premm1175@gmail.com",
+      "password": "pass-123",
+      "first_name": "นาย",
+      "last_name": "เปรมศักดิ์ บรรจงชาติ",
+      "position": "อาจารย์ประจำภาควิชา",
+      "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
+      "role": "head_okr",
+      "admin_type": null,
+      "executive_level": null,
+      "employment_status": "Full-Time",
+      "management_order": 3,
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "status": "approved",
+      "created_at": "2026-09-09T16:37:43.415Z",
+      "updated_at": "2026-09-09T16:38:13.666Z"
     }
   ],
   "deletedUserIds": [

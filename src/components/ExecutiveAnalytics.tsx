@@ -426,7 +426,113 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. PROJECT LIST ACCORDING TO PROPORTION (รายชื่อโครงการพร้อมสถานะ) */}
+      {/* 2. ENHANCED EXECUTIVE SUMMARY CHARTS (กราฟสรุปข้อมูลสำหรับผู้บริหาร) */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Chart 1: Donut Proportion */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-[#003B71]" />
+                <span>สัดส่วนสถานะโครงการทั้งหมด (Status Distribution)</span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                ร้อยละของการดำเนินงานจำแนกตาม 4 ระดับสถานะ
+              </p>
+            </div>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+              100%
+            </span>
+          </div>
+
+          <div className="h-64 flex items-center justify-center relative my-2">
+            <Doughnut
+              data={doughnutData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      color: '#334155',
+                      font: { family: "'Prompt', 'Sarabun', sans-serif", size: 11, weight: 'bold' as const },
+                      boxWidth: 12,
+                      usePointStyle: true
+                    }
+                  }
+                },
+                cutout: '68%'
+              }}
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+              <span className="text-3xl font-black text-slate-900">{projects.length}</span>
+              <span className="text-[11px] font-bold text-slate-500">โครงการรวม</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Chart 2: Progress & Spent Percentage by Department */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-[#003B71]" />
+                <span>ความก้าวหน้าและการเบิกจ่ายตามภาควิชา (%)</span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                เปรียบเทียบผลงานจริง vs อัตราการเบิกจ่ายงบประมาณ
+              </p>
+            </div>
+          </div>
+
+          <div className="h-64 my-2">
+            <Bar data={barData} options={commonChartOptions} />
+          </div>
+        </div>
+
+        {/* Chart 3: Financial Allocation vs Spent in MB */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+                <span>งบประมาณจัดสรร vs เบิกจ่ายจริง (ล้านบาท)</span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                วิเคราะห์สภาพคล่องทางการเงินและการใช้จ่ายจริงตามภาควิชา
+              </p>
+            </div>
+          </div>
+
+          <div className="h-64 my-2">
+            <Bar data={financeBarData} options={commonChartOptions} />
+          </div>
+        </div>
+
+        {/* Chart 4: Quarterly OKR Trajectory Trend */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#00A8B5]" />
+                <span>แนวโน้มผลสัมฤทธิ์ OKR รายไตรมาส (Q1 - Q4)</span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                เปรียบเทียบความก้าวหน้าผลงานจริงกับเป้าหมายตามแผนยุทธศาสตร์
+              </p>
+            </div>
+          </div>
+
+          <div className="h-64 my-2">
+            <Line data={lineData} options={commonChartOptions} />
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. PROJECT LIST ACCORDING TO PROPORTION (รายชื่อโครงการพร้อมสถานะ) */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -619,112 +725,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
             })}
           </div>
         )}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 3. ENHANCED EXECUTIVE SUMMARY CHARTS (กราฟสรุปข้อมูลสำหรับผู้บริหาร) */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Chart 1: Donut Proportion */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-[#003B71]" />
-                <span>สัดส่วนสถานะโครงการทั้งหมด (Status Distribution)</span>
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                ร้อยละของการดำเนินงานจำแนกตาม 4 ระดับสถานะ
-              </p>
-            </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
-              100%
-            </span>
-          </div>
-
-          <div className="h-64 flex items-center justify-center relative my-2">
-            <Doughnut
-              data={doughnutData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                    labels: {
-                      color: '#334155',
-                      font: { family: "'Prompt', 'Sarabun', sans-serif", size: 11, weight: 'bold' as const },
-                      boxWidth: 12,
-                      usePointStyle: true
-                    }
-                  }
-                },
-                cutout: '68%'
-              }}
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-              <span className="text-3xl font-black text-slate-900">{projects.length}</span>
-              <span className="text-[11px] font-bold text-slate-500">โครงการรวม</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Chart 2: Progress & Spent Percentage by Department */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-[#003B71]" />
-                <span>ความก้าวหน้าและการเบิกจ่ายตามภาควิชา (%)</span>
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                เปรียบเทียบผลงานจริง vs อัตราการเบิกจ่ายงบประมาณ
-              </p>
-            </div>
-          </div>
-
-          <div className="h-64 my-2">
-            <Bar data={barData} options={commonChartOptions} />
-          </div>
-        </div>
-
-        {/* Chart 3: Financial Allocation vs Spent in MB */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-                <span>งบประมาณจัดสรร vs เบิกจ่ายจริง (ล้านบาท)</span>
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                วิเคราะห์สภาพคล่องทางการเงินและการใช้จ่ายจริงตามภาควิชา
-              </p>
-            </div>
-          </div>
-
-          <div className="h-64 my-2">
-            <Bar data={financeBarData} options={commonChartOptions} />
-          </div>
-        </div>
-
-        {/* Chart 4: Quarterly OKR Trajectory Trend */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#00A8B5]" />
-                <span>แนวโน้มผลสัมฤทธิ์ OKR รายไตรมาส (Q1 - Q4)</span>
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                เปรียบเทียบความก้าวหน้าผลงานจริงกับเป้าหมายตามแผนยุทธศาสตร์
-              </p>
-            </div>
-          </div>
-
-          <div className="h-64 my-2">
-            <Line data={lineData} options={commonChartOptions} />
-          </div>
-        </div>
       </div>
     </div>
   )
