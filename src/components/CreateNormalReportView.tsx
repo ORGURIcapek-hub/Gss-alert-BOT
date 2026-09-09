@@ -95,27 +95,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Banner */}
-      <div className="bg-gradient-to-r from-[#003B71] via-[#005B94] to-[#00A8B5] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-sky-200 flex-shrink-0 shadow-inner">
-          <FileSpreadsheet className="w-6 h-6" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-white text-[#003B71]">
-              Normal Report Creator
-            </span>
-            <span className="text-xs text-sky-100">กระจายรายงานสู่ทุกบทบาท (ยกเว้นผู้บริหาร)</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
-            สร้างรายงานทั่วไป (Table Normal Report)
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-100 mt-1 max-w-2xl leading-relaxed">
-            ป้อนรายละเอียดผลสัมฤทธิ์โครงการ, เป้าหมายที่คาดหวัง, และระบุอาจารย์ผู้ร่วมรับผิดชอบแบบหลายท่าน (Multi-Select) เพื่อเผยแพร่ในเมนู "Report โครงการ OKR"
-          </p>
-        </div>
-      </div>
-
       {submitSuccess && (
         <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-sm font-bold flex items-center gap-3 shadow-sm">
           <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
@@ -125,6 +104,15 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
 
       {/* Main Form */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div className="border-b border-slate-200 pb-4">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            สร้างรายงานทั่วไป (Table Normal Report)
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+            ป้อนรายละเอียดผลสัมฤทธิ์โครงการ, เป้าหมายที่คาดหวัง, และระบุอาจารย์ผู้ร่วมรับผิดชอบแบบหลายท่าน เพื่อเผยแพร่ในเมนู "Report โครงการ OKR"
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-5">
           
           {/* Select Project */}

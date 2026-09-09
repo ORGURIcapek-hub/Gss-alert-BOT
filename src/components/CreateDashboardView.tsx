@@ -67,27 +67,6 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-[#00264D] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-[#F6C343] flex-shrink-0 shadow-inner">
-          <Crown className="w-6 h-6" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#F6C343] text-slate-900">
-              Table Dashboard Entry
-            </span>
-            <span className="text-xs text-sky-200">สิทธิ์หัวหน้าโครงการ OKR</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
-            สร้าง Dashboard สำหรับผู้บริหาร (Executive Strategy Dashboard)
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
-            กรอกข้อมูลสรุปภาพรวมผลสัมฤทธิ์ของโครงการ OKR ที่อยู่ในความดูแล เพื่อแปลงเป็น Infographics และรายงานตรงสู่แผงยุทธศาสตร์ผู้บริหาร
-          </p>
-        </div>
-      </div>
-
       {submitSuccess && (
         <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-sm font-bold flex items-center gap-3 shadow-sm">
           <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
@@ -97,6 +76,15 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
 
       {/* Main Form Box */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div className="border-b border-slate-200 pb-4">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            สร้าง Dashboard สำหรับผู้บริหาร (Executive Strategy Dashboard)
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+            กรอกข้อมูลสรุปภาพรวมผลสัมฤทธิ์ของโครงการ OKR ที่อยู่ในความดูแล เพื่อแปลงเป็น Infographics และรายงานตรงสู่แผงยุทธศาสตร์ผู้บริหาร
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* Quick Select Projects for Summary */}

@@ -26,36 +26,25 @@ export function TeacherWorkspace({
 
   return (
     <div className="space-y-6">
-      {/* Banner */}
-      <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-emerald-300 flex-shrink-0 shadow-inner">
-            <GraduationCap className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#00A8B5] text-white">
-                Team Member Workspace
-              </span>
-              <span className="text-xs text-sky-200 font-semibold">{currentUser?.department}</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
-              โครงการ OKR ที่คุณได้รับมอบหมาย
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
-              รายงานความก้าวหน้าการดำเนินงาน, แจ้งข้อจำกัด/อุปสรรค, อัปโหลดหรือลบหลักฐานผลสัมฤทธิ์
-            </p>
-          </div>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            โครงการ OKR ที่คุณได้รับมอบหมาย
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            {currentUser?.department} • รายงานความก้าวหน้าการดำเนินงาน, แจ้งข้อจำกัด/อุปสรรค, อัปโหลดหรือลบหลักฐานผลสัมฤทธิ์
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2.5 rounded-2xl bg-white/10 border border-white/20 text-center">
-            <span className="text-[10px] text-sky-200 block font-semibold">งานที่ได้รับมอบหมาย</span>
-            <span className="text-base font-black text-white">{myAssignedProjects.length} โครงการ</span>
+          <div className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-center">
+            <span className="text-[10px] text-slate-500 block font-semibold">งานที่ได้รับมอบหมาย</span>
+            <span className="text-sm font-black text-slate-900">{myAssignedProjects.length} โครงการ</span>
           </div>
-          <div className="px-4 py-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-center">
-            <span className="text-[10px] text-emerald-200 block font-semibold">แนบหลักฐานแล้ว</span>
-            <span className="text-base font-black text-emerald-300">{myTotalEvidences} รายการ</span>
+          <div className="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+            <span className="text-[10px] text-emerald-600 block font-semibold">แนบหลักฐานแล้ว</span>
+            <span className="text-sm font-black text-emerald-700">{myTotalEvidences} รายการ</span>
           </div>
         </div>
       </div>

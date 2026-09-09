@@ -185,15 +185,35 @@ export async function fetchUsers(): Promise<UserProfile[]> {
 
   let baseUsers: UserProfile[] = []
 
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    const data = await dbCall<UserProfile[]>(
-      () => (supabase.from('users') as any).select('*').order('management_order', { ascending: true }),
-      'fetchUsers'
-    )
-    if (data && data.length > 0) baseUsers = data
+  // 1. Fetch from server persistent storage API
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/users', { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data && data.success && Array.isArray(data.users)) {
+          baseUsers = data.users
+          inMemoryUsers = data.users
+        }
+      }
+    } catch (e) {
+      console.warn('[okr-service] fetch /api/users failed, falling back to local storage / mock:', e)
+    }
   }
 
+  // 2. Supabase fallback
+  if (baseUsers.length === 0) {
+    const supabase = getSafeSupabaseClient()
+    if (supabase) {
+      const data = await dbCall<UserProfile[]>(
+        () => (supabase.from('users') as any).select('*').order('management_order', { ascending: true }),
+        'fetchUsers'
+      )
+      if (data && data.length > 0) baseUsers = data
+    }
+  }
+
+  // 3. Fallback to in-memory
   if (baseUsers.length === 0) {
     baseUsers = inMemoryUsers
   }
@@ -209,6 +229,18 @@ export async function fetchUsers(): Promise<UserProfile[]> {
 }
 
 export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_role', userId, role })
+      })
+    } catch (e) {
+      console.warn('[okr-service] PUT /api/users update_role error:', e)
+    }
+  }
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     await dbCall(() => (supabase.from('users') as any).update({ role }).eq('user_id', userId), 'updateUserRoleRecord')
@@ -229,6 +261,18 @@ export async function updateUserRoleRecord(userId: string, role: UserRole): Prom
 
 export async function updateUserPasswordRecord(userId: string, newPassword: string): Promise<void> {
   setUserPasswordInMap(userId, newPassword)
+
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_password', userId, password: newPassword })
+      })
+    } catch (e) {
+      console.warn('[okr-service] PUT /api/users update_password error:', e)
+    }
+  }
 
   // Update inMemoryUsers
   const user = inMemoryUsers.find(u => u.user_id === userId)
@@ -256,6 +300,16 @@ export async function updateUserPasswordRecord(userId: string, newPassword: stri
 
 export async function deleteUserRecord(userId: string): Promise<void> {
   recordDeletedUserId(userId)
+
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, {
+        method: 'DELETE'
+      })
+    } catch (e) {
+      console.warn('[okr-service] DELETE /api/users error:', e)
+    }
+  }
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
@@ -301,6 +355,18 @@ export async function updateUserProfileRecord(
     updated_at: new Date().toISOString()
   }
 
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_profile', userId, updates: sanitizedUpdates })
+      })
+    } catch (e) {
+      console.warn('[okr-service] PUT /api/users update_profile error:', e)
+    }
+  }
+
   // 1. Save in local override storage for persistent hydration
   saveUserProfileOverride(userId, sanitizedUpdates)
 
@@ -343,30 +409,69 @@ export async function registerUserRecord(userData: {
   avatar_url?: string
   status?: 'pending' | 'approved' | 'rejected'
 }): Promise<UserProfile> {
-  const newId = crypto.randomUUID()
+  const cleanEmail = userData.email.toLowerCase().trim()
   const computedFirstName = userData.first_name || (userData.name ? userData.name.split(' ')[0] : 'อาจารย์')
   const computedLastName = userData.last_name || (userData.name ? userData.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
   const computedName = userData.name || `${computedFirstName} ${computedLastName}`
-  const computedUsername = userData.username || userData.email.split('@')[0]
+  const computedUsername = userData.username || cleanEmail.split('@')[0]
   const userStatus = userData.status || 'pending'
   const userPassword = userData.password || 'password123'
   const userAvatar = userData.avatar_url || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`
 
+  // 1. Persist to server disk via API
+  let serverUser: UserProfile | null = null
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...userData,
+          email: cleanEmail,
+          username: computedUsername,
+          name: computedName,
+          first_name: computedFirstName,
+          last_name: computedLastName,
+          status: userStatus,
+          password: userPassword,
+          avatar_url: userAvatar
+        })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success && data.user) {
+          serverUser = data.user
+        }
+      } else {
+        const data = await res.json().catch(() => ({}))
+        if (data && data.error) {
+          throw new Error(data.error)
+        }
+      }
+    } catch (e: any) {
+      if (e.message && e.message.includes('มีอยู่ในระบบแล้ว')) {
+        throw e
+      }
+      console.warn('[okr-service] API POST /api/users failed, using local fallback:', e)
+    }
+  }
+
+  const newId = serverUser?.user_id || crypto.randomUUID()
   setUserStatusInMap(newId, userStatus)
   setUserPasswordInMap(newId, userPassword)
 
-  const newUser: UserProfile = {
+  const newUser: UserProfile = serverUser || {
     user_id: newId,
     username: computedUsername,
     name: computedName,
-    email: userData.email.toLowerCase().trim(),
+    email: cleanEmail,
     password: userPassword,
     first_name: computedFirstName,
     last_name: computedLastName,
     position: userData.position || 'อาจารย์ประจำภาควิชา',
     department: userData.department || 'ภาควิชาวิทยาการคอมพิวเตอร์',
     role: userData.role || 'teacher',
-    admin_type: null,
+    admin_type: userData.role === 'admin' ? 'Super Admin' : null,
     executive_level: null,
     employment_status: 'Full-Time',
     management_order: getManagementOrder(userData.role),
@@ -392,6 +497,19 @@ export async function registerUserRecord(userData: {
 export async function approveUserRecord(userId: string, assignedRole?: UserRole): Promise<UserProfile> {
   setUserStatusInMap(userId, 'approved')
   const mgmtOrder = assignedRole ? getManagementOrder(assignedRole) : undefined
+
+  // 1. Update on server disk via API
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve', userId, assignedRole })
+      })
+    } catch (e) {
+      console.warn('[okr-service] API PUT /api/users approve failed:', e)
+    }
+  }
 
   const user = inMemoryUsers.find(u => u.user_id === userId)
   if (user) {
@@ -419,6 +537,20 @@ export async function approveUserRecord(userId: string, assignedRole?: UserRole)
 
 export async function rejectUserRecord(userId: string): Promise<void> {
   setUserStatusInMap(userId, 'rejected')
+
+  // 1. Update on server disk via API
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject', userId })
+      })
+    } catch (e) {
+      console.warn('[okr-service] API PUT /api/users reject failed:', e)
+    }
+  }
+
   const user = inMemoryUsers.find(u => u.user_id === userId)
   if (user) user.status = 'rejected'
 

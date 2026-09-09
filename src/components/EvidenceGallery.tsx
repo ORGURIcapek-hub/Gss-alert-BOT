@@ -29,25 +29,14 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
 
   return (
     <div className="space-y-6">
-      {/* Banner */}
-      <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-sky-200 flex-shrink-0 shadow-inner">
-          <FileCheck2 className="w-6 h-6" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#00A8B5] text-white">
-              Evidence Repository
-            </span>
-            <span className="text-xs text-sky-200">คลังเอกสารและหลักฐานผลงาน</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
-            คลังเอกสารหลักฐานผลสัมฤทธิ์ OKR
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
-            รวบรวมไฟล์หลักฐานความสำเร็จ, เอกสารรับรอง, และรายงานฉบับสมบูรณ์ของทุกโครงการ
-          </p>
-        </div>
+      {/* Top Header */}
+      <div>
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          คลังเอกสารหลักฐานผลสัมฤทธิ์ OKR
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          รวบรวมไฟล์หลักฐานความสำเร็จ, เอกสารรับรอง, และรายงานฉบับสมบูรณ์ของทุกโครงการ
+        </p>
       </div>
 
       {/* Search Bar */}

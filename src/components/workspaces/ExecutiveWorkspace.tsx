@@ -141,32 +141,21 @@ export function ExecutiveWorkspace({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Card */}
-      <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 shadow-inner flex-shrink-0">
-            <Crown className="w-7 h-7" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#F6C343] text-slate-900 shadow-sm">
-                Executive Strategy Portal
-              </span>
-              <span className="text-xs text-sky-200 font-medium">มหาวิทยาลัยสวนดุสิต</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight">
-              แผงยุทธศาสตร์ผู้บริหาร (Executive Strategy Dashboard)
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
-              ติดตามภาพรวมผลสัมฤทธิ์ OKR, กำหนดหัวหน้าโครงการ (OKR Head), และประเมินผลคะแนนระดับ 5 ดาวส่งตรงถึงหัวหน้าโครงการ
-            </p>
-          </div>
+      {/* Top Action Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            แผงยุทธศาสตร์ผู้บริหาร (Executive Strategy Dashboard)
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            ติดตามภาพรวมผลสัมฤทธิ์ OKR, กำหนดหัวหน้าโครงการ (OKR Head), และประเมินผลคะแนนระดับ 5 ดาว
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto flex-shrink-0">
           <button
             onClick={() => setIsAssignHeadOpen(true)}
-            className="px-4 py-2.5 rounded-2xl bg-[#00A8B5] hover:bg-[#008B97] text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-[#00A8B5] hover:bg-[#008B97] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>กำหนดหัวหน้าโครงการ (Assign OKR Head)</span>
@@ -174,9 +163,9 @@ export function ExecutiveWorkspace({
 
           <button
             onClick={onExportPDF}
-            className="px-4 py-2.5 rounded-2xl bg-white text-[#003B71] hover:bg-slate-100 font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-[#003B71]" />
+            <Download className="w-4 h-4 text-slate-600" />
             <span>Export รายงาน</span>
           </button>
         </div>

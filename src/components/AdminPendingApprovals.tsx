@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRole } from '@/components/RoleContext'
 import { UserRole, UserProfile } from '@/types/database.types'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 
 export function AdminPendingApprovals() {
-  const { allUsers, pendingUsers, approveUser, rejectUser } = useRole()
+  const { allUsers, pendingUsers, approveUser, rejectUser, refreshUsers } = useRole()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRoleOverrides, setSelectedRoleOverrides] = useState<Record<string, UserRole>>({})
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -51,19 +51,28 @@ export function AdminPendingApprovals() {
     user: null
   })
 
+  // Ensure fresh list on component mount
+  useEffect(() => {
+    refreshUsers()
+  }, [])
+
   const approvedUsersCount = allUsers.filter(u => (u.status || 'approved') === 'approved').length
   const rejectedUsersCount = allUsers.filter(u => u.status === 'rejected').length
 
   const filteredPending = pendingUsers.filter(u => {
     const query = searchQuery.toLowerCase().trim()
     if (!query) return true
+    const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase()
+    const name = (u.name || '').toLowerCase()
+    const email = (u.email || '').toLowerCase()
+    const username = (u.username || '').toLowerCase()
+    const dept = (u.department || '').toLowerCase()
     return (
-      u.name?.toLowerCase().includes(query) ||
-      u.first_name.toLowerCase().includes(query) ||
-      u.last_name.toLowerCase().includes(query) ||
-      u.email.toLowerCase().includes(query) ||
-      (u.username && u.username.toLowerCase().includes(query)) ||
-      u.department.toLowerCase().includes(query)
+      name.includes(query) ||
+      fullName.includes(query) ||
+      email.includes(query) ||
+      username.includes(query) ||
+      dept.includes(query)
     )
   })
 
@@ -140,37 +149,7 @@ export function AdminPendingApprovals() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 flex-shrink-0 shadow-inner">
-            <UserCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white">
-                Admin Approval Center
-              </span>
-              <span className="text-xs text-sky-200 font-semibold">ระบบตรวจสอบผู้สมัครสมาชิกใหม่</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
-              อนุมัติคำขอสมัครสมาชิก (Sign-Up Approvals)
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
-              ตรวจสอบรายชื่อผู้ลงทะเบียนใหม่ กำหนดหรือปรับเปลี่ยนสิทธิ์ก่อนอนุมัติเข้าใช้งานระบบ OKR
-            </p>
-          </div>
-        </div>
 
-        {/* Counter Badge */}
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 px-5 py-3.5 rounded-2xl flex items-center gap-3.5 self-start md:self-auto">
-          <Clock className="w-5 h-5 text-amber-300" />
-          <div>
-            <div className="text-2xl font-black text-white leading-none">{pendingUsers.length}</div>
-            <div className="text-[11px] text-sky-200 font-medium mt-1">คำขอรอตรวจสอบ</div>
-          </div>
-        </div>
-      </div>
 
       {/* Notification Toast */}
       {notification && (

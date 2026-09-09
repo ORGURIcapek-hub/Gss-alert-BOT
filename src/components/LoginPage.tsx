@@ -537,6 +537,7 @@ export function LoginPage() {
                   <option value="head_okr">🎯 หัวหน้าโครงการ OKR (Head OKR)</option>
                   <option value="executive">👑 ผู้บริหารระดับสูง (Executive)</option>
                   <option value="staff">📋 เจ้าหน้าที่ / บุคลากรทั่วไป (Staff)</option>
+                  <option value="admin">🛡️ ผู้ดูแลระบบ (Admin)</option>
                 </select>
               </div>
             </div>

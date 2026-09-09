@@ -1,20 +1,24 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
-import { Shield, Check, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound } from 'lucide-react'
+import { Shield, Check, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Copy, KeyRound, Clock } from 'lucide-react'
 import { updateUserRoleRecord, deleteUserRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
 
 export function AdminUserManagement() {
-  const { currentUser, allUsers, deleteUser, refreshUsers } = useRole()
+  const { currentUser, allUsers, pendingUsers, deleteUser, refreshUsers } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null)
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  useEffect(() => {
+    refreshUsers()
+  }, [])
 
   const {
     revealedPasswords,
@@ -53,11 +57,22 @@ export function AdminUserManagement() {
     }
   }
 
-  const filteredUsers = allUsers.filter(u =>
-    `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.department.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredUsers = allUsers.filter(u => {
+    const term = searchTerm.toLowerCase().trim()
+    if (!term) return true
+    const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase()
+    const name = (u.name || '').toLowerCase()
+    const email = (u.email || '').toLowerCase()
+    const username = (u.username || '').toLowerCase()
+    const dept = (u.department || '').toLowerCase()
+    return (
+      name.includes(term) ||
+      fullName.includes(term) ||
+      email.includes(term) ||
+      username.includes(term) ||
+      dept.includes(term)
+    )
+  })
 
   const roleOptions: { value: UserRole; label: string }[] = [
     { value: 'admin', label: 'ผู้ดูแลระบบ (Admin)' },
@@ -119,6 +134,21 @@ export function AdminUserManagement() {
         </div>
       )}
 
+      {pendingUsers.length > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <div>
+              <span className="font-bold text-amber-950">มีผู้สมัครสมาชิกรอการอนุมัติสิทธิ์ {pendingUsers.length} บัญชี</span>
+              <p className="text-xs text-amber-700 font-medium">กรุณาตรวจสอบและอนุมัติสิทธิ์การเข้าใช้งานที่เมนู &quot;อนุมัติผู้สมัครใหม่&quot;</p>
+            </div>
+          </div>
+          <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold w-fit">
+            {pendingUsers.length} รายการรอพิจารณา
+          </span>
+        </div>
+      )}
+
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -156,7 +186,7 @@ export function AdminUserManagement() {
                   <td className="py-4 px-4 font-bold text-slate-900 text-sm sm:text-base">
                     {u.first_name} {u.last_name}
                   </td>
-                  <td className="py-4 px-4 text-slate-600 font-mono text-xs sm:text-sm font-medium">
+                  <td className="py-4 px-4 text-slate-700 font-medium text-sm">
                     {u.email}
                   </td>
                   <td className="py-4 px-4 text-slate-800 font-semibold text-sm">

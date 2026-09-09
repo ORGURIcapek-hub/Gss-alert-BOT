@@ -89,31 +89,20 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Banner */}
-      <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-[#00A8B5] flex-shrink-0 shadow-inner">
-            <FileCheck2 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#00A8B5] text-white">
-                Team Evidence Hub
-              </span>
-              <span className="text-xs text-sky-200">สิทธิ์หัวหน้าโครงการ OKR</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
-              หลักฐานจากลูกทีม (Evidence from Team)
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
-              ตรวจสอบไฟล์หลักฐาน, รายงานผลงาน, และเอกสารยืนยันความสำเร็จที่ส่งตรงจากอาจารย์ลูกทีม พร้อมระบบดูตัวอย่างไฟล์ (File Preview) แบบอินไลน์
-            </p>
-          </div>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            หลักฐานจากลูกทีม (Evidence from Team)
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            สิทธิ์หัวหน้าโครงการ OKR • ตรวจสอบไฟล์หลักฐาน, รายงานผลงาน, และเอกสารยืนยันความสำเร็จที่ส่งตรงจากอาจารย์ลูกทีม
+          </p>
         </div>
 
-        <div className="px-5 py-3 rounded-2xl bg-white/10 border border-white/20 text-center flex-shrink-0 self-start md:self-auto">
-          <span className="text-[11px] text-sky-200 block font-semibold">ไฟล์ที่ลูกทีมส่งมาทั้งหมด</span>
-          <span className="text-xl font-black text-white">{evidenceList.length} ไฟล์</span>
+        <div className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-center flex-shrink-0 self-start sm:self-auto">
+          <span className="text-[10px] text-slate-500 block font-semibold">ไฟล์ที่ลูกทีมส่งมาทั้งหมด</span>
+          <span className="text-base font-black text-slate-900">{evidenceList.length} ไฟล์</span>
         </div>
       </div>
 

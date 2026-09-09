@@ -94,6 +94,50 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Cross-tab and cross-session real-time sync
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        channel = new BroadcastChannel('sdu_okr_sync_channel')
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'USERS_UPDATED') {
+            refreshUsers()
+          }
+        }
+      }
+    } catch (e) {
+      // BroadcastChannel optional fallback
+    }
+
+    // Auto-refresh when window gains focus (e.g. switching back from incognito or another browser)
+    const handleFocus = () => {
+      refreshUsers()
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshUsers()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    // Periodic polling every 8 seconds to automatically display new applicants and approval changes
+    const interval = setInterval(() => {
+      refreshUsers()
+    }, 8000)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      clearInterval(interval)
+      if (channel) {
+        channel.close()
+      }
+    }
+  }, [])
+
   useEffect(() => {
     let isMounted = true
     const initAuth = async () => {
@@ -207,6 +251,16 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     return { success: true }
   }
 
+function notifySyncChannel() {
+  try {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('sdu_okr_sync_channel')
+      channel.postMessage({ type: 'USERS_UPDATED', timestamp: Date.now() })
+      channel.close()
+    }
+  } catch (e) {}
+}
+
   const register = async (userData: RegisterData): Promise<LoginResult> => {
     try {
       const cleanEmail = userData.email.trim().toLowerCase()
@@ -218,7 +272,15 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: emailCheck.error || 'รูปแบบอีเมลไม่ถูกต้อง' }
       }
 
-      const existing = allUsers.find(u =>
+      // Check against fresh users list
+      let pool = allUsers
+      try {
+        const fresh = await fetchUsers()
+        setAllUsers(fresh)
+        pool = fresh
+      } catch (e) {}
+
+      const existing = pool.find(u =>
         u.email.trim().toLowerCase() === cleanEmail ||
         (u.username && u.username.trim().toLowerCase() === cleanUsername)
       )
@@ -251,6 +313,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         return [...withoutDup, createdUser]
       })
 
+      notifySyncChannel()
       await refreshUsers()
       return { success: true }
     } catch (err: any) {
@@ -262,6 +325,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     try {
       const { approveUserRecord } = await import('@/lib/services/okr-service')
       await approveUserRecord(userId, assignedRole)
+      notifySyncChannel()
       await refreshUsers()
       return { success: true }
     } catch (err: any) {
@@ -273,6 +337,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     try {
       const { rejectUserRecord } = await import('@/lib/services/okr-service')
       await rejectUserRecord(userId)
+      notifySyncChannel()
       await refreshUsers()
       return { success: true }
     } catch (err: any) {
@@ -294,6 +359,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const { deleteUserRecord } = await import('@/lib/services/okr-service')
       await deleteUserRecord(userId)
 
+      notifySyncChannel()
       // 4. Refresh users to ensure consistency
       await refreshUsers()
       return { success: true }
@@ -378,6 +444,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(updatedUser))
       }
 
+      notifySyncChannel()
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน' }
@@ -411,6 +478,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(mergedUser))
       }
 
+      notifySyncChannel()
       await refreshUsers()
       return { success: true }
     } catch (err: any) {

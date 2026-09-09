@@ -75,29 +75,18 @@ export function HeadOKRWorkspace({
 
   return (
     <div className="space-y-6">
-      {/* Banner */}
-      <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-sky-200 flex-shrink-0 shadow-inner">
-            <Layers className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#00A8B5] text-white">
-                Head of OKR Workspace
-              </span>
-              <span className="text-xs text-sky-200 font-semibold">{currentUser?.department}</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight">
-              พื้นที่บริหารและขับเคลื่อนโครงการ OKR
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-200 mt-1 max-w-2xl leading-relaxed">
-              ป้อนโครงการใหม่, มอบหมายงานให้อาจารย์ลูกทีม (Project Assignments), สร้าง Dashboard รายงานผู้บริหาร, และติดตามผลการปฏิบัติงาน
-            </p>
-          </div>
+      {/* Top Action Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            พื้นที่บริหารและขับเคลื่อนโครงการ OKR
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            {currentUser?.department} • ป้อนโครงการใหม่, มอบหมายงานให้อาจารย์ลูกทีม และติดตามผลการปฏิบัติงาน
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto flex-shrink-0">
           <button
             onClick={() => {
               if (myDeptProjects.length > 0) {
@@ -105,7 +94,7 @@ export function HeadOKRWorkspace({
               }
               setIsAssignMemberOpen(true)
             }}
-            className="px-4 py-2.5 rounded-2xl bg-[#00A8B5] hover:bg-[#008B97] text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-[#00A8B5] hover:bg-[#008B97] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>มอบหมายอาจารย์ลูกทีม</span>
@@ -113,9 +102,9 @@ export function HeadOKRWorkspace({
 
           <button
             onClick={onOpenCreateModal}
-            className="px-4 py-2.5 rounded-2xl bg-white text-[#003B71] hover:bg-slate-100 font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-[#003B71] hover:bg-[#00264D] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-[#003B71]" />
+            <Plus className="w-4 h-4 text-white" />
             <span>ป้อนโครงการ OKR ใหม่</span>
           </button>
         </div>
