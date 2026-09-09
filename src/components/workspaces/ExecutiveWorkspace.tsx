@@ -145,9 +145,6 @@ export function ExecutiveWorkspace({
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             แผงยุทธศาสตร์ผู้บริหาร (Executive Strategy Dashboard)
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            ติดตามภาพรวมผลสัมฤทธิ์ OKR, กำหนดหัวหน้าโครงการ (OKR Head), และประเมินผลคะแนนระดับ 5 ดาว
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto flex-shrink-0">
@@ -256,9 +253,6 @@ export function ExecutiveWorkspace({
               <BarChart3 className="w-5 h-5 text-[#003B71]" />
               <span>อินโฟกราฟิกและรายงานสรุปจากหัวหน้าโครงการ OKR (Table Dashboard View)</span>
             </h3>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
-              แปลงข้อมูลสรุปเป็น Visual Infographics พร้อมระบบคลิกให้คะแนนประเมินหัวหน้าโครงการ (1 - 5 ดาว)
-            </p>
           </div>
           <span className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-sky-50 text-[#003B71] border-2 border-sky-300 self-start sm:self-auto">
             {dashboardReports.length} Dashboard Reports
@@ -469,9 +463,6 @@ export function ExecutiveWorkspace({
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
                   กำหนดหัวหน้าโครงการ OKR (Assign OKR Head)
                 </h3>
-                <p className="text-xs text-slate-500">
-                  บันทึกลงตาราง Project_Assignments (role_type: 'Head')
-                </p>
               </div>
             </div>
 
@@ -521,11 +512,6 @@ export function ExecutiveWorkspace({
                 </select>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1 text-slate-600">
-                <span className="font-bold text-slate-800 block">สิทธิ์และหน้าที่ของ OKR Head:</span>
-                <p>• สามารถมอบหมายอาจารย์ลูกทีม (Team Members) ในโครงการนี้ได้</p>
-                <p>• สามารถสร้าง Dashboard สรุปผลรายงานส่งผู้บริหาร และตรวจสอบหลักฐานจากลูกทีม</p>
-              </div>
 
               <button
                 type="submit"

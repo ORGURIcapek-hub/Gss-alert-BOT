@@ -81,9 +81,6 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             สร้าง Dashboard สำหรับผู้บริหาร (Executive Strategy Dashboard)
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-            กรอกข้อมูลสรุปภาพรวมผลสัมฤทธิ์ของโครงการ OKR ที่อยู่ในความดูแล เพื่อแปลงเป็น Infographics และรายงานตรงสู่แผงยุทธศาสตร์ผู้บริหาร
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -167,9 +164,6 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
               placeholder="กรอกสรุปผลการดำเนินงานเชิงยุทธศาสตร์, ร้อยละความสำเร็จ, ผลกระทบ, และเป้าหมายที่บรรลุ..."
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-900 font-medium leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003B71]/20 focus:border-[#003B71]"
             />
-            <p className="text-[11px] text-slate-400">
-              ข้อความนี้จะถูกจัดแสดงในรูปแบบ Infographics บนแผงยุทธศาสตร์ผู้บริหาร (Executive Strategy Dashboard)
-            </p>
           </div>
 
           {/* Submitter Info Preview */}

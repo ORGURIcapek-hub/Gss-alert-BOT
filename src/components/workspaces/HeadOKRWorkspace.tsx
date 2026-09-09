@@ -82,9 +82,6 @@ export function HeadOKRWorkspace({
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             พื้นที่บริหารและขับเคลื่อนโครงการ OKR
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            {currentUser?.department} • ป้อนโครงการใหม่, มอบหมายงานให้อาจารย์ลูกทีม และติดตามผลการปฏิบัติงาน
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto flex-shrink-0">
@@ -153,9 +150,6 @@ export function HeadOKRWorkspace({
             <h3 className="text-base sm:text-lg font-bold text-slate-900">
               โครงการในภาควิชาและโครงการที่คุณเป็นหัวหน้า ({myDeptProjects.length})
             </h3>
-            <p className="text-xs sm:text-sm text-slate-600 mt-0.5 font-medium">
-              คลิกที่โครงการเพื่อดูรายละเอียด, แก้ไขความก้าวหน้า, หรือจัดการไฟล์แนบ
-            </p>
           </div>
         </div>
 
@@ -227,9 +221,6 @@ export function HeadOKRWorkspace({
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
                   มอบหมายอาจารย์ลูกทีม (Assign Team Member)
                 </h3>
-                <p className="text-xs text-slate-500">
-                  บันทึกลงตาราง Project_Assignments (role_type: 'Member')
-                </p>
               </div>
             </div>
 
@@ -279,11 +270,6 @@ export function HeadOKRWorkspace({
                 </select>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1 text-slate-600">
-                <span className="font-bold text-slate-800 block">สิทธิ์ของอาจารย์ลูกทีม (Validation Rule):</span>
-                <p>• จะสามารถเข้าถึงฟอร์มแนบไฟล์หลักฐาน (Upload Evidence) ได้เฉพาะโครงการที่มีรายชื่อมอบหมายเท่านั้น</p>
-                <p>• เมื่ออาจารย์แนบไฟล์ ระบบจะส่งข้อมูลตรงมายังเมนู "หลักฐานจากลูกทีม" ของหัวหน้า OKR</p>
-              </div>
 
               <button
                 type="submit"

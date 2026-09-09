@@ -27,9 +27,6 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject }
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             โครงสร้างเป้าหมาย OKR และโครงการรองรับ
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            เป้าหมายยุทธศาสตร์คณะ • ติดตามการกระจายเป้าหมายหลักประจำปีสู่โครงการปฏิบัติการของแต่ละภาควิชา
-          </p>
         </div>
 
         {canCreate && (

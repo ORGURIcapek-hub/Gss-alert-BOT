@@ -109,9 +109,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             สร้างรายงานทั่วไป (Table Normal Report)
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-            ป้อนรายละเอียดผลสัมฤทธิ์โครงการ, เป้าหมายที่คาดหวัง, และระบุอาจารย์ผู้ร่วมรับผิดชอบแบบหลายท่าน เพื่อเผยแพร่ในเมนู "Report โครงการ OKR"
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

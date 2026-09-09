@@ -45,9 +45,6 @@ export function Header({
               <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                 ระบบติดตามและประเมินผล OKR
               </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                มหาวิทยาลัยสวนดุสิต • ปีงบประมาณ {selectedYear} {!isAdmin && `(${selectedQuarter === 'ALL' ? 'ทุกไตรมาส' : selectedQuarter})`}
-              </p>
             </div>
           </div>
         </div>

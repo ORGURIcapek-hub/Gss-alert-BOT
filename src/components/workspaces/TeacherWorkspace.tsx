@@ -33,9 +33,6 @@ export function TeacherWorkspace({
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             โครงการ OKR ที่คุณได้รับมอบหมาย
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            {currentUser?.department} • รายงานความก้าวหน้าการดำเนินงาน, แจ้งข้อจำกัด/อุปสรรค, อัปโหลดหรือลบหลักฐานผลสัมฤทธิ์
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

@@ -41,9 +41,6 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
         <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
           คลังเอกสารหลักฐานผลสัมฤทธิ์ OKR
         </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          รวบรวมไฟล์หลักฐานความสำเร็จ, เอกสารรับรอง, และรายงานฉบับสมบูรณ์ของทุกโครงการ
-        </p>
       </div>
 
       {/* Search Bar */}

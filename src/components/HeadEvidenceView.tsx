@@ -96,9 +96,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             หลักฐานจากลูกทีม (Evidence from Team)
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            สิทธิ์หัวหน้าโครงการ OKR • ตรวจสอบไฟล์หลักฐาน, รายงานผลงาน, และเอกสารยืนยันความสำเร็จที่ส่งตรงจากอาจารย์ลูกทีม
-          </p>
         </div>
 
         <div className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-center flex-shrink-0 self-start sm:self-auto">
@@ -149,9 +146,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
             <Sparkles className="w-4 h-4 text-[#00A8B5]" />
             ตารางรายการหลักฐานจากลูกทีม (Evidence Data Grid)
           </h3>
-          <span className="text-xs text-slate-500 font-medium">
-            คลิก "ดูตัวอย่างไฟล์" เพื่อเปิดดูเอกสาร PDF หรือรูปภาพในหน้าต่างได้ทันที
-          </span>
         </div>
 
         {loading ? (

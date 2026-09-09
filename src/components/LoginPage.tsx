@@ -180,9 +180,6 @@ export function LoginPage() {
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               ระบบติดตามและประเมินผล OKR
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-semibold mt-1">
-              มหาวิทยาลัยสวนดุสิต (Suan Dusit University)
-            </p>
           </div>
         </div>
 
@@ -562,10 +559,7 @@ export function LoginPage() {
           </form>
         )}
 
-        {/* Footer info */}
-        <div className="mt-6 text-center text-xs sm:text-sm text-slate-600 font-medium">
-          © มหาวิทยาลัยสวนดุสิต • Suan Dusit University
-        </div>
+        {/* End of Card */}
       </div>
 
       {/* Pop-up Modal for Forgot Password OTP Reset */}

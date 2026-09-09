@@ -65,9 +65,6 @@ export function AdminUserManagement() {
             <Shield className="w-5 h-5 text-[#003B71]" />
             การจัดการสิทธิ์และบทบาทผู้ใช้งาน (RBAC Panel)
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">
-            กำหนดบทบาท ตรวจสอบรหัสผ่าน และสิทธิ์การเข้าถึงข้อมูลตามมาตรฐาน Row Level Security (RLS)
-          </p>
         </div>
 
         <div className="flex items-center flex-wrap gap-2.5">

@@ -278,9 +278,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
               <PieChart className="w-5 h-5 text-[#003B71]" />
               <span>สรุปสัดส่วนสถานะโครงการทั้งหมด (Project Status Proportion)</span>
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-              คลิกที่สถานะเพื่อกรองดูรายชื่อโครงการในแต่ละกลุ่มได้ทันที ({projects.length} โครงการทั้งหมด)
-            </p>
           </div>
 
           <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 self-start sm:self-auto border border-slate-200">
@@ -438,9 +435,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                 <PieChart className="w-4 h-4 text-[#003B71]" />
                 <span>สัดส่วนสถานะโครงการทั้งหมด (Status Distribution)</span>
               </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                ร้อยละของการดำเนินงานจำแนกตาม 4 ระดับสถานะ
-              </p>
             </div>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
               100%
@@ -482,9 +476,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                 <BarChart3 className="w-4 h-4 text-[#003B71]" />
                 <span>ความก้าวหน้าและการเบิกจ่ายตามภาควิชา (%)</span>
               </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                เปรียบเทียบผลงานจริง vs อัตราการเบิกจ่ายงบประมาณ
-              </p>
             </div>
           </div>
 
@@ -501,9 +492,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                 <DollarSign className="w-4 h-4 text-emerald-600" />
                 <span>งบประมาณจัดสรร vs เบิกจ่ายจริง (ล้านบาท)</span>
               </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                วิเคราะห์สภาพคล่องทางการเงินและการใช้จ่ายจริงตามภาควิชา
-              </p>
             </div>
           </div>
 
@@ -520,9 +508,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                 <TrendingUp className="w-4 h-4 text-[#00A8B5]" />
                 <span>แนวโน้มผลสัมฤทธิ์ OKR รายไตรมาส (Q1 - Q4)</span>
               </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                เปรียบเทียบความก้าวหน้าผลงานจริงกับเป้าหมายตามแผนยุทธศาสตร์
-              </p>
             </div>
           </div>
 
@@ -546,9 +531,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                 {displayedProjects.length} โครงการ
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-              แสดงชื่อโครงการ, ผู้รับผิดชอบ, ความคืบหน้า, งบประมาณ และสาเหตุข้อติดขัด
-            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

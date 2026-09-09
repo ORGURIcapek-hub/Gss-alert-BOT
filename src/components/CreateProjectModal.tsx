@@ -68,7 +68,6 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
           </div>
           <div>
             <h2 className="text-lg font-bold text-slate-900">ป้อนโครงการ OKR ใหม่</h2>
-            <p className="text-xs text-slate-500 font-medium">เพิ่มโครงการเข้าสู่ระบบฐานข้อมูลกลาง</p>
           </div>
         </div>
 

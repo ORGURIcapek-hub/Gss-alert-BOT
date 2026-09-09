@@ -89,9 +89,6 @@ export function NormalReportView() {
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Report โครงการ OKR (Normal Reports Hub)
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            สืบค้นและติดตามรายงานความก้าวหน้าโครงการ OKR และประเมินคะแนน 5 ดาวร่วมกันระหว่างหัวหน้าและลูกทีม
-          </p>
         </div>
 
         <button

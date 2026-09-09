@@ -26,9 +26,6 @@ export function AdminWorkspace({
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             แผงควบคุมระบบและสิทธิ์การเข้าถึงความปลอดภัย (RBAC)
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            จัดการผู้ใช้งาน, กำหนดบทบาท, ดูแลความปลอดภัยของฐานข้อมูล และจัดการ OKR ทุกระดับ
-          </p>
         </div>
 
         <button
