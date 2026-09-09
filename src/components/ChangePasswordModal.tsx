@@ -315,9 +315,8 @@ export function ChangePasswordModal() {
                 placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full bg-slate-50 border rounded-xl px-3.5 pr-10 py-2.5 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none transition-all ${
-                  confirmPassword && !isMatching ? 'border-rose-300 focus:border-rose-500' : 'border-slate-200 focus:border-[#003B71]'
-                }`}
+                className={`w-full bg-slate-50 border rounded-xl px-3.5 pr-10 py-2.5 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none transition-all ${confirmPassword && !isMatching ? 'border-rose-300 focus:border-rose-500' : 'border-slate-200 focus:border-[#003B71]'
+                  }`}
               />
               <button
                 type="button"
