@@ -10,7 +10,6 @@ import {
   FileCheck2,
   Users,
   ShieldCheck,
-  Building2,
   ChevronRight,
   LogOut,
   X,
@@ -45,7 +44,6 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
       case 'executive':
         return [
           { id: 'workspace', label: 'แผงยุทธศาสตร์ผู้บริหาร', icon: Crown },
-          { id: 'analytics', label: 'การวิเคราะห์ภาพรวมคณะ', icon: Building2 },
           { id: 'okrs', label: 'เป้าหมาย OKR คณะ', icon: Target },
           { id: 'projects', label: 'โครงการทั้งหมด (Read-Only)', icon: FolderGit2 },
           { id: 'evidences', label: 'คลังเอกสารผลสัมฤทธิ์', icon: FileCheck2 },

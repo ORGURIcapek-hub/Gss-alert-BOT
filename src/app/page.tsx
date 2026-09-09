@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { DashboardMetrics } from '@/components/DashboardMetrics'
-import { ExecutiveAnalytics } from '@/components/ExecutiveAnalytics'
 import { ProjectTable } from '@/components/ProjectTable'
 import { ProjectDetailModal } from '@/components/ProjectDetailModal'
 import { CreateProjectModal } from '@/components/CreateProjectModal'
@@ -210,13 +209,6 @@ export default function HomePage() {
                 onSelectProject={(p) => setSelectedProject(p)}
                 onOpenCreateModal={() => setIsCreateModalOpen(true)}
               />
-            </div>
-          )}
-
-          {activeTab === 'analytics' && (
-            <div className="space-y-6">
-              <DashboardMetrics okrs={okrs} projects={projects} />
-              <ExecutiveAnalytics projects={projects} />
             </div>
           )}
 
