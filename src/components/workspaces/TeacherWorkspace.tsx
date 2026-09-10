@@ -20,10 +20,8 @@ export function TeacherWorkspace({
   const { currentUser } = useRole()
 
   const myAssignedProjects = projects.filter(p =>
-    (p.head_of_project === currentUser?.user_id ||
-      p.assignees?.some(a => a.user_id === currentUser?.user_id)) &&
-    p.head?.role !== 'admin' &&
-    p.head?.role !== 'executive'
+    p.head_of_project === currentUser?.user_id ||
+    p.assignees?.some(a => a.user_id === currentUser?.user_id)
   )
 
   const myCompleted = myAssignedProjects.filter(p => p.progress_percentage === 100).length

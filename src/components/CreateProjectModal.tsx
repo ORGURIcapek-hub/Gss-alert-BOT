@@ -46,6 +46,12 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
     }
   }, [users, headId])
 
+  useEffect(() => {
+    if (okrs.length > 0 && !okrId) {
+      setOkrId(okrs[0].okr_id)
+    }
+  }, [okrs, okrId])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!projectName.trim()) return

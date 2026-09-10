@@ -92,6 +92,38 @@ export default function HomePage() {
     }
   }, [selectedYear, isAuthenticated, mounted])
 
+  // Cross-tab and window focus sync for real-time project updates
+  useEffect(() => {
+    if (!mounted || !isAuthenticated) return
+
+    let channel: BroadcastChannel | null = null
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        channel = new BroadcastChannel('sdu_okr_sync_channel')
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'PROJECTS_UPDATED' || event.data?.type === 'USERS_UPDATED') {
+            loadData()
+          }
+        }
+      }
+    } catch {}
+
+    const handleSync = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        loadData()
+      }
+    }
+
+    window.addEventListener('focus', handleSync)
+    document.addEventListener('visibilitychange', handleSync)
+
+    return () => {
+      window.removeEventListener('focus', handleSync)
+      document.removeEventListener('visibilitychange', handleSync)
+      channel?.close()
+    }
+  }, [mounted, isAuthenticated, selectedYear])
+
   useEffect(() => {
     if (!mounted) return
     if (currentRole === 'admin' && activeTab === 'workspace') {
