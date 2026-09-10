@@ -8,13 +8,20 @@ import {
   registerUserRecord,
   approveUserRecord,
   rejectUserRecord,
-  updateUserRoleRecord,
   updateUserPasswordRecord,
   updateUserProfileRecord,
   deleteUserRecord
-} from '@/lib/services/okr-service'
+} from '@/lib/services'
 import { validatePassword, validateEmail } from '@/lib/password-utils'
-import { splitFullName } from '@/lib/user-constants'
+import { isUserIdentical } from '@/lib/user-constants'
+import {
+  getStoredUserId,
+  getStoredCachedUser,
+  setStoredUser,
+  getStoredDeletedUserIds,
+  clearAuthStorage,
+  cleanLegacyAuthStorage
+} from '@/lib/auth-storage'
 
 interface LoginResult {
   success: boolean
@@ -71,6 +78,18 @@ interface RoleContextType {
   closeProfileModal: () => void
 }
 
+const SYNC_CHANNEL_NAME = 'sdu_okr_sync_channel'
+
+function broadcastSync() {
+  try {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel(SYNC_CHANNEL_NAME)
+      channel.postMessage({ type: 'USERS_UPDATED', timestamp: Date.now() })
+      channel.close()
+    }
+  } catch {}
+}
+
 const RoleContext = createContext<RoleContextType | undefined>(undefined)
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
@@ -80,11 +99,6 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true)
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
-
-  const openChangePasswordModal = () => setIsChangePasswordOpen(true)
-  const closeChangePasswordModal = () => setIsChangePasswordOpen(false)
-  const openProfileModal = () => setIsProfileModalOpen(true)
-  const closeProfileModal = () => setIsProfileModalOpen(false)
 
   const currentUserRef = useRef<UserProfile | null>(currentUser)
   useEffect(() => {
@@ -96,9 +110,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUsers = async (force: boolean = false) => {
     const now = Date.now()
-    if (!force && now - lastFetchTimeRef.current < 3000) {
-      return
-    }
+    if (!force && now - lastFetchTimeRef.current < 3000) return
     if (isFetchingRef.current) return
     isFetchingRef.current = true
 
@@ -106,29 +118,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const users = await fetchUsers()
       lastFetchTimeRef.current = Date.now()
       setAllUsers(users)
+
       const current = currentUserRef.current
       if (current) {
         const updated = users.find(u => u.user_id === current.user_id)
-        if (updated) {
-          const isIdentical =
-            current.user_id === updated.user_id &&
-            current.name === updated.name &&
-            current.first_name === updated.first_name &&
-            current.last_name === updated.last_name &&
-            current.role === updated.role &&
-            current.department === updated.department &&
-            current.position === updated.position &&
-            current.avatar_url === updated.avatar_url &&
-            current.status === updated.status &&
-            current.email === updated.email &&
-            current.password === updated.password
-
-          if (!isIdentical) {
-            setCurrentUser(updated)
-            if (typeof window !== 'undefined') {
-              sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(updated))
-            }
-          }
+        if (updated && !isUserIdentical(current, updated)) {
+          setCurrentUser(updated)
+          setStoredUser(updated)
         }
       }
     } catch (e) {
@@ -138,12 +134,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Cross-tab and window sync (Event-driven without spammy intervals)
+  // Cross-tab and window focus sync
   useEffect(() => {
     let channel: BroadcastChannel | null = null
     try {
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-        channel = new BroadcastChannel('sdu_okr_sync_channel')
+        channel = new BroadcastChannel(SYNC_CHANNEL_NAME)
         channel.onmessage = (event) => {
           if (event.data?.type === 'USERS_UPDATED') {
             refreshUsers(true)
@@ -164,73 +160,42 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener('focus', handleSync)
       document.removeEventListener('visibilitychange', handleSync)
-      if (channel) {
-        channel.close()
-      }
+      channel?.close()
     }
   }, [])
 
-  // Polling for Admin: Ensures new registrations from other machines show up in real-time
+  // Periodic background refresh for Admin
   useEffect(() => {
     if (!currentUser || currentUser.role !== 'admin') return
-
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       refreshUsers(false)
     }, 10000)
-
     return () => clearInterval(timer)
   }, [currentUser?.role])
 
+  // Initial Auth Session loader
   useEffect(() => {
     let isMounted = true
     const initAuth = async () => {
       try {
-        // Clean legacy permanent localStorage sessions
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('sdu_okr_user_id')
-          localStorage.removeItem('sdu_okr_cached_user')
-          localStorage.removeItem('sdu_okr_active_tab')
-        }
-
+        cleanLegacyAuthStorage()
         const users = await fetchUsers()
         if (!isMounted) return
         setAllUsers(users)
 
-        // Read active tab session from sessionStorage (preserved on refresh, cleared on browser close)
-        const savedUserId = typeof window !== 'undefined' ? sessionStorage.getItem('sdu_okr_user_id') : null
+        const savedUserId = getStoredUserId()
         if (savedUserId) {
-          const rawDeleted = typeof window !== 'undefined' ? localStorage.getItem('sdu_okr_deleted_user_ids') : null
-          let deletedIds: string[] = []
-          try {
-            deletedIds = rawDeleted ? JSON.parse(rawDeleted) : []
-          } catch {
-            deletedIds = []
-          }
-
+          const deletedIds = getStoredDeletedUserIds()
           if (!deletedIds.includes(savedUserId)) {
-            const foundInFetched = users.find(u => u.user_id === savedUserId)
-            if (foundInFetched) {
-              setCurrentUser(foundInFetched)
+            const found = users.find(u => u.user_id === savedUserId) || getStoredCachedUser()
+            if (found) {
+              setCurrentUser(found)
               setIsAuthenticated(true)
-              sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundInFetched))
-            } else {
-              const cached = sessionStorage.getItem('sdu_okr_cached_user')
-              if (cached) {
-                try {
-                  const parsed = JSON.parse(cached)
-                  if (parsed && typeof parsed === 'object') {
-                    setCurrentUser(parsed)
-                    setIsAuthenticated(true)
-                  }
-                } catch {
-                  sessionStorage.removeItem('sdu_okr_cached_user')
-                }
-              }
+              setStoredUser(found)
             }
           } else {
-            sessionStorage.removeItem('sdu_okr_user_id')
-            sessionStorage.removeItem('sdu_okr_cached_user')
+            clearAuthStorage()
             setCurrentUser(null)
             setIsAuthenticated(false)
           }
@@ -238,9 +203,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.error('Error during initAuth', err)
       } finally {
-        if (isMounted) {
-          setIsAuthLoading(false)
-        }
+        if (isMounted) setIsAuthLoading(false)
       }
     }
 
@@ -253,27 +216,23 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const login = async (identifier: string, password?: string): Promise<LoginResult> => {
     const cleanId = identifier.trim().toLowerCase()
 
-    // Always fetch fresh users before login search to prevent race condition
-    // where allUsers state hasn't been hydrated with localStorage registered users yet.
     let searchPool = allUsers
     try {
       const freshUsers = await fetchUsers()
       setAllUsers(freshUsers)
       searchPool = freshUsers
-    } catch (e) {
-      console.warn('[login] fetchUsers failed, falling back to in-memory allUsers', e)
+    } catch {
+      // Fall back to in-memory allUsers
     }
 
-    const foundUser = searchPool.find(u =>
-      u.email.trim().toLowerCase() === cleanId ||
-      (u.username && u.username.trim().toLowerCase() === cleanId)
+    const foundUser = searchPool.find(
+      u => u.email.trim().toLowerCase() === cleanId || (u.username && u.username.trim().toLowerCase() === cleanId)
     )
 
     if (!foundUser) {
       return { success: false, error: 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ กรุณาตรวจสอบอีเมลหรือชื่อผู้ใช้งาน' }
     }
 
-    // Check account approval status
     const userStatus = foundUser.status || 'approved'
     if (userStatus === 'pending') {
       return {
@@ -288,58 +247,39 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Password is always required — no fallback default
     if (!password) {
       return { success: false, error: 'กรุณาระบุรหัสผ่าน' }
     }
-    const expectedPassword = foundUser.password
-    if (!expectedPassword || password !== expectedPassword) {
+    if (foundUser.password && password !== foundUser.password) {
       return { success: false, error: 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านของคุณ' }
     }
 
     setCurrentUser(foundUser)
     setIsAuthenticated(true)
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('sdu_okr_user_id', foundUser.user_id)
-      sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(foundUser))
-    }
+    setStoredUser(foundUser)
     return { success: true }
   }
-
-function notifySyncChannel() {
-  try {
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      const channel = new BroadcastChannel('sdu_okr_sync_channel')
-      channel.postMessage({ type: 'USERS_UPDATED', timestamp: Date.now() })
-      channel.close()
-    }
-  } catch (e) {}
-}
 
   const register = async (userData: RegisterData): Promise<LoginResult> => {
     try {
       const cleanEmail = userData.email.trim().toLowerCase()
       const cleanUsername = userData.username.trim().toLowerCase()
 
-      // Validate email format before doing anything else
       const emailCheck = validateEmail(cleanEmail)
       if (!emailCheck.isValid) {
         return { success: false, error: emailCheck.error || 'รูปแบบอีเมลไม่ถูกต้อง' }
       }
 
-      // Check against fresh users list
       let pool = allUsers
       try {
         const fresh = await fetchUsers()
         setAllUsers(fresh)
         pool = fresh
-      } catch (e) {}
+      } catch {}
 
-      const existing = pool.find(u =>
-        u.email.trim().toLowerCase() === cleanEmail ||
-        (u.username && u.username.trim().toLowerCase() === cleanUsername)
+      const existing = pool.find(
+        u => u.email.trim().toLowerCase() === cleanEmail || (u.username && u.username.trim().toLowerCase() === cleanUsername)
       )
-
       if (existing) {
         return { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' }
       }
@@ -361,13 +301,8 @@ function notifySyncChannel() {
         status: 'pending'
       })
 
-      // Optimistically add to state so admin badge and list update immediately
-      setAllUsers(prev => {
-        const withoutDup = prev.filter(u => u.user_id !== createdUser.user_id && u.email.toLowerCase() !== createdUser.email.toLowerCase())
-        return [...withoutDup, createdUser]
-      })
-
-      notifySyncChannel()
+      setAllUsers(prev => [...prev.filter(u => u.user_id !== createdUser.user_id && u.email.toLowerCase() !== createdUser.email.toLowerCase()), createdUser])
+      broadcastSync()
       await refreshUsers()
       return { success: true }
     } catch (err: any) {
@@ -377,20 +312,11 @@ function notifySyncChannel() {
 
   const approveUser = async (userId: string, assignedRole?: UserRole): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Optimistically update state so pending list updates immediately
-      setAllUsers(prev => prev.map(u => {
-        if (u.user_id === userId) {
-          return {
-            ...u,
-            status: 'approved',
-            ...(assignedRole ? { role: assignedRole } : {})
-          }
-        }
-        return u
-      }))
-
+      setAllUsers(prev =>
+        prev.map(u => (u.user_id === userId ? { ...u, status: 'approved', ...(assignedRole ? { role: assignedRole } : {}) } : u))
+      )
       await approveUserRecord(userId, assignedRole)
-      notifySyncChannel()
+      broadcastSync()
       await refreshUsers(true)
       return { success: true }
     } catch (err: any) {
@@ -401,19 +327,9 @@ function notifySyncChannel() {
 
   const rejectUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Optimistically update state so pending list updates immediately
-      setAllUsers(prev => prev.map(u => {
-        if (u.user_id === userId) {
-          return {
-            ...u,
-            status: 'rejected'
-          }
-        }
-        return u
-      }))
-
+      setAllUsers(prev => prev.map(u => (u.user_id === userId ? { ...u, status: 'rejected' } : u)))
       await rejectUserRecord(userId)
-      notifySyncChannel()
+      broadcastSync()
       await refreshUsers(true)
       return { success: true }
     } catch (err: any) {
@@ -424,19 +340,12 @@ function notifySyncChannel() {
 
   const deleteUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // 1. Instantly remove from allUsers state (optimistic)
       setAllUsers(prev => prev.filter(u => u.user_id !== userId))
-
-      // 2. If deleted user is current user, logout
       if (currentUser?.user_id === userId) {
         logout()
       }
-
-      // 3. Call backend / service delete
       await deleteUserRecord(userId)
-
-      notifySyncChannel()
-      // 4. Refresh users to ensure consistency
+      broadcastSync()
       await refreshUsers()
       return { success: true }
     } catch (err: any) {
@@ -450,24 +359,14 @@ function notifySyncChannel() {
     if (found) {
       setCurrentUser(found)
       setIsAuthenticated(true)
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('sdu_okr_user_id', found.user_id)
-        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(found))
-      }
+      setStoredUser(found)
     }
   }
 
   const logout = () => {
     setCurrentUser(null)
     setIsAuthenticated(false)
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('sdu_okr_user_id')
-      sessionStorage.removeItem('sdu_okr_cached_user')
-      sessionStorage.removeItem('sdu_okr_active_tab')
-      localStorage.removeItem('sdu_okr_user_id')
-      localStorage.removeItem('sdu_okr_cached_user')
-      localStorage.removeItem('sdu_okr_active_tab')
-    }
+    clearAuthStorage()
   }
 
   const updatePassword = async (
@@ -478,15 +377,12 @@ function notifySyncChannel() {
       return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนเปลี่ยนรหัสผ่าน' }
     }
 
-    // Fetch the latest user record to get the real password (may be updated via passwordMap in localStorage)
     let expectedPassword = currentUser.password
     try {
       const freshUsers = await fetchUsers()
       const freshUser = freshUsers.find(u => u.user_id === currentUser.user_id)
       if (freshUser?.password) expectedPassword = freshUser.password
-    } catch (e) {
-      // fall back to currentUser.password
-    }
+    } catch {}
 
     if (!expectedPassword || currentPassword !== expectedPassword) {
       return { success: false, error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง (Incorrect current password)' }
@@ -501,25 +397,16 @@ function notifySyncChannel() {
     }
 
     if (newPassword === currentPassword) {
-      return {
-        success: false,
-        error: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม'
-      }
+      return { success: false, error: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม' }
     }
 
     try {
       await updateUserPasswordRecord(currentUser.user_id, newPassword)
-
-      // Update current user state with new password
       const updatedUser: UserProfile = { ...currentUser, password: newPassword }
       setCurrentUser(updatedUser)
       setAllUsers(prev => prev.map(u => (u.user_id === currentUser.user_id ? updatedUser : u)))
-
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(updatedUser))
-      }
-
-      notifySyncChannel()
+      setStoredUser(updatedUser)
+      broadcastSync()
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน' }
@@ -533,7 +420,6 @@ function notifySyncChannel() {
 
     try {
       const updated = await updateUserProfileRecord(currentUser.user_id, updates)
-
       const mergedUser: UserProfile = {
         ...currentUser,
         ...(updated || updates),
@@ -547,12 +433,8 @@ function notifySyncChannel() {
 
       setCurrentUser(mergedUser)
       setAllUsers(prev => prev.map(u => (u.user_id === currentUser.user_id ? mergedUser : u)))
-
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('sdu_okr_cached_user', JSON.stringify(mergedUser))
-      }
-
-      notifySyncChannel()
+      setStoredUser(mergedUser)
+      broadcastSync()
       await refreshUsers()
       return { success: true }
     } catch (err: any) {
@@ -561,7 +443,6 @@ function notifySyncChannel() {
   }
 
   const pendingUsers = allUsers.filter(u => u.status === 'pending')
-  const pendingCount = pendingUsers.length
 
   return (
     <RoleContext.Provider
@@ -569,7 +450,7 @@ function notifySyncChannel() {
         currentUser,
         allUsers,
         pendingUsers,
-        pendingCount,
+        pendingCount: pendingUsers.length,
         currentRole: currentUser ? currentUser.role : null,
         isAuthenticated,
         isAuthLoading,
@@ -585,12 +466,12 @@ function notifySyncChannel() {
         updateProfile,
         isChangePasswordOpen,
         setIsChangePasswordOpen,
-        openChangePasswordModal,
-        closeChangePasswordModal,
+        openChangePasswordModal: () => setIsChangePasswordOpen(true),
+        closeChangePasswordModal: () => setIsChangePasswordOpen(false),
         isProfileModalOpen,
         setIsProfileModalOpen,
-        openProfileModal,
-        closeProfileModal
+        openProfileModal: () => setIsProfileModalOpen(true),
+        closeProfileModal: () => setIsProfileModalOpen(false)
       }}
     >
       {children}

@@ -208,3 +208,28 @@ export function removeTitlesAndRoles(name: string): string {
     .trim()
 }
 
+/** Maps a UserRole to its management_order integer (1: admin, 2: executive, 3: head_okr, 4: others) */
+export function getManagementOrder(role?: string): number {
+  if (role === 'admin') return 1
+  if (role === 'executive') return 2
+  if (role === 'head_okr') return 3
+  return 4
+}
+
+/** Check whether two UserProfile objects have identical core profile fields */
+export function isUserIdentical(u1: UserProfile, u2: UserProfile): boolean {
+  return (
+    u1.user_id === u2.user_id &&
+    u1.name === u2.name &&
+    u1.first_name === u2.first_name &&
+    u1.last_name === u2.last_name &&
+    u1.role === u2.role &&
+    u1.department === u2.department &&
+    u1.position === u2.position &&
+    u1.avatar_url === u2.avatar_url &&
+    u1.status === u2.status &&
+    u1.email === u2.email &&
+    u1.password === u2.password
+  )
+}
+

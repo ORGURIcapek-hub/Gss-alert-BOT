@@ -3,16 +3,10 @@ import fs from 'fs'
 import path from 'path'
 import { mockUsers } from '@/lib/mock-data'
 import { UserProfile, UserRole } from '@/types/database.types'
+import { getManagementOrder } from '@/lib/user-constants'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-users.json')
-
-function getManagementOrder(role?: string): number {
-  if (role === 'admin') return 1
-  if (role === 'executive') return 2
-  if (role === 'head_okr') return 3
-  return 4
-}
 
 function getSafeSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
