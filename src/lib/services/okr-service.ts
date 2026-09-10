@@ -369,8 +369,51 @@ export async function fetchOKRs(year?: number): Promise<OKR[]> {
 // =============================================================================
 // PROJECT SERVICE
 // =============================================================================
+
+export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): ProjectWithHeadAndAssignees {
+  let isOverdue = false
+  let daysOverdue = 0
+  let daysRemaining = 0
+  let effectiveStatus: ProjectStatus = project.status || 'In Progress'
+
+  if (project.end_date) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dueDate = new Date(project.end_date)
+    dueDate.setHours(0, 0, 0, 0)
+
+    if (!isNaN(dueDate.getTime())) {
+      const diffMs = dueDate.getTime() - today.getTime()
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+      if (diffDays < 0) {
+        daysOverdue = Math.abs(diffDays)
+        daysRemaining = 0
+        if (project.status !== 'Completed') {
+          isOverdue = true
+          effectiveStatus = 'Delayed'
+        }
+      } else {
+        daysRemaining = diffDays
+        daysOverdue = 0
+      }
+    }
+  }
+
+  return {
+    ...project,
+    isOverdue,
+    daysOverdue,
+    daysRemaining,
+    status: effectiveStatus,
+    year: project.okr?.year || null,
+    quarter: project.okr?.quarter || null
+  }
+}
+
 export async function fetchProjects(filters?: {
   year?: number
+  quarter?: string
   department?: string
   status?: string
 }): Promise<ProjectWithHeadAndAssignees[]> {
@@ -378,6 +421,7 @@ export async function fetchProjects(filters?: {
   if (supabase) {
     let query = (supabase.from('projects') as any).select(`
       *,
+      okr:okrs!projects_okr_id_fkey(*),
       head:users!projects_head_of_project_fkey(*),
       assignees:project_assignees(*, user:users(*)),
       evidences(*)
@@ -386,25 +430,33 @@ export async function fetchProjects(filters?: {
     if (filters?.status && filters.status !== 'all') query = query.eq('status', filters.status as ProjectStatus)
 
     const data = await dbCall<ProjectWithHeadAndAssignees[]>(() => query, 'fetchProjects')
-    if (data && data.length > 0) return data
-  }
-  return filterMemoryProjects(filters)
-}
+    if (data !== null) {
+      let list = data.map(enrichProjectWithOverdue)
 
-function filterMemoryProjects(filters?: {
-  year?: number
-  department?: string
-  status?: string
-}): ProjectWithHeadAndAssignees[] {
-  return inMemoryProjects.filter(p => {
-    if (filters?.department && filters.department !== 'ทั้งหมด' && p.department !== filters.department) {
-      return false
+      if (filters?.year) {
+        list = list.filter(p => (p.okr ? p.okr.year === filters.year : true))
+      }
+      if (filters?.quarter && filters.quarter !== 'ALL') {
+        list = list.filter(p => (p.okr ? p.okr.quarter === filters.quarter : true))
+      }
+      return list
     }
-    if (filters?.status && filters.status !== 'all' && p.status !== filters.status) {
-      return false
-    }
-    return true
-  })
+  }
+
+  let memList = inMemoryProjects.map(enrichProjectWithOverdue)
+  if (filters?.department && filters.department !== 'ทั้งหมด') {
+    memList = memList.filter(p => p.department === filters.department)
+  }
+  if (filters?.status && filters.status !== 'all') {
+    memList = memList.filter(p => p.status === filters.status)
+  }
+  if (filters?.year) {
+    memList = memList.filter(p => (p.okr ? p.okr.year === filters.year : true))
+  }
+  if (filters?.quarter && filters.quarter !== 'ALL') {
+    memList = memList.filter(p => (p.okr ? p.okr.quarter === filters.quarter : true))
+  }
+  return memList
 }
 
 export async function createProjectRecord(projectData: {
@@ -423,7 +475,22 @@ export async function createProjectRecord(projectData: {
   const newId = crypto.randomUUID()
   const headUser = inMemoryUsers.find(u => u.user_id === projectData.head_of_project) || getCachedUsers().find(u => u.user_id === projectData.head_of_project) || null
 
-  const newProj: ProjectWithHeadAndAssignees = {
+  const okrList = await fetchOKRs()
+  const linkedOkr = okrList.find(o => o.okr_id === projectData.okr_id) || null
+
+  // Check if overdue upon creation
+  let initialStatus: ProjectStatus = 'In Progress'
+  if (projectData.end_date) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dueDate = new Date(projectData.end_date)
+    dueDate.setHours(0, 0, 0, 0)
+    if (!isNaN(dueDate.getTime()) && dueDate.getTime() < today.getTime()) {
+      initialStatus = 'Delayed'
+    }
+  }
+
+  const newProj: ProjectWithHeadAndAssignees = enrichProjectWithOverdue({
     project_id: newId,
     okr_id: projectData.okr_id,
     project_name: projectData.project_name,
@@ -438,14 +505,17 @@ export async function createProjectRecord(projectData: {
     progress_percentage: 0,
     budget: projectData.budget,
     spent_amount: 0,
-    status: 'In Progress',
+    status: initialStatus,
     bottleneck: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     head: headUser,
     assignees: [],
-    evidences: []
-  }
+    evidences: [],
+    okr: linkedOkr,
+    year: linkedOkr?.year || null,
+    quarter: linkedOkr?.quarter || null
+  })
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
@@ -456,7 +526,7 @@ export async function createProjectRecord(projectData: {
         main_objective: projectData.main_objective, sub_objective: projectData.sub_objective,
         department: projectData.department, head_of_project: projectData.head_of_project,
         budget: projectData.budget, start_date: projectData.start_date, end_date: projectData.end_date,
-        progress_percentage: 0, spent_amount: 0, status: 'In Progress'
+        progress_percentage: 0, spent_amount: 0, status: initialStatus
       }),
       'createProjectRecord'
     )
@@ -464,6 +534,44 @@ export async function createProjectRecord(projectData: {
 
   inMemoryProjects.unshift(newProj)
   return newProj
+}
+
+export async function deleteProjectRecord(projectId: string): Promise<void> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    try {
+      await supabase.from('evidences').delete().eq('project_id', projectId)
+      await supabase.from('project_assignees').delete().eq('project_id', projectId)
+      await supabase.from('normal_reports').delete().eq('project_id', projectId)
+      await supabase.from('projects').delete().eq('project_id', projectId)
+    } catch (err) {
+      console.warn('[okr-service] deleteProjectRecord Supabase error:', err)
+    }
+  }
+
+  inMemoryProjects = inMemoryProjects.filter(p => p.project_id !== projectId)
+  inMemoryProjectAssignments = inMemoryProjectAssignments.filter(a => a.project_id !== projectId)
+  inMemoryEvidenceSubmissions = inMemoryEvidenceSubmissions.filter(e => e.project_id !== projectId)
+  inMemoryNormalReports = inMemoryNormalReports.filter(r => r.project_id !== projectId)
+}
+
+export async function clearAllProjectsRecord(): Promise<void> {
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    try {
+      await supabase.from('evidences').delete().neq('evidence_id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('project_assignees').delete().neq('project_id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('normal_reports').delete().neq('report_id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('projects').delete().neq('project_id', '00000000-0000-0000-0000-000000000000')
+    } catch (err) {
+      console.warn('[okr-service] clearAllProjectsRecord error:', err)
+    }
+  }
+
+  inMemoryProjects = []
+  inMemoryProjectAssignments = []
+  inMemoryEvidenceSubmissions = []
+  inMemoryNormalReports = []
 }
 
 export async function updateProjectProgressRecord(

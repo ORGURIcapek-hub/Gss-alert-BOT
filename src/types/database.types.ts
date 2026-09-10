@@ -616,4 +616,10 @@ export interface ProjectWithHeadAndAssignees extends Project {
   head?: UserProfile | null
   assignees?: (ProjectAssignee & { user?: UserProfile })[]
   evidences?: Evidence[]
+  okr?: OKR | null
+  year?: number | null
+  quarter?: string | null
+  isOverdue?: boolean
+  daysOverdue?: number
+  daysRemaining?: number
 }

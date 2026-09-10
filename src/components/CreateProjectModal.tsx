@@ -74,24 +74,6 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
             <label className="block text-slate-700 font-bold mb-1 text-xs">
-              เป้าหมายหลัก OKR *
-            </label>
-            <select
-              value={okrId}
-              onChange={(e) => setOkrId(e.target.value)}
-              required
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
-            >
-              {okrs.map((okr) => (
-                <option key={okr.okr_id} value={okr.okr_id}>
-                  [{okr.year}] {okr.okr_title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-slate-700 font-bold mb-1 text-xs">
               ชื่อโครงการ *
             </label>
             <input

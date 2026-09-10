@@ -62,31 +62,30 @@ export function Header({
             onChange={(e) => setSelectedYear(Number(e.target.value))}
             className="bg-transparent text-slate-900 text-xs font-bold focus:outline-none cursor-pointer pl-1"
           >
+            <option value={2568}>2568</option>
             <option value={2567}>2567</option>
             <option value={2566}>2566</option>
           </select>
         </div>
 
-        {/* Quarter Selector - Completely hidden for Admin */}
-        {!isAdmin && (
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs flex-1 sm:flex-none justify-between sm:justify-start">
-            <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
-              <Filter className="w-3.5 h-3.5 text-[#00A8B5]" />
-              <span>ไตรมาส:</span>
-            </div>
-            <select
-              value={selectedQuarter}
-              onChange={(e) => setSelectedQuarter(e.target.value)}
-              className="bg-transparent text-slate-900 text-xs font-bold focus:outline-none cursor-pointer pl-1"
-            >
-              <option value="ALL">ทุกไตรมาส</option>
-              <option value="Q1">Q1</option>
-              <option value="Q2">Q2</option>
-              <option value="Q3">Q3</option>
-              <option value="Q4">Q4</option>
-            </select>
+        {/* Quarter Selector - Available for all roles */}
+        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs flex-1 sm:flex-none justify-between sm:justify-start">
+          <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
+            <Filter className="w-3.5 h-3.5 text-[#00A8B5]" />
+            <span>ไตรมาส:</span>
           </div>
-        )}
+          <select
+            value={selectedQuarter}
+            onChange={(e) => setSelectedQuarter(e.target.value)}
+            className="bg-transparent text-slate-900 text-xs font-bold focus:outline-none cursor-pointer pl-1"
+          >
+            <option value="ALL">ทุกไตรมาส (Q1 - Q4)</option>
+            <option value="Q1">ไตรมาส 1 (Q1)</option>
+            <option value="Q2">ไตรมาส 2 (Q2)</option>
+            <option value="Q3">ไตรมาส 3 (Q3)</option>
+            <option value="Q4">ไตรมาส 4 (Q4)</option>
+          </select>
+        </div>
       </div>
     </header>
   )
