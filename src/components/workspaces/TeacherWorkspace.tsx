@@ -2,24 +2,28 @@
 
 import React from 'react'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
-import { GraduationCap, FileCheck2, Clock, Upload, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react'
+import { GraduationCap, FileCheck2, Clock, Upload, ArrowRight, Sparkles, CheckCircle2, Plus } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
-import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
+import { getUserFullName, formatDepartmentShort, removeTitlesAndRoles } from '@/lib/user-constants'
 
 interface TeacherWorkspaceProps {
   projects: ProjectWithHeadAndAssignees[]
   onSelectProject: (project: ProjectWithHeadAndAssignees) => void
+  onOpenCreateModal?: () => void
 }
 
 export function TeacherWorkspace({
   projects,
-  onSelectProject
+  onSelectProject,
+  onOpenCreateModal
 }: TeacherWorkspaceProps) {
   const { currentUser } = useRole()
 
   const myAssignedProjects = projects.filter(p =>
-    p.head_of_project === currentUser?.user_id ||
-    p.assignees?.some(a => a.user_id === currentUser?.user_id)
+    (p.head_of_project === currentUser?.user_id ||
+      p.assignees?.some(a => a.user_id === currentUser?.user_id)) &&
+    p.head?.role !== 'admin' &&
+    p.head?.role !== 'executive'
   )
 
   const myCompleted = myAssignedProjects.filter(p => p.progress_percentage === 100).length
@@ -35,7 +39,17 @@ export function TeacherWorkspace({
           </h2>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {onOpenCreateModal && (
+            <button
+              onClick={onOpenCreateModal}
+              className="px-4 py-2.5 rounded-xl bg-[#003B71] hover:bg-[#00264D] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 text-white" />
+              <span>ป้อนโครงการ OKR ใหม่</span>
+            </button>
+          )}
+
           <div className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-center">
             <span className="text-[10px] text-slate-500 block font-semibold">งานที่ได้รับมอบหมาย</span>
             <span className="text-sm font-black text-slate-900">{myAssignedProjects.length} โครงการ</span>
@@ -61,7 +75,8 @@ export function TeacherWorkspace({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             {myAssignedProjects.map((p) => {
-              const headName = getUserFullName(p.head) || 'อาจารย์หัวหน้าโครงการ'
+              const rawHeadName = getUserFullName(p.head) || 'หัวหน้าโครงการ'
+              const headName = removeTitlesAndRoles(rawHeadName) || 'หัวหน้าโครงการ'
               const isCompleted = p.progress_percentage === 100
               return (
                 <div

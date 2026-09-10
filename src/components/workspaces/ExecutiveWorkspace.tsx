@@ -504,9 +504,9 @@ export function ExecutiveWorkspace({
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
                 >
                   <option value="">-- กรุณาเลือกรายชื่อผู้ใช้งาน --</option>
-                  {allUsers.map((u) => (
+                  {allUsers.filter(u => u.role !== 'admin' && u.role !== 'executive').map((u) => (
                     <option key={u.user_id} value={u.user_id}>
-                      [{u.role}] {getUserFullName(u)} ({formatDepartmentShort(u.department)})
+                      {getUserFullName(u)} ({formatDepartmentShort(u.department)})
                     </option>
                   ))}
                 </select>

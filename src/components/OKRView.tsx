@@ -17,7 +17,7 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject }
   const { currentRole } = useRole()
   const [expandedOkr, setExpandedOkr] = useState<string | null>(okrs[0]?.okr_id || null)
 
-  const canCreate = currentRole ? ['admin', 'head_okr', 'executive'].includes(currentRole) : false
+  const canCreate = currentRole ? ['admin', 'head_okr', 'executive', 'teacher'].includes(currentRole) : false
 
   return (
     <div className="space-y-6">

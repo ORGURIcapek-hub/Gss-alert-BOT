@@ -18,20 +18,22 @@ import {
 } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { assignProjectRole } from '@/lib/services/okr-service'
-import { formatDepartmentShort, getUserFullName } from '@/lib/user-constants'
+import { formatDepartmentShort, getUserFullName, removeTitlesAndRoles } from '@/lib/user-constants'
 
 interface HeadOKRWorkspaceProps {
   okrs: OKR[]
   projects: ProjectWithHeadAndAssignees[]
   onSelectProject: (project: ProjectWithHeadAndAssignees) => void
   onOpenCreateModal: () => void
+  onProjectsRefresh?: () => void
 }
 
 export function HeadOKRWorkspace({
   okrs,
   projects,
   onSelectProject,
-  onOpenCreateModal
+  onOpenCreateModal,
+  onProjectsRefresh
 }: HeadOKRWorkspaceProps) {
   const { currentUser, allUsers, refreshUsers } = useRole()
 
@@ -50,8 +52,10 @@ export function HeadOKRWorkspace({
   const myInProgress = myDeptProjects.filter(p => p.progress_percentage < 100 && (!p.bottleneck || p.bottleneck.length === 0)).length
   const myDelayed = myDeptProjects.filter(p => p.bottleneck && p.bottleneck.length > 0).length
 
-  // Filter teachers (role: teacher or same department)
-  const availableTeachers = allUsers.filter(u => u.role === 'teacher' || u.department === currentUser?.department)
+  // Filter only teacher role (exclude admin, executive, staff, head_okr)
+  const availableTeachers = allUsers.filter(
+    u => u.role === 'teacher'
+  )
 
   const handleAssignMember = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,6 +70,7 @@ export function HeadOKRWorkspace({
     })
 
     await refreshUsers()
+    if (onProjectsRefresh) onProjectsRefresh()
     setIsAssigning(false)
     setAssignSuccess(true)
     setTimeout(() => {
@@ -264,7 +269,7 @@ export function HeadOKRWorkspace({
                   <option value="">-- เลือกอาจารย์ผู้รับผิดชอบ --</option>
                   {availableTeachers.map((u) => (
                     <option key={u.user_id} value={u.user_id}>
-                      [{u.role}] {getUserFullName(u)} ({formatDepartmentShort(u.department)})
+                      {removeTitlesAndRoles(getUserFullName(u))} ({formatDepartmentShort(u.department)})
                     </option>
                   ))}
                 </select>

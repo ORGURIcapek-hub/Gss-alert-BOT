@@ -59,6 +59,12 @@ export default function HomePage() {
       ])
       setOkrs(okrsData)
       setProjects(projectsData)
+      // Sync selectedProject with freshly loaded data to reflect budget/progress updates
+      setSelectedProject(prev => {
+        if (!prev) return null
+        const updated = projectsData.find(p => p.project_id === prev.project_id)
+        return updated || prev
+      })
     } catch (err) {
       console.error('Failed to load data:', err)
     } finally {
@@ -149,6 +155,7 @@ export default function HomePage() {
                   projects={projects}
                   onSelectProject={(p) => setSelectedProject(p)}
                   onOpenCreateModal={() => setIsCreateModalOpen(true)}
+                  onProjectsRefresh={loadData}
                 />
               )}
 
@@ -156,6 +163,7 @@ export default function HomePage() {
                 <TeacherWorkspace
                   projects={projects}
                   onSelectProject={(p) => setSelectedProject(p)}
+                  onOpenCreateModal={() => setIsCreateModalOpen(true)}
                 />
               )}
 

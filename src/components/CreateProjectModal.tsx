@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { OKR, UserProfile } from '@/types/database.types'
 import { X, FolderPlus, CheckCircle } from 'lucide-react'
 import { mockDepartments } from '@/lib/mock-data'
-import { createProjectRecord } from '@/lib/services/okr-service'
-import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
+import { createProjectRecord, assignProjectRole } from '@/lib/services/okr-service'
+import { getUserFullName, formatDepartmentShort, removeTitlesAndRoles } from '@/lib/user-constants'
+import { useRole } from '@/components/RoleContext'
 
 interface CreateProjectModalProps {
   okrs: OKR[]
@@ -15,12 +16,23 @@ interface CreateProjectModalProps {
 }
 
 export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreateProjectModalProps) {
+  const { currentRole, currentUser } = useRole()
+  const isTeacher = currentRole === 'teacher'
+
+  // Only head_okr, staff, and teacher can be project heads (exclude admin and executive)
+  const eligibleHeads = users.filter(u => u.role !== 'admin' && u.role !== 'executive')
+
   const [okrId, setOkrId] = useState(okrs[0]?.okr_id || '')
   const [projectName, setProjectName] = useState('')
   const [projectType, setProjectType] = useState('งานวิจัยขั้นแนวหน้า')
   const [department, setDepartment] = useState('ภาควิชาวิทยาการคอมพิวเตอร์')
-  const [headId, setHeadId] = useState(users[3]?.user_id || users[0]?.user_id || '')
-  const [budget, setBudget] = useState(500000)
+  const [headId, setHeadId] = useState(() => {
+    if (currentUser && eligibleHeads.some(u => u.user_id === currentUser.user_id)) {
+      return currentUser.user_id
+    }
+    return eligibleHeads[0]?.user_id || ''
+  })
+  const [budget, setBudget] = useState<number | string>(500000)
   const [mainObjective, setMainObjective] = useState('')
   const [subObjective, setSubObjective] = useState('')
   const [description, setDescription] = useState('')
@@ -28,24 +40,40 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
   const [endDate, setEndDate] = useState('2024-12-31')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  useEffect(() => {
+    if (eligibleHeads.length > 0 && !eligibleHeads.some(u => u.user_id === headId)) {
+      setHeadId(eligibleHeads[0].user_id)
+    }
+  }, [users, headId])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!projectName.trim()) return
 
     setIsSubmitting(true)
-    await createProjectRecord({
+    const createdProj = await createProjectRecord({
       okr_id: okrId,
       project_name: projectName,
       project_type: projectType,
       department: department,
       head_of_project: headId,
-      budget: Number(budget),
+      budget: Number(budget) || 0,
       main_objective: mainObjective,
       sub_objective: subObjective,
       description: description,
       start_date: startDate,
       end_date: endDate
     })
+
+    // If the creator is not the chosen head, automatically assign creator as project Member
+    if (currentUser && currentUser.user_id !== headId && createdProj) {
+      await assignProjectRole({
+        project_id: createdProj.project_id,
+        user_id: currentUser.user_id,
+        role_type: 'Member',
+        assigned_by: currentUser.user_id
+      })
+    }
 
     setIsSubmitting(false)
     onCreated()
@@ -128,13 +156,22 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
               <select
                 value={headId}
                 onChange={(e) => setHeadId(e.target.value)}
+                required
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
               >
-                {users.map((u) => (
-                  <option key={u.user_id} value={u.user_id}>
-                    {getUserFullName(u)} ({formatDepartmentShort(u.department)})
-                  </option>
-                ))}
+                {eligibleHeads.length === 0 ? (
+                  <option value="">-- ไม่พบบุคลากรที่มีสิทธิ์เป็นหัวหน้าโครงการ --</option>
+                ) : (
+                  eligibleHeads.map((u) => {
+                    const rawName = getUserFullName(u)
+                    const displayName = isTeacher ? removeTitlesAndRoles(rawName) : rawName
+                    return (
+                      <option key={u.user_id} value={u.user_id}>
+                        {displayName} ({formatDepartmentShort(u.department)})
+                      </option>
+                    )
+                  })
+                )}
               </select>
             </div>
 
@@ -145,7 +182,17 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
               <input
                 type="number"
                 value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setBudget(val === '' ? '' : Number(val))
+                }}
+                onFocus={() => {
+                  if (budget === 0 || budget === '0') setBudget('')
+                }}
+                onBlur={() => {
+                  if (budget === '' || isNaN(Number(budget))) setBudget(0)
+                }}
+                placeholder="0"
                 required
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
               />

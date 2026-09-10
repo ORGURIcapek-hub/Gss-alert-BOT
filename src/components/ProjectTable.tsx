@@ -74,7 +74,7 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
     }
   }
 
-  const canCreate = currentRole ? ['admin', 'head_okr', 'executive'].includes(currentRole) : false
+  const canCreate = currentRole ? ['admin', 'head_okr', 'executive', 'teacher'].includes(currentRole) : false
 
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-8 border border-slate-200 shadow-sm space-y-5">

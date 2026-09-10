@@ -179,11 +179,11 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
                   className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#003B71]"
                 >
                   <option value="">+ เพิ่มอาจารย์ผู้รับผิดชอบจากรายชื่อ...</option>
-                  {allUsers.map((u) => {
+                  {allUsers.filter(u => u.role !== 'admin' && u.role !== 'executive').map((u) => {
                     const fullName = getUserFullName(u)
                     return (
                       <option key={u.user_id} value={fullName}>
-                        [{u.role}] {fullName} ({formatDepartmentShort(u.department)})
+                        {fullName} ({formatDepartmentShort(u.department)})
                       </option>
                     )
                   })}

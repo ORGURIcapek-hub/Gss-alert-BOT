@@ -198,3 +198,13 @@ export function formatThaiDate(dateStr?: string | null, options?: Intl.DateTimeF
   }
 }
 
+/** Strip academic ranks/titles (ยศ/คำนำหน้าทางวิชาการ) and role tags from name string */
+export function removeTitlesAndRoles(name: string): string {
+  if (!name) return ''
+  return name
+    .replace(/\[.*?\]\s*/g, '')
+    .replace(/^(ศ\.|รศ\.|ผศ\.|อ\.|ดร\.)+(\s*(ศ\.|รศ\.|ผศ\.|อ\.|ดร\.))*\s*/gi, '')
+    .replace(/^อาจารย์\s*/g, '')
+    .trim()
+}
+

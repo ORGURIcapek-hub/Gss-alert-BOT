@@ -26,7 +26,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const [progress, setProgress] = useState(Number(project?.progress_percentage || 0))
-  const [spent, setSpent] = useState(Number(project?.spent_amount || 0))
+  const [spent, setSpent] = useState<number | string>(project?.spent_amount ?? 0)
   const [bottleneck, setBottleneck] = useState(project?.bottleneck || '')
   const [status, setStatus] = useState<ProjectStatus>(project?.status || 'In Progress')
   const [isSaving, setIsSaving] = useState(false)
@@ -35,6 +35,10 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   useEffect(() => {
     if (project) {
       fetchProjectAssignments(project.project_id).then(setAssignments)
+      setProgress(Number(project.progress_percentage || 0))
+      setSpent(project.spent_amount ?? 0)
+      setBottleneck(project.bottleneck || '')
+      setStatus(project.status || 'In Progress')
     }
   }, [project])
 
@@ -67,7 +71,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
       progress,
       bottleneck.trim().length > 0 ? bottleneck.trim() : null,
       newStatus,
-      spent
+      Number(spent) || 0
     )
 
     setStatus(newStatus)
@@ -253,7 +257,21 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                   type="number"
                   value={spent}
                   disabled={!canEdit}
-                  onChange={(e) => setSpent(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setSpent(val === '' ? '' : Number(val))
+                  }}
+                  onFocus={() => {
+                    if (spent === 0 || spent === '0') {
+                      setSpent('')
+                    }
+                  }}
+                  onBlur={() => {
+                    if (spent === '' || isNaN(Number(spent))) {
+                      setSpent(0)
+                    }
+                  }}
+                  placeholder="0"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
                 />
               </div>
