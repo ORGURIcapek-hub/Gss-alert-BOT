@@ -115,6 +115,29 @@ export async function GET(req: NextRequest) {
           const localOnlyUsers = storage.users.filter(u => !storage.deletedUserIds.includes(u.user_id) && !supabaseIds.has(u.user_id))
           const mergedUsers = [...validSupabaseUsers, ...localOnlyUsers]
 
+          // Keep storage.users synced with Supabase users so PUT and other operations always find them
+          let modified = false
+          for (const sbUser of validSupabaseUsers) {
+            const idx = storage.users.findIndex(u => u.user_id === sbUser.user_id)
+            if (idx === -1) {
+              storage.users.push(sbUser)
+              modified = true
+            } else {
+              if (
+                storage.users[idx].status !== sbUser.status ||
+                storage.users[idx].role !== sbUser.role ||
+                storage.users[idx].password !== sbUser.password ||
+                storage.users[idx].updated_at !== sbUser.updated_at
+              ) {
+                storage.users[idx] = { ...storage.users[idx], ...sbUser }
+                modified = true
+              }
+            }
+          }
+          if (modified) {
+            await saveStorage(storage)
+          }
+
           return NextResponse.json({
             success: true,
             users: mergedUsers,
@@ -241,13 +264,34 @@ export async function PUT(req: NextRequest) {
     }
 
     const storage = await ensureDataFile()
-    const userIndex = storage.users.findIndex(u => u.user_id === userId)
+    let userIndex = storage.users.findIndex(u => u.user_id === userId)
+    let user = userIndex !== -1 ? { ...storage.users[userIndex] } : null
 
-    if (userIndex === -1) {
+    const supabase = getSafeSupabaseClient()
+
+    // If user not in local storage, query Supabase
+    if (!user && supabase) {
+      try {
+        const { data: sbUser, error: sbErr } = await supabase
+          .from('users')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+
+        if (!sbErr && sbUser) {
+          user = sbUser as UserProfile
+          storage.users.push(user)
+          userIndex = storage.users.length - 1
+        }
+      } catch (e) {
+        console.warn('[api/users] Failed to fetch user from Supabase in PUT:', e)
+      }
+    }
+
+    if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
     }
 
-    const user = storage.users[userIndex]
     const now = new Date().toISOString()
 
     switch (action) {
@@ -301,26 +345,39 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    storage.users[userIndex] = user
+    // Save to local storage
+    if (userIndex >= 0 && userIndex < storage.users.length) {
+      storage.users[userIndex] = user
+    } else {
+      storage.users.push(user)
+    }
     await saveStorage(storage)
 
     // Sync with Supabase if available
-    const supabase = getSafeSupabaseClient()
     if (supabase) {
       try {
-        await supabase.from('users').update({
+        const updatePayload: Record<string, any> = {
           status: user.status,
           role: user.role,
           management_order: user.management_order,
-          password: user.password,
-          name: user.name,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          department: user.department,
-          position: user.position,
-          avatar_url: user.avatar_url,
           updated_at: user.updated_at
-        }).eq('user_id', userId)
+        }
+        if (user.password) updatePayload.password = user.password
+        if (user.name) updatePayload.name = user.name
+        if (user.first_name) updatePayload.first_name = user.first_name
+        if (user.last_name) updatePayload.last_name = user.last_name
+        if (user.department) updatePayload.department = user.department
+        if (user.position) updatePayload.position = user.position
+        if (user.avatar_url) updatePayload.avatar_url = user.avatar_url
+
+        const { error: sbError } = await supabase
+          .from('users')
+          .update(updatePayload)
+          .eq('user_id', userId)
+
+        if (sbError) {
+          console.error('[api/users] Supabase update error:', sbError)
+        }
       } catch (dbErr) {
         console.warn('[api/users] Supabase update warning:', dbErr)
       }

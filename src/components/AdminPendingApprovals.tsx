@@ -75,39 +75,46 @@ export function AdminPendingApprovals() {
     setProcessingId(user.user_id)
     setConfirmModal({ isOpen: false, action: 'approve', user: null })
 
-    if (action === 'approve') {
-      const assignedRole = selectedRoleOverrides[user.user_id] || user.role
-      const res = await approveUser(user.user_id, assignedRole)
-      if (res.success) {
-        setNotification({
-          type: 'success',
-          message: `อนุมัติสิทธิ์สำหรับ ${getUserFullName(user)} เรียบร้อยแล้ว (บทบาท: ${getRoleBadge(assignedRole).label})`
-        })
+    try {
+      if (action === 'approve') {
+        const assignedRole = selectedRoleOverrides[user.user_id] || user.role
+        const res = await approveUser(user.user_id, assignedRole)
+        if (res.success) {
+          setNotification({
+            type: 'success',
+            message: `อนุมัติสิทธิ์สำหรับ ${getUserFullName(user)} เรียบร้อยแล้ว (บทบาท: ${getRoleBadge(assignedRole).label})`
+          })
+        } else {
+          setNotification({
+            type: 'error',
+            message: res.error || 'เกิดข้อผิดพลาดในการอนุมัติ'
+          })
+        }
       } else {
-        setNotification({
-          type: 'error',
-          message: res.error || 'เกิดข้อผิดพลาดในการอนุมัติ'
-        })
+        const res = await rejectUser(user.user_id)
+        if (res.success) {
+          setNotification({
+            type: 'success',
+            message: `ปฏิเสธคำขอสมัครของ ${getUserFullName(user)} เรียบร้อยแล้ว`
+          })
+        } else {
+          setNotification({
+            type: 'error',
+            message: res.error || 'เกิดข้อผิดพลาดในการปฏิเสธ'
+          })
+        }
       }
-    } else {
-      const res = await rejectUser(user.user_id)
-      if (res.success) {
-        setNotification({
-          type: 'success',
-          message: `ปฏิเสธคำขอสมัครของ ${getUserFullName(user)} เรียบร้อยแล้ว`
-        })
-      } else {
-        setNotification({
-          type: 'error',
-          message: res.error || 'เกิดข้อผิดพลาดในการปฏิเสธ'
-        })
-      }
+    } catch (err: any) {
+      setNotification({
+        type: 'error',
+        message: err?.message || 'เกิดข้อผิดพลาดในการดำเนินการ'
+      })
+    } finally {
+      setProcessingId(null)
+      setTimeout(() => {
+        setNotification(null)
+      }, 4000)
     }
-
-    setProcessingId(null)
-    setTimeout(() => {
-      setNotification(null)
-    }, 4000)
   }
 
   return (

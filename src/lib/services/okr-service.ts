@@ -289,19 +289,31 @@ export async function registerUserRecord(userData: {
 }
 
 export async function approveUserRecord(userId: string, assignedRole?: UserRole): Promise<UserProfile> {
+  let updatedUser: UserProfile | null = null
+
   if (typeof window !== 'undefined') {
     try {
-      await fetch('/api/users', {
+      const res = await fetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve', userId, assignedRole })
       })
-    } catch {}
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'ไม่สามารถอนุมัติผู้ใช้งานได้')
+      }
+      if (data.user) {
+        updatedUser = data.user
+      }
+    } catch (e: any) {
+      console.error('[okr-service] approveUserRecord error:', e)
+      throw e
+    }
   }
 
   inMemoryUsers = inMemoryUsers.map(u => {
     if (u.user_id === userId) {
-      return {
+      return updatedUser || {
         ...u,
         status: 'approved',
         ...(assignedRole ? { role: assignedRole, management_order: getManagementOrder(assignedRole) } : {})
@@ -310,18 +322,25 @@ export async function approveUserRecord(userId: string, assignedRole?: UserRole)
     return u
   })
   setCachedUsers(inMemoryUsers)
-  return inMemoryUsers.find(u => u.user_id === userId)!
+  return updatedUser || inMemoryUsers.find(u => u.user_id === userId)!
 }
 
 export async function rejectUserRecord(userId: string): Promise<void> {
   if (typeof window !== 'undefined') {
     try {
-      await fetch('/api/users', {
+      const res = await fetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reject', userId })
       })
-    } catch {}
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'ไม่สามารถปฏิเสธคำขอสมัครได้')
+      }
+    } catch (e: any) {
+      console.error('[okr-service] rejectUserRecord error:', e)
+      throw e
+    }
   }
 
   inMemoryUsers = inMemoryUsers.map(u => (u.user_id === userId ? { ...u, status: 'rejected' } : u))

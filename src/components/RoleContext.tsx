@@ -377,22 +377,47 @@ function notifySyncChannel() {
 
   const approveUser = async (userId: string, assignedRole?: UserRole): Promise<{ success: boolean; error?: string }> => {
     try {
+      // Optimistically update state so pending list updates immediately
+      setAllUsers(prev => prev.map(u => {
+        if (u.user_id === userId) {
+          return {
+            ...u,
+            status: 'approved',
+            ...(assignedRole ? { role: assignedRole } : {})
+          }
+        }
+        return u
+      }))
+
       await approveUserRecord(userId, assignedRole)
       notifySyncChannel()
-      await refreshUsers()
+      await refreshUsers(true)
       return { success: true }
     } catch (err: any) {
+      await refreshUsers(true)
       return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการอนุมัติผู้ใช้งาน' }
     }
   }
 
   const rejectUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     try {
+      // Optimistically update state so pending list updates immediately
+      setAllUsers(prev => prev.map(u => {
+        if (u.user_id === userId) {
+          return {
+            ...u,
+            status: 'rejected'
+          }
+        }
+        return u
+      }))
+
       await rejectUserRecord(userId)
       notifySyncChannel()
-      await refreshUsers()
+      await refreshUsers(true)
       return { success: true }
     } catch (err: any) {
+      await refreshUsers(true)
       return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการปฏิเสธคำขอ' }
     }
   }

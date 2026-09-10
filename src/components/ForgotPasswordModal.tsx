@@ -179,18 +179,7 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
     return () => clearInterval(timer)
   }, [isOpen, s.step, s.resendCooldown])
 
-  if (!isOpen) return null
-
-  const { hasLength, hasLetter, hasNumber, hasSpecial, isValid: isPassValid } = validatePassword(s.newPassword)
-  const isPassMatching = Boolean(s.newPassword && s.confirmPassword && s.newPassword === s.confirmPassword)
-  const strengthMeta = getPasswordStrengthMeta(s.newPassword)
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
-
-  const handleClose = () => {
-    dispatch({ type: 'RESET', initialEmail: '' })
-    onClose()
-  }
+  // ── Handlers (must be declared before early return to satisfy Rules of Hooks) ──
 
   const dispatchOtp = useCallback(async (user: UserProfile) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
@@ -215,6 +204,17 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
       dispatch({ type: 'SET_SUCCESS', msg: `ส่งรหัสยืนยัน OTP ไปยังอีเมล ${user.email} สำเร็จแล้ว (รหัสมีอายุ 5 นาที)` })
     }
   }, [])
+
+  if (!isOpen) return null
+
+  const { hasLength, hasLetter, hasNumber, hasSpecial, isValid: isPassValid } = validatePassword(s.newPassword)
+  const isPassMatching = Boolean(s.newPassword && s.confirmPassword && s.newPassword === s.confirmPassword)
+  const strengthMeta = getPasswordStrengthMeta(s.newPassword)
+
+  const handleClose = () => {
+    dispatch({ type: 'RESET', initialEmail: '' })
+    onClose()
+  }
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
