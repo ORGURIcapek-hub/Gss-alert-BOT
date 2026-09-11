@@ -117,7 +117,25 @@ export async function GET(req: NextRequest) {
           const validSupabaseProjects = data.filter((p: any) => !storage.deletedProjectIds.includes(p.project_id))
           const supabaseIds = new Set(validSupabaseProjects.map((p: any) => p.project_id))
           const localOnly = storage.projects.filter(p => !storage.deletedProjectIds.includes(p.project_id) && !supabaseIds.has(p.project_id))
-          const merged = [...validSupabaseProjects, ...localOnly]
+          const merged = [
+            ...validSupabaseProjects.map((sp: any) => {
+              const localProj = storage.projects.find(lp => lp.project_id === sp.project_id)
+              const localEvs = localProj?.evidences || []
+              const spEvs = sp.evidences || []
+              const seen = new Set(spEvs.map((e: any) => e.evidence_id))
+              const combined = [...spEvs]
+              for (const le of localEvs) {
+                if (!seen.has(le.evidence_id)) {
+                  combined.push(le)
+                }
+              }
+              return {
+                ...sp,
+                evidences: combined
+              }
+            }),
+            ...localOnly
+          ]
           storage.projects = merged
           await saveStorage(storage)
           return NextResponse.json({ success: true, projects: merged, assignments: storage.assignments })
@@ -326,24 +344,70 @@ export async function POST(req: NextRequest) {
     if (action === 'submit_evidence') {
       const { submission } = body
       if (submission && submission.project_id) {
+        const newEvId = submission.evidence_id || crypto.randomUUID()
+        const newEv = {
+          evidence_id: newEvId,
+          project_id: submission.project_id,
+          uploaded_by: submission.sender_id,
+          file_name: submission.file_name,
+          file_path: submission.file_path,
+          file_size: submission.file_size || 1024 * 1024 * 2,
+          description: submission.description || `แนบหลักฐานไฟล์ ${submission.file_name}`,
+          upload_date: new Date().toISOString()
+        }
+
         storage.projects = storage.projects.map(p => {
           if (p.project_id === submission.project_id) {
-            const evidences = p.evidences ? [...p.evidences] : []
-            evidences.unshift({
-              evidence_id: submission.evidence_id || crypto.randomUUID(),
-              project_id: submission.project_id,
-              uploaded_by: submission.sender_id,
-              file_name: submission.file_name,
-              file_path: submission.file_path,
-              file_size: 1024 * 1024 * 2,
-              description: submission.description || `แนบหลักฐานไฟล์ ${submission.file_name}`,
-              upload_date: new Date().toISOString()
-            })
+            const evidences = p.evidences ? [newEv, ...p.evidences.filter(e => e.evidence_id !== newEvId)] : [newEv]
             return { ...p, evidences }
           }
           return p
         })
         await saveStorage(storage)
+
+        if (supabase) {
+          try {
+            await supabase.from('evidence_submissions').insert({
+              evidence_id: newEvId,
+              project_id: submission.project_id,
+              sender_id: submission.sender_id,
+              file_name: submission.file_name,
+              file_path: submission.file_path,
+              file_type: submission.file_type || 'application/pdf',
+              submitted_at: new Date().toISOString()
+            })
+            await supabase.from('evidences').insert(newEv)
+          } catch (e) {
+            console.warn('[api/projects] Supabase submit evidence error:', e)
+          }
+        }
+      }
+      return NextResponse.json({ success: true })
+    }
+
+    // 5. DELETE EVIDENCE
+    if (action === 'delete_evidence') {
+      const { evidence_id, project_id } = body
+      if (evidence_id) {
+        storage.projects = storage.projects.map(p => {
+          if (!project_id || p.project_id === project_id) {
+            return {
+              ...p,
+              evidences: (p.evidences || []).filter(e => e.evidence_id !== evidence_id)
+            }
+          }
+          return p
+        })
+        await saveStorage(storage)
+
+        if (supabase) {
+          try {
+            await supabase.from('evidence_submissions').delete().eq('evidence_id', evidence_id)
+            await supabase.from('evidences').delete().eq('evidence_id', evidence_id)
+          } catch (e) {
+            console.warn('[api/projects] Supabase delete evidence error:', e)
+          }
+        }
       }
       return NextResponse.json({ success: true })
     }

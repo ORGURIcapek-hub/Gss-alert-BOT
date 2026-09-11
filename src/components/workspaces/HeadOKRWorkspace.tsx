@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { OKR, ProjectWithHeadAndAssignees, UserProfile } from '@/types/database.types'
+import React, { useState, useEffect, useMemo } from 'react'
+import { OKR, ProjectWithHeadAndAssignees, UserProfile, ProjectAssignment } from '@/types/database.types'
 import {
   Layers,
   Plus,
@@ -17,7 +17,7 @@ import {
   UserCheck
 } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
-import { assignProjectRole } from '@/lib/services/okr-service'
+import { assignProjectRole, fetchProjectAssignments } from '@/lib/services/okr-service'
 import { formatDepartmentShort, getUserFullName, removeTitlesAndRoles } from '@/lib/user-constants'
 
 interface HeadOKRWorkspaceProps {
@@ -43,6 +43,7 @@ export function HeadOKRWorkspace({
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [isAssigning, setIsAssigning] = useState(false)
   const [assignSuccess, setAssignSuccess] = useState(false)
+  const [projectAssignments, setProjectAssignments] = useState<ProjectAssignment[]>([])
 
   const myDeptProjects = projects.filter(
     p => p.department === currentUser?.department || p.head_of_project === currentUser?.user_id
@@ -52,10 +53,52 @@ export function HeadOKRWorkspace({
   const myInProgress = myDeptProjects.filter(p => p.progress_percentage < 100 && (!p.bottleneck || p.bottleneck.length === 0)).length
   const myDelayed = myDeptProjects.filter(p => p.bottleneck && p.bottleneck.length > 0).length
 
-  // Filter only teacher role (exclude admin, executive, staff, head_okr)
-  const availableTeachers = allUsers.filter(
-    u => u.role === 'teacher'
-  )
+  // Fetch real-time assignments for the currently selected project in modal
+  useEffect(() => {
+    if (selectedProjectId && isAssignMemberOpen) {
+      fetchProjectAssignments(selectedProjectId)
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setProjectAssignments(data)
+          }
+        })
+        .catch(() => {})
+    } else {
+      setProjectAssignments([])
+    }
+  }, [selectedProjectId, isAssignMemberOpen])
+
+  // Collect user IDs already associated with the currently selected project (as Head or Assigned Member)
+  const currentSelectedProject = projects.find(p => p.project_id === selectedProjectId)
+  const existingUserIdsInProject = useMemo(() => {
+    const ids = new Set<string>()
+    if (currentSelectedProject) {
+      if (currentSelectedProject.head_of_project) ids.add(currentSelectedProject.head_of_project)
+      if (currentSelectedProject.head?.user_id) ids.add(currentSelectedProject.head.user_id)
+      if (Array.isArray(currentSelectedProject.assignees)) {
+        for (const a of currentSelectedProject.assignees) {
+          if (a?.user_id) ids.add(a.user_id)
+          if ((a as any)?.user?.user_id) ids.add((a as any).user.user_id)
+        }
+      }
+    }
+    for (const pa of projectAssignments) {
+      if (pa?.user_id) ids.add(pa.user_id)
+    }
+    return ids
+  }, [currentSelectedProject, projectAssignments])
+
+  // Filter roles: head_okr, teacher, staff (3 levels only, exclude admin and executive)
+  // Exclude users already present in the currently selected project (won't show duplicate in that project, but will show in other projects)
+  const availableTeachers = useMemo(() => {
+    return allUsers.filter(
+      u =>
+        (u.role === 'head_okr' || u.role === 'teacher' || u.role === 'staff') &&
+        u.status !== 'pending' &&
+        u.status !== 'rejected' &&
+        !existingUserIdsInProject.has(u.user_id)
+    )
+  }, [allUsers, existingUserIdsInProject])
 
   const handleAssignMember = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,6 +114,10 @@ export function HeadOKRWorkspace({
 
     await refreshUsers()
     if (onProjectsRefresh) onProjectsRefresh()
+    if (selectedProjectId) {
+      fetchProjectAssignments(selectedProjectId).then(setProjectAssignments).catch(() => {})
+    }
+    setSelectedUserId('')
     setIsAssigning(false)
     setAssignSuccess(true)
     setTimeout(() => {
@@ -95,6 +142,7 @@ export function HeadOKRWorkspace({
               if (myDeptProjects.length > 0) {
                 setSelectedProjectId(myDeptProjects[0].project_id)
               }
+              setSelectedUserId('')
               setIsAssignMemberOpen(true)
             }}
             className="px-4 py-2.5 rounded-xl bg-[#00A8B5] hover:bg-[#008B97] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
@@ -244,7 +292,10 @@ export function HeadOKRWorkspace({
                 </label>
                 <select
                   value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedProjectId(e.target.value)
+                    setSelectedUserId('')
+                  }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
                 >
                   {myDeptProjects.map((p) => (
@@ -258,15 +309,20 @@ export function HeadOKRWorkspace({
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4 text-emerald-600" />
-                  เลือกอาจารย์ผู้ร่วมรับผิดชอบ (Member) *
+                  เลือกอาจารย์ / บุคลากรผู้ร่วมรับผิดชอบ (Member) *
                 </label>
                 <select
                   value={selectedUserId}
                   onChange={(e) => setSelectedUserId(e.target.value)}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
+                  disabled={availableTeachers.length === 0}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71] disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
-                  <option value="">-- เลือกอาจารย์ผู้รับผิดชอบ --</option>
+                  <option value="">
+                    {availableTeachers.length === 0
+                      ? '-- มอบหมายบุคลากรครบทุกคนแล้วในโครงการนี้ --'
+                      : '-- เลือกอาจารย์ / บุคลากรผู้รับผิดชอบ --'}
+                  </option>
                   {availableTeachers.map((u) => (
                     <option key={u.user_id} value={u.user_id}>
                       {removeTitlesAndRoles(getUserFullName(u))} ({formatDepartmentShort(u.department)})
@@ -278,7 +334,7 @@ export function HeadOKRWorkspace({
 
               <button
                 type="submit"
-                disabled={isAssigning || !selectedUserId || !selectedProjectId}
+                disabled={isAssigning || !selectedUserId || !selectedProjectId || availableTeachers.length === 0}
                 className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#003B71] to-[#00A8B5] hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isAssigning ? 'กำลังบันทึก...' : 'บันทึกการมอบหมายอาจารย์ลูกทีม'}

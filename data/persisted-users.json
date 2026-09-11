@@ -83,10 +83,10 @@
     {
       "user_id": "1268158f-ec18-40a0-84a9-eb846be695ca",
       "username": "ninice",
-      "name": "นางสาวนิรชา วรรณชยา",
+      "name": "นางสาว นิรชา วรรณชยา",
       "email": "ninicexzen@gmail.com",
       "password": "N0926899879n-",
-      "first_name": "นางสาวนิรชา",
+      "first_name": "นางสาว นิรชา",
       "last_name": "วรรณชยา",
       "position": "เจ้าหน้าที่ / บุคลากรทั่วไป",
       "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
@@ -98,7 +98,7 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-10T15:16:23.226Z",
-      "updated_at": "2026-09-10T15:16:33.785Z"
+      "updated_at": "2026-09-11T13:22:33.151Z"
     }
   ],
   "deletedUserIds": [

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { ProjectWithHeadAndAssignees, ProjectStatus, ProjectAssignment } from '@/types/database.types'
+import { ProjectWithHeadAndAssignees, ProjectStatus, ProjectAssignment, Evidence } from '@/types/database.types'
 import { X, Calendar, DollarSign, Upload, FileText, CheckCircle, UserCheck, Trash2, Download, ExternalLink, FileUp, AlertCircle, FileImage } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments } from '@/lib/services/okr-service'
@@ -24,6 +24,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [evidences, setEvidences] = useState<Evidence[]>(project?.evidences || [])
 
   const [progress, setProgress] = useState(Number(project?.progress_percentage || 0))
   const [spent, setSpent] = useState<number | string>(project?.spent_amount ?? 0)
@@ -39,6 +40,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
       setSpent(project.spent_amount ?? 0)
       setBottleneck(project.bottleneck || '')
       setStatus(project.status || 'In Progress')
+      setEvidences(project.evidences || [])
     }
   }, [project])
 
@@ -50,25 +52,38 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   const isAssignedInTable = currentUser ? assignments.some(a => a.user_id === currentUser.user_id) : false
   const isAdmin = currentRole === 'admin'
   const isExecutive = currentRole === 'executive'
+  const isTeacher = currentRole === 'teacher'
+  const isStaff = currentRole === 'staff'
+  const isTeacherOrStaff = isTeacher || isStaff
 
-  const canEdit = isHead || isAssigneeFromProp || isAssignedInTable || isAdmin
-  const canUploadEvidence = (isAssigneeFromProp || isAssignedInTable || isHead || isAdmin) && !isExecutive
+  // Progress edit permission:
+  // ONLY Admin, Project Head, or OKR Head can adjust progress slider. Teacher and Staff cannot adjust progress!
+  const canEditProgress = (isAdmin || isHead || currentRole === 'head_okr') && !isTeacherOrStaff
+
+  // Spending edit permission:
+  // Teacher and Staff can input spending details, as can Head and Admin. Executive cannot edit.
+  const canEditSpending = (isAdmin || isHead || isAssigneeFromProp || isAssignedInTable || isTeacherOrStaff) && !isExecutive
+
+  const canEdit = canEditProgress || canEditSpending
+  const canUploadEvidence = (isAssigneeFromProp || isAssignedInTable || isHead || isAdmin || isTeacherOrStaff) && !isExecutive
 
   const handleSaveProgress = async () => {
     setIsSaving(true)
     let newStatus = status
-    if (progress === 100) {
-      newStatus = 'Completed'
-      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } })
-    } else if (bottleneck.trim().length > 0) {
-      newStatus = 'Delayed'
-    } else {
-      newStatus = 'In Progress'
+    if (canEditProgress) {
+      if (progress === 100) {
+        newStatus = 'Completed'
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } })
+      } else if (bottleneck.trim().length > 0) {
+        newStatus = 'Delayed'
+      } else {
+        newStatus = 'In Progress'
+      }
     }
 
     await updateProjectProgressRecord(
       project.project_id,
-      progress,
+      canEditProgress ? progress : Number(project.progress_percentage || 0),
       bottleneck.trim().length > 0 ? bottleneck.trim() : null,
       newStatus,
       Number(spent) || 0
@@ -111,18 +126,45 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
     setIsUploading(true)
 
     try {
-      // Create local object URL for preview and simulated storage path
-      const fakeStorageUrl = URL.createObjectURL(selectedFile)
-      const mimeType = selectedFile.type || (selectedFile.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
+      // Read file as Data URL (base64) so it persists and opens reliably across sessions
+      let fileUrl = URL.createObjectURL(selectedFile)
+      try {
+        if (selectedFile.size < 4 * 1024 * 1024) {
+          fileUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(selectedFile)
+          })
+        }
+      } catch (e) {
+        console.warn('Could not read as data url, fallback to blob url', e)
+      }
 
-      await submitEvidenceSubmission({
+      const mimeType = selectedFile.type || (selectedFile.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
+      const desc = uploadDescription.trim() || `แนบหลักฐานไฟล์ ${selectedFile.name}`
+
+      const newSubmission = await submitEvidenceSubmission({
         project_id: project.project_id,
         sender_id: currentUser.user_id,
         file_name: selectedFile.name,
-        file_path: fakeStorageUrl,
+        file_path: fileUrl,
         file_type: mimeType,
-        description: uploadDescription.trim() || undefined
+        description: desc
       })
+
+      // Immediately update local evidences list for instantaneous display
+      const newEv: Evidence = {
+        evidence_id: newSubmission.evidence_id,
+        project_id: project.project_id,
+        uploaded_by: currentUser.user_id,
+        file_name: selectedFile.name,
+        file_path: fileUrl,
+        file_size: selectedFile.size || 1024 * 1024 * 2,
+        description: desc,
+        upload_date: new Date().toISOString()
+      }
+      setEvidences(prev => [newEv, ...prev.filter(e => e.evidence_id !== newEv.evidence_id)])
 
       setSelectedFile(null)
       setUploadDescription('')
@@ -138,7 +180,8 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   const handleDeleteEvidence = async (evidenceId: string) => {
     if (!confirm('คุณต้องการลบไฟล์แนบนี้ใช่หรือไม่?')) return
     setDeletingId(evidenceId)
-    await deleteEvidenceSubmission(evidenceId)
+    await deleteEvidenceSubmission(evidenceId, project.project_id)
+    setEvidences(prev => prev.filter(e => e.evidence_id !== evidenceId))
     setDeletingId(null)
     onUpdated()
   }
@@ -223,7 +266,11 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
           {/* Progress & Bottleneck Update */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-xs sm:text-sm">อัปเดตความก้าวหน้าและการเบิกจ่าย</h3>
+              <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                {canEditProgress
+                  ? 'อัปเดตความก้าวหน้าและการเบิกจ่าย'
+                  : 'ความคืบหน้าโครงการและรายละเอียดการใช้เงิน'}
+              </h3>
               {!canEdit && (
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
                   Read-Only (ดูได้อย่างเดียว)
@@ -231,32 +278,50 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
               )}
             </div>
 
-            <div>
-              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                <span className="text-slate-700">ระดับความก้าวหน้า</span>
-                <span className="text-[#003B71]">{progress}%</span>
+            {/* Progress Section: Slider for Head/Admin, Read-only progress bar for Teacher/Staff */}
+            {canEditProgress ? (
+              <div>
+                <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                  <span className="text-slate-700">ระดับความก้าวหน้า</span>
+                  <span className="text-[#003B71] font-extrabold">{progress}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={progress}
+                  onChange={(e) => setProgress(Number(e.target.value))}
+                  className="w-full accent-[#003B71] cursor-pointer"
+                />
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={progress}
-                disabled={!canEdit}
-                onChange={(e) => setProgress(Number(e.target.value))}
-                className="w-full accent-[#003B71] cursor-pointer disabled:opacity-50"
-              />
-            </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                  <span className="text-slate-700">ความคืบหน้าโครงการ</span>
+                  <span className="text-[#003B71] font-extrabold">{progress}%</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                  <div
+                    className="bg-gradient-to-r from-[#003B71] to-[#00A8B5] h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                  * ความคืบหน้าโครงการประเมินโดยหัวหน้าโครงการ (ไม่สามารถปรับแก้ไขได้)
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-slate-700 font-bold mb-1 text-[11px]">
-                  งบประมาณที่ใช้จริง (บาท)
+                  รายละเอียดการใช้เงิน / งบประมาณที่ใช้จริง (บาท) *
                 </label>
                 <input
                   type="number"
                   value={spent}
-                  disabled={!canEdit}
+                  disabled={!canEditSpending}
                   onChange={(e) => {
                     const val = e.target.value
                     setSpent(val === '' ? '' : Number(val))
@@ -272,7 +337,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                     }
                   }}
                   placeholder="0"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71] disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -284,14 +349,14 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                   type="text"
                   placeholder="ระบุข้อจำกัดหรือปัญหา..."
                   value={bottleneck}
-                  disabled={!canEdit}
+                  disabled={!canEditSpending}
                   onChange={(e) => setBottleneck(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#003B71]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#003B71] disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
 
-            {canEdit && (
+            {canEditSpending && (
               <div className="flex items-center justify-between pt-1">
                 {saveSuccess && (
                   <span className="text-emerald-700 text-xs font-bold flex items-center gap-1">
@@ -303,7 +368,11 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                   disabled={isSaving}
                   className="ml-auto px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
                 >
-                  {isSaving ? 'กำลังบันทึก...' : 'บันทึกความก้าวหน้า'}
+                  {isSaving
+                    ? 'กำลังบันทึก...'
+                    : canEditProgress
+                    ? 'บันทึกความก้าวหน้า'
+                    : 'บันทึกรายละเอียดการใช้เงิน'}
                 </button>
               </div>
             )}
@@ -314,7 +383,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-[#003B71]" />
-                หลักฐานและเอกสารแนบ ({project.evidences?.length || 0})
+                หลักฐานและเอกสารแนบ ({evidences.length})
               </h3>
               <span className="text-[10px] text-slate-500 font-semibold">
                 รองรับเฉพาะ PDF, JPG, JPEG, PNG
@@ -322,10 +391,10 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
             </div>
 
             <div className="space-y-2 mb-3">
-              {!project.evidences || project.evidences.length === 0 ? (
+              {evidences.length === 0 ? (
                 <p className="text-slate-400 text-xs py-2">ยังไม่มีเอกสารหลักฐานแนบ</p>
               ) : (
-                project.evidences.map((ev) => (
+                evidences.map((ev) => (
                   <div
                     key={ev.evidence_id}
                     className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm"
