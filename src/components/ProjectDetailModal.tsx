@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { ProjectWithHeadAndAssignees, ProjectStatus, ProjectAssignment, Evidence } from '@/types/database.types'
 import { X, Calendar, DollarSign, Upload, FileText, CheckCircle, UserCheck, Trash2, Download, ExternalLink, FileUp, AlertCircle, FileImage } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
-import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments } from '@/lib/services/okr-service'
+import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments, deleteProjectRecord } from '@/lib/services/okr-service'
 import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
 import confetti from 'canvas-confetti'
 
@@ -24,6 +24,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isDeletingProject, setIsDeletingProject] = useState(false)
   const [evidences, setEvidences] = useState<Evidence[]>(project?.evidences || [])
 
   const [progress, setProgress] = useState(Number(project?.progress_percentage || 0))
@@ -66,6 +67,26 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
 
   const canEdit = canEditProgress || canEditSpending
   const canUploadEvidence = (isAssigneeFromProp || isAssignedInTable || isHead || isAdmin || isTeacherOrStaff) && !isExecutive
+
+  // Project Deletion permission:
+  // ONLY Executive and Admin are authorized to delete projects
+  const canDeleteProject = isExecutive || isAdmin
+
+  const handleDeleteProject = async () => {
+    const confirmMessage = `ยืนยันการลบโครงการ "${project.project_name}" หรือไม่?\n\nคำเตือน: ข้อมูลความก้าวหน้า รายละเอียดการใช้เงิน และหลักฐานทั้งหมดจะถูกลบออกจากระบบอย่างถาวร`
+    if (!window.confirm(confirmMessage)) return
+
+    setIsDeletingProject(true)
+    try {
+      await deleteProjectRecord(project.project_id)
+      setIsDeletingProject(false)
+      onUpdated()
+      onClose()
+    } catch (err: any) {
+      alert(err?.message || 'ไม่สามารถลบโครงการได้')
+      setIsDeletingProject(false)
+    }
+  }
 
   const handleSaveProgress = async () => {
     setIsSaving(true)
@@ -191,16 +212,31 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar relative">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Header Actions: Delete (Executive/Admin) & Close Button */}
+        <div className="absolute top-5 right-5 flex items-center gap-2">
+          {canDeleteProject && (
+            <button
+              type="button"
+              onClick={handleDeleteProject}
+              disabled={isDeletingProject}
+              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 hover:border-rose-300 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-xs disabled:opacity-50"
+              title="ลบโครงการนี้ออกจากระบบ (เฉพาะผู้บริหาร/ผู้ดูแล)"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>{isDeletingProject ? 'กำลังลบ...' : 'ลบโครงการ'}</span>
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
+            aria-label="ปิดหน้าต่าง"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Department and Type Badge */}
-        <div className="flex items-center gap-2 mb-2 pr-12">
+        <div className="flex items-center gap-2 mb-2 pr-36 sm:pr-44">
           <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
             {formatDepartmentShort(project.department)}
           </span>
@@ -210,7 +246,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
         </div>
 
         {/* Project Name */}
-        <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug pr-8">
+        <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug pr-36 sm:pr-44">
           {project.project_name}
         </h2>
 
@@ -501,6 +537,33 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
               </div>
             )}
           </div>
+
+          {/* Danger Zone: Project Deletion for Executive & Admin */}
+          {canDeleteProject && (
+            <div className="mt-8 pt-6 border-t border-rose-200">
+              <div className="rounded-2xl bg-rose-50/70 border border-rose-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+                    <Trash2 className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    <span>พื้นที่จัดการความเสี่ยง (Executive Management Zone)</span>
+                  </h4>
+                  <p className="text-[11px] text-rose-700 font-medium">
+                    การลบโครงการจะลบข้อมูลความก้าวหน้า รายละเอียดงบประมาณ และเอกสารหลักฐานทั้งหมดออกจากระบบอย่างถาวร
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteProject}
+                  disabled={isDeletingProject}
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50 flex-shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isDeletingProject ? 'กำลังลบโครงการ...' : 'ลบโครงการนี้ออกจากระบบ'}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

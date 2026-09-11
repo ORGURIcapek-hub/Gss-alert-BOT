@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { OKR, ProjectWithHeadAndAssignees, DashboardReport, UserProfile } from '@/types/database.types'
+import { OKR, ProjectWithHeadAndAssignees, DashboardReportWithDetails, ExecutiveSummaryProjectSnapshot, UserProfile } from '@/types/database.types'
 import {
   Crown,
   TrendingUp,
@@ -12,85 +12,58 @@ import {
   Building,
   Sparkles,
   FileText,
-  Star,
   UserCheck,
   Calendar,
   UserPlus,
   BarChart3,
   Award,
   Activity,
-  Layers
+  Layers,
+  Inbox,
+  ArrowUpRight
 } from 'lucide-react'
 import { ExecutiveAnalytics } from '@/components/ExecutiveAnalytics'
 import { AssignHeadModal } from './AssignHeadModal'
-import { fetchDashboardReports, fetchEvaluations, saveEvaluationRecord } from '@/lib/services/okr-service'
+import { fetchDashboardReports } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
-import { formatDepartmentShort, formatThaiDate, getUserFullName } from '@/lib/user-constants'
+import { formatDepartmentShort, formatThaiDate, getUserFullName, removeTitlesAndRoles } from '@/lib/user-constants'
 
 interface ExecutiveWorkspaceProps {
   okrs: OKR[]
   projects: ProjectWithHeadAndAssignees[]
   onSelectProject: (project: ProjectWithHeadAndAssignees) => void
+  onNavigateTab?: (tab: string) => void
 }
 
 export function ExecutiveWorkspace({
   okrs,
   projects,
-  onSelectProject
+  onSelectProject,
+  onNavigateTab
 }: ExecutiveWorkspaceProps) {
   const { currentUser, allUsers, refreshUsers } = useRole()
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL')
-  const [dashboardReports, setDashboardReports] = useState<DashboardReport[]>([])
+  const [dashboardReports, setDashboardReports] = useState<DashboardReportWithDetails[]>([])
   const [isLoadingReports, setIsLoadingReports] = useState<boolean>(false)
 
   // Assign OKR Head modal state
   const [isAssignHeadOpen, setIsAssignHeadOpen] = useState(false)
 
-  // Interactive 5-point evaluations map for OKR Head (dashboard reports)
-  const [evalScores, setEvalScores] = useState<Record<string, number>>({})
-  const [hoverScores, setHoverScores] = useState<Record<string, number>>({})
-  const [evalSaving, setEvalSaving] = useState<Record<string, boolean>>({})
-
-  const loadReportsAndEvals = async () => {
+  const loadReports = async () => {
     setIsLoadingReports(true)
-    const [reports, evals] = await Promise.all([
-      fetchDashboardReports(),
-      fetchEvaluations()
-    ])
-    setDashboardReports(reports)
-
-    // Populate existing 5-point scores for dashboard reports
-    const scoreMap: Record<string, number> = {}
-    reports.forEach((r) => {
-      const foundEval = evals.find(e => e.dashboard_id === r.dashboard_id)
-      if (foundEval) {
-        scoreMap[r.dashboard_id] = foundEval.head_score
-      } else {
-        scoreMap[r.dashboard_id] = Math.max(1, Math.min(5, Math.round(Number(r.okr_head_evaluation_score || 80) / 20)))
-      }
-    })
-    setEvalScores(scoreMap)
-    setIsLoadingReports(false)
+    try {
+      const reports = await fetchDashboardReports()
+      setDashboardReports(reports)
+    } catch (e) {
+      console.error('[ExecutiveWorkspace] Error loading reports', e)
+    } finally {
+      setIsLoadingReports(false)
+    }
   }
 
   useEffect(() => {
-    loadReportsAndEvals()
+    loadReports()
   }, [])
-
-  const handleRateHead = async (dashboardId: string, score: number) => {
-    if (!currentUser) return
-    setEvalScores(prev => ({ ...prev, [dashboardId]: score }))
-    setEvalSaving(prev => ({ ...prev, [dashboardId]: true }))
-
-    await saveEvaluationRecord({
-      dashboard_id: dashboardId,
-      evaluator_id: currentUser.user_id,
-      head_score: score,
-      team_score: null // Executive rates OKR Head only
-    })
-
-    setEvalSaving(prev => ({ ...prev, [dashboardId]: false }))
-  }
 
   const filteredProjects = selectedProjectId === 'ALL'
     ? projects
@@ -116,6 +89,16 @@ export function ExecutiveWorkspace({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto flex-shrink-0">
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab('executive_summaries')}
+              className="px-4 py-2.5 rounded-xl bg-[#003B71] hover:bg-[#00264D] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+            >
+              <Inbox className="w-4 h-4 text-[#00A8B5]" />
+              <span>ห้องมองสรุป Dashboard ที่ส่งมา ({dashboardReports.length})</span>
+            </button>
+          )}
+
           <button
             onClick={() => setIsAssignHeadOpen(true)}
             className="px-4 py-2.5 rounded-xl bg-[#00A8B5] hover:bg-[#008B97] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
@@ -217,154 +200,207 @@ export function ExecutiveWorkspace({
       <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-900 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-[#003B71]" />
-              <span>อินโฟกราฟิกและรายงานสรุปจากหัวหน้าโครงการ OKR (Table Dashboard View)</span>
+              <span>รายงานสรุปและกราฟผลสัมฤทธิ์จากหัวหน้าโครงการ OKR</span>
             </h3>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              แสดงผลคำเขียนสรุปและกราฟเดี่ยวของแต่ละงานที่ส่งมอบให้ผู้บริหาร
+            </p>
           </div>
-          <span className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-sky-50 text-[#003B71] border-2 border-sky-300 self-start sm:self-auto">
-            {dashboardReports.length} Dashboard Reports
-          </span>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {onNavigateTab && (
+              <button
+                onClick={() => onNavigateTab('executive_summaries')}
+                className="px-3.5 py-1 rounded-xl text-xs font-bold bg-[#003B71] hover:bg-[#00264D] text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Inbox className="w-3.5 h-3.5" />
+                <span>ไปที่ห้องมองสรุปเต็มรูปแบบ</span>
+              </button>
+            )}
+            <span className="px-3 py-1 rounded-xl text-xs font-bold bg-sky-50 text-[#003B71] border border-sky-300">
+              {dashboardReports.length} รายงาน
+            </span>
+          </div>
         </div>
 
         {dashboardReports.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-sm sm:text-base">
-            ยังไม่มีรายงานเชิงยุทธศาสตร์ที่ส่งเข้ามาใน Table Dashboard
+            ยังไม่มีรายงานสรุปเชิงยุทธศาสตร์ที่ส่งเข้ามาในระบบ
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-7">
             {dashboardReports.map((report) => {
-              const currentScore = evalScores[report.dashboard_id] || 4
-              const activeHover = hoverScores[report.dashboard_id] || 0
-              const displayRating = activeHover > 0 ? activeHover : currentScore
-              const isSavingThis = evalSaving[report.dashboard_id]
+              const snapshots = (report.project_snapshots && report.project_snapshots.length > 0)
+                ? report.project_snapshots
+                : (report.project_ids && report.project_ids.length > 0)
+                ? projects.filter(p => report.project_ids?.includes(p.project_id)).map(p => ({
+                    project_id: p.project_id,
+                    project_name: p.project_name,
+                    department: p.department,
+                    progress_percentage: p.progress_percentage,
+                    budget: Number(p.budget) || 0,
+                    spent_amount: Number(p.spent_amount) || 0,
+                    status: p.status || 'In Progress',
+                    bottleneck: p.bottleneck || null,
+                    main_objective: p.main_objective || null,
+                    head_name: removeTitlesAndRoles(p.head?.name || '') || null
+                  }))
+                : []
 
               return (
                 <div
                   key={report.dashboard_id}
-                  className="rounded-3xl bg-gradient-to-br from-slate-50 via-white to-sky-50/50 border-2 border-slate-900 hover:border-[#003B71] hover:shadow-lg transition-all p-6 sm:p-7 space-y-5 flex flex-col justify-between"
+                  className="rounded-3xl bg-slate-50/60 border-2 border-slate-900 hover:border-[#003B71] hover:shadow-lg transition-all p-6 sm:p-7 space-y-6 flex flex-col justify-between"
                 >
                   {/* Header */}
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
                     <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#003B71]/10 text-[#003B71] flex items-center justify-center font-bold shadow-sm">
-                        <UserCheck className="w-6 h-6" />
+                      <div className="w-11 h-11 rounded-2xl bg-[#003B71] text-white flex items-center justify-center font-bold shadow-sm">
+                        <UserCheck className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="text-base sm:text-lg font-bold text-slate-900">
+                        <h4 className="text-base font-black text-slate-900">
                           {report.head_name || 'หัวหน้าโครงการ OKR'}
                         </h4>
-                        <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
-                          <Calendar className="w-3.5 h-3.5" />
-                          ปีการศึกษา {report.academic_year || 2567} • {formatThaiDate(report.created_at, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        <span className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 font-medium">
+                          <Calendar className="w-3.5 h-3.5 text-[#00A8B5]" />
+                          ปีงบประมาณ {report.academic_year || 2567} • {formatThaiDate(report.created_at, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                     </div>
 
-                    <div className="px-3 py-1 rounded-full text-xs font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
-                      ปีงบประมาณ {report.academic_year || 2567}
-                    </div>
-                  </div>
-
-                  {/* Visual Infographic Cards Representation */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ระดับผลงาน</span>
-                      <div className="text-base sm:text-lg font-black text-emerald-600 mt-1 flex items-center justify-center gap-1">
-                        <Award className="w-4 h-4 text-emerald-500" />
-                        <span>{displayRating >= 4 ? 'ดีเยี่ยม' : displayRating >= 3 ? 'ดี' : 'ต้องพัฒนา'}</span>
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เกณฑ์ประเมิน</span>
-                      <div className="text-base sm:text-lg font-black text-[#003B71] mt-1">
-                        {displayRating * 20}%
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm text-center">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">สถานะส่งมอบ</span>
-                      <div className="text-base sm:text-lg font-black text-amber-500 mt-1 flex items-center justify-center gap-1">
-                        <Activity className="w-4 h-4 text-amber-500" />
-                        <span>สมบูรณ์</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Visual Progress Meter Infographic */}
-                  <div className="space-y-2 bg-white p-4 rounded-2xl border border-slate-200/80">
-                    <div className="flex justify-between text-xs sm:text-sm font-bold">
-                      <span className="text-slate-700 flex items-center gap-1.5">
-                        <TrendingUp className="w-4 h-4 text-[#00A8B5]" />
-                        ระดับการบรรลุเป้าหมายยุทธศาสตร์ (OKR Benchmark)
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
+                        {snapshots.length} โครงการในสรุปนี้
                       </span>
-                      <span className="text-[#003B71]">{displayRating * 20}%</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="h-3 rounded-full bg-gradient-to-r from-[#003B71] via-[#005B94] to-[#00A8B5] transition-all duration-300"
-                        style={{ width: `${displayRating * 20}%` }}
-                      />
                     </div>
                   </div>
 
-                  {/* Summary Text Content */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1.5">
-                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block flex items-center gap-1.5">
-                      <FileText className="w-4 h-4 text-[#003B71]" />
-                      ข้อมูลภาพรวมผลสัมฤทธิ์ (Overall OKR Info):
+                  {/* 1. คำเขียนสรุป (Executive Written Summary) */}
+                  <div className="rounded-2xl bg-gradient-to-br from-amber-50/80 via-white to-sky-50/50 border-2 border-amber-300 p-5 space-y-2 shadow-xs">
+                    <span className="text-xs font-black text-amber-900 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Sparkles className="w-4 h-4 text-amber-600" />
+                      คำเขียนสรุปสำหรับผู้บริหาร (Executive Summary):
                     </span>
-                    <p className="text-sm text-slate-800 leading-relaxed font-medium">
+                    <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-line">
                       {report.overall_okr_info}
                     </p>
                   </div>
 
-                  {/* INTERACTIVE 5-STAR RATING */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                        <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
-                        <span>ประเมินผลหัวหน้าโครงการ OKR (Head Evaluation: 1-5 คะแนน)</span>
-                      </label>
-                      <span className="text-xs sm:text-sm font-black text-amber-700">
-                        {displayRating} / 5 ดาว
-                      </span>
-                    </div>
+                  {/* 2. กราฟงานนั้นเดี่ยวๆ (Individual Standalone Single-Project Graphs & Metrics) */}
+                  {snapshots.length > 0 && (
+                    <div className="space-y-3">
+                      <h5 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5">
+                        <BarChart3 className="w-4 h-4 text-[#003B71]" />
+                        <span>กราฟผลสัมฤทธิ์รายโครงการเดี่ยวๆ ({snapshots.length} งาน)</span>
+                      </h5>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-2">
-                        {[1, 2, 3, 4, 5].map((star) => {
-                          const isFilled = star <= displayRating
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {snapshots.map((ps) => {
+                          const isComplete = ps.progress_percentage === 100
+                          const isDelayed = ps.status === 'Delayed' || (ps.bottleneck && ps.bottleneck.trim().length > 0)
+                          const budgetNum = Number(ps.budget) || 0
+                          const spentNum = Number(ps.spent_amount) || 0
+                          const spentRate = budgetNum > 0 ? ((spentNum / budgetNum) * 100).toFixed(1) : '0'
+                          const matchedProject = projects.find(p => p.project_id === ps.project_id)
+
+                          const radius = 34
+                          const circumference = 2 * Math.PI * radius
+                          const strokeDashoffset = circumference - (ps.progress_percentage / 100) * circumference
+                          const gaugeColor = isComplete ? '#10B981' : isDelayed ? '#E11D48' : '#003B71'
+
                           return (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => handleRateHead(report.dashboard_id, star)}
-                              onMouseEnter={() => setHoverScores(prev => ({ ...prev, [report.dashboard_id]: star }))}
-                              onMouseLeave={() => setHoverScores(prev => ({ ...prev, [report.dashboard_id]: 0 }))}
-                              className="p-1 rounded-xl hover:scale-125 transition-all cursor-pointer"
-                              title={`ให้ ${star} คะแนน`}
+                            <div
+                              key={ps.project_id}
+                              className="rounded-2xl bg-white border-2 border-slate-800 p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-[#003B71] transition-all"
                             >
-                              <Star
-                                className={`w-7 h-7 transition-colors ${
-                                  isFilled
-                                    ? 'text-amber-500 fill-amber-400 drop-shadow-sm'
-                                    : 'text-slate-300 fill-transparent hover:text-amber-400'
-                                }`}
-                              />
-                            </button>
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                                    {formatDepartmentShort(ps.department)}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                      isComplete
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                        : isDelayed
+                                        ? 'bg-rose-50 text-rose-700 border-rose-300'
+                                        : 'bg-sky-50 text-sky-700 border-sky-300'
+                                    }`}
+                                  >
+                                    {isComplete ? 'เสร็จสิ้น' : isDelayed ? 'ติดปัญหา' : 'คืบหน้า'}
+                                  </span>
+                                </div>
+                                <h6 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                                  {ps.project_name}
+                                </h6>
+                              </div>
+
+                              {/* Single Project Graph Visuals */}
+                              <div className="grid grid-cols-12 gap-3 items-center p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                <div className="col-span-4 flex items-center justify-center">
+                                  <div className="relative w-16 h-16 flex items-center justify-center">
+                                    <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 96 96">
+                                      <circle cx="48" cy="48" r={radius} stroke="#E2E8F0" strokeWidth="8" fill="transparent" />
+                                      <circle
+                                        cx="48"
+                                        cy="48"
+                                        r={radius}
+                                        stroke={gaugeColor}
+                                        strokeWidth="8"
+                                        strokeDasharray={circumference}
+                                        strokeDashoffset={strokeDashoffset}
+                                        strokeLinecap="round"
+                                        fill="transparent"
+                                      />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                      <span className="text-xs font-black text-slate-900">{ps.progress_percentage}%</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="col-span-8 space-y-1.5 text-[10px]">
+                                  <div className="flex justify-between font-bold">
+                                    <span className="text-slate-600">การใช้จ่าย:</span>
+                                    <span className="text-[#003B71]">{spentRate}%</span>
+                                  </div>
+                                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                    <div
+                                      className={`h-2 rounded-full ${Number(spentRate) > 90 ? 'bg-amber-500' : 'bg-[#003B71]'}`}
+                                      style={{ width: `${Math.min(100, Number(spentRate))}%` }}
+                                    />
+                                  </div>
+                                  <div className="flex justify-between text-slate-500 font-medium">
+                                    <span>งบ: {budgetNum.toLocaleString()} ฿</span>
+                                    <span>ใช้: {spentNum.toLocaleString()} ฿</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {ps.bottleneck && (
+                                <p className="text-[10px] text-rose-700 font-medium bg-rose-50 p-2 rounded-lg border border-rose-200">
+                                  ⚠️ {ps.bottleneck}
+                                </p>
+                              )}
+
+                              {matchedProject && (
+                                <button
+                                  type="button"
+                                  onClick={() => onSelectProject(matchedProject)}
+                                  className="w-full py-1.5 rounded-xl bg-slate-100 hover:bg-[#003B71] hover:text-white text-slate-800 text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  <span>ดูรายละเอียดงานนี้</span>
+                                  <ArrowUpRight className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           )
                         })}
                       </div>
-
-                      {isSavingThis ? (
-                        <span className="text-xs text-amber-700 font-bold animate-pulse">กำลังบันทึก...</span>
-                      ) : (
-                        <span className="text-xs text-slate-500 font-semibold">คลิกดาวเพื่อประเมิน</span>
-                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               )
             })}

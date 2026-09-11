@@ -623,3 +623,24 @@ export interface ProjectWithHeadAndAssignees extends Project {
   daysOverdue?: number
   daysRemaining?: number
 }
+
+export interface ExecutiveSummaryProjectSnapshot {
+  project_id: string
+  project_name: string
+  department: string
+  progress_percentage: number
+  budget: number
+  spent_amount: number
+  status: string
+  bottleneck?: string | null
+  main_objective?: string | null
+  head_name?: string | null
+  start_date?: string | null
+  end_date?: string | null
+}
+
+export interface DashboardReportWithDetails extends DashboardReport {
+  project_ids?: string[]
+  project_snapshots?: ExecutiveSummaryProjectSnapshot[]
+}
+

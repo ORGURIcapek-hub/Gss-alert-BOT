@@ -1,16 +1,31 @@
 import { mockDashboardReports, mockNormalReports, mockEvaluations } from '@/lib/mock-data'
-import { DashboardReport, NormalReport, Evaluation } from '@/types/database.types'
+import { DashboardReport, DashboardReportWithDetails, ExecutiveSummaryProjectSnapshot, NormalReport, Evaluation } from '@/types/database.types'
 import { getSafeSupabaseClient, dbCall } from './service-helpers'
 
-let inMemoryDashboardReports: DashboardReport[] = [...mockDashboardReports]
+let inMemoryDashboardReports: DashboardReportWithDetails[] = [...mockDashboardReports]
 let inMemoryNormalReports: NormalReport[] = [...mockNormalReports]
 let inMemoryEvaluations: Evaluation[] = [...mockEvaluations]
 
-/** Fetch dashboard reports */
-export async function fetchDashboardReports(): Promise<DashboardReport[]> {
+/** Fetch dashboard reports with persistent API integration */
+export async function fetchDashboardReports(): Promise<DashboardReportWithDetails[]> {
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/dashboard-reports')
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && Array.isArray(json.reports)) {
+          inMemoryDashboardReports = json.reports
+          return json.reports
+        }
+      }
+    } catch (e) {
+      console.warn('[report-service] fetch /api/dashboard-reports failed, fallback', e)
+    }
+  }
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    const data = await dbCall<DashboardReport[]>(
+    const data = await dbCall<DashboardReportWithDetails[]>(
       () => (supabase.from('dashboard') as any).select('*').order('created_at', { ascending: false }),
       'fetchDashboardReports'
     )
@@ -19,34 +34,65 @@ export async function fetchDashboardReports(): Promise<DashboardReport[]> {
   return inMemoryDashboardReports
 }
 
-/** Create a dashboard report */
+/** Create a dashboard report with project snapshots */
 export async function createDashboardReport(reportData: {
   overall_okr_info: string
   okr_head_evaluation_score: number
   head_id: string
   head_name?: string
   academic_year?: number
-}): Promise<DashboardReport> {
+  project_ids?: string[]
+  project_snapshots?: ExecutiveSummaryProjectSnapshot[]
+}): Promise<DashboardReportWithDetails> {
   const newId = crypto.randomUUID()
-  const newReport: DashboardReport = {
+  const newReport: DashboardReportWithDetails = {
     dashboard_id: newId,
     overall_okr_info: reportData.overall_okr_info,
     okr_head_evaluation_score: reportData.okr_head_evaluation_score,
     head_id: reportData.head_id,
     head_name: reportData.head_name || 'หัวหน้าโครงการ OKR',
     academic_year: reportData.academic_year || 2567,
+    project_ids: reportData.project_ids || [],
+    project_snapshots: reportData.project_snapshots || [],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
 
+  // 1. Post to persistent API route
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/dashboard-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          ...newReport
+        })
+      })
+    } catch (e) {
+      console.warn('[report-service] POST /api/dashboard-reports failed', e)
+    }
+  }
+
+  // 2. Supabase insert if available
   const supabase = getSafeSupabaseClient()
   if (supabase) {
-    await dbCall(() => (supabase.from('dashboard') as any).insert(newReport), 'createDashboardReport')
+    await dbCall(() => (supabase.from('dashboard') as any).insert({
+      dashboard_id: newReport.dashboard_id,
+      overall_okr_info: newReport.overall_okr_info,
+      okr_head_evaluation_score: newReport.okr_head_evaluation_score,
+      head_id: newReport.head_id,
+      head_name: newReport.head_name,
+      academic_year: newReport.academic_year,
+      created_at: newReport.created_at,
+      updated_at: newReport.updated_at
+    }), 'createDashboardReport')
   }
 
   inMemoryDashboardReports.unshift(newReport)
   return newReport
 }
+
 
 /** Fetch normal reports */
 export async function fetchNormalReports(): Promise<NormalReport[]> {
@@ -173,6 +219,21 @@ export async function saveEvaluationRecord(data: {
     const dashRep = inMemoryDashboardReports.find(d => d.dashboard_id === data.dashboard_id)
     if (dashRep) {
       dashRep.okr_head_evaluation_score = data.head_score * 20
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        fetch('/api/dashboard-reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'rate',
+            dashboard_id: data.dashboard_id,
+            score: data.head_score * 20
+          })
+        }).catch(e => console.warn('[report-service] rate sync error', e))
+      } catch (e) {
+        console.warn('[report-service] rate call failed', e)
+      }
     }
   }
 

@@ -21,7 +21,9 @@ import {
   FileText,
   UserCheck,
   KeyRound,
-  User
+  User,
+  Inbox,
+  Send
 } from 'lucide-react'
 import { getRoleBadge, getUserFullName, DEFAULT_AVATAR } from '@/lib/user-constants'
 
@@ -44,15 +46,16 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
       case 'executive':
         return [
           { id: 'workspace', label: 'แผงยุทธศาสตร์ผู้บริหาร', icon: Crown },
+          { id: 'executive_summaries', label: 'ห้องมองสรุป Dashboard ที่ส่งมา', icon: Inbox, highlight: true },
           { id: 'okrs', label: 'เป้าหมาย OKR คณะ', icon: Target },
-          { id: 'projects', label: 'โครงการทั้งหมด (Read-Only)', icon: FolderGit2 },
+          { id: 'projects', label: 'โครงการทั้งหมดในระบบ', icon: FolderGit2 },
           { id: 'evidences', label: 'คลังเอกสารผลสัมฤทธิ์', icon: FileCheck2 },
         ]
       case 'head_okr':
         return [
           { id: 'workspace', label: 'พื้นที่บริหารโครงการ OKR', icon: Layers },
           { id: 'team_evidences', label: 'หลักฐานจากลูกทีม', icon: FileCheck2, highlight: true },
-          { id: 'create_dashboard', label: 'สร้าง Dashboard สำหรับผู้บริหาร', icon: FilePlus },
+          { id: 'create_dashboard', label: 'ส่งสรุป Dashboard ให้ผู้บริหาร', icon: Send },
           { id: 'create_normal_report', label: 'สร้างรายงานทั่วไป', icon: FileSpreadsheet },
           { id: 'normal_reports', label: 'Report โครงการ OKR', icon: FileText },
           { id: 'projects', label: 'โครงการในภาควิชา', icon: FolderGit2 },
@@ -81,6 +84,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
           { id: 'okrs', label: 'จัดการเป้าหมาย OKR', icon: Target },
           { id: 'evidences', label: 'คลังหลักฐานระบบ', icon: FileCheck2 },
         ]
+
       case 'staff':
       default:
         return [

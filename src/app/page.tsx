@@ -21,6 +21,7 @@ import { CreateDashboardView } from '@/components/CreateDashboardView'
 import { CreateNormalReportView } from '@/components/CreateNormalReportView'
 import { NormalReportView } from '@/components/NormalReportView'
 import { HeadEvidenceView } from '@/components/HeadEvidenceView'
+import { ExecutiveSummaryRoom } from '@/components/ExecutiveSummaryRoom'
 import { useRole } from '@/components/RoleContext'
 import { fetchOKRs, fetchProjects } from '@/lib/services/okr-service'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
@@ -178,6 +179,7 @@ export default function HomePage() {
                   okrs={okrs}
                   projects={projects}
                   onSelectProject={(p) => setSelectedProject(p)}
+                  onNavigateTab={(tab) => handleTabChange(tab)}
                 />
               )}
 
@@ -206,6 +208,7 @@ export default function HomePage() {
                     projects={projects}
                     onSelectProject={(p) => setSelectedProject(p)}
                     onOpenCreateModal={() => setIsCreateModalOpen(true)}
+                    onProjectsRefresh={loadData}
                   />
                 </div>
               )}
@@ -237,6 +240,13 @@ export default function HomePage() {
             <HeadEvidenceView projects={projects} />
           )}
 
+          {activeTab === 'executive_summaries' && currentRole === 'executive' && (
+            <ExecutiveSummaryRoom
+              projects={projects}
+              onSelectProject={(p) => setSelectedProject(p)}
+            />
+          )}
+
           {activeTab === 'normal_reports' && (
             <NormalReportView />
           )}
@@ -248,6 +258,7 @@ export default function HomePage() {
                 projects={projects}
                 onSelectProject={(p) => setSelectedProject(p)}
                 onOpenCreateModal={() => setIsCreateModalOpen(true)}
+                onProjectsRefresh={loadData}
               />
             </div>
           )}
@@ -266,6 +277,7 @@ export default function HomePage() {
               projects={projects}
               onSelectProject={(p) => setSelectedProject(p)}
               onOpenCreateModal={() => setIsCreateModalOpen(true)}
+              onProjectsRefresh={loadData}
             />
           )}
 

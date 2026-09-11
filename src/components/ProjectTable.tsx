@@ -2,22 +2,43 @@
 
 import React, { useState } from 'react'
 import { ProjectWithHeadAndAssignees } from '@/types/database.types'
-import { Search, Eye, Plus, AlertCircle, CheckCircle2, Clock, PauseCircle, Users } from 'lucide-react'
+import { Search, Eye, Plus, AlertCircle, CheckCircle2, Clock, PauseCircle, Users, Trash2 } from 'lucide-react'
 import { mockDepartments } from '@/lib/mock-data'
 import { useRole } from '@/components/RoleContext'
 import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
+import { deleteProjectRecord } from '@/lib/services/okr-service'
 
 interface ProjectTableProps {
   projects: ProjectWithHeadAndAssignees[]
   onSelectProject: (project: ProjectWithHeadAndAssignees) => void
   onOpenCreateModal: () => void
+  onProjectsRefresh?: () => void
 }
 
-export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: ProjectTableProps) {
+export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onProjectsRefresh }: ProjectTableProps) {
   const { currentRole } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDept, setSelectedDept] = useState('ทั้งหมด')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const canDelete = currentRole === 'executive' || currentRole === 'admin'
+
+  const handleDeleteProject = async (e: React.MouseEvent, p: ProjectWithHeadAndAssignees) => {
+    e.stopPropagation()
+    const confirmMessage = `ยืนยันการลบโครงการ "${p.project_name}" หรือไม่?\n\nคำเตือน: ข้อมูลความก้าวหน้า รายละเอียดการใช้เงิน และหลักฐานทั้งหมดจะถูกลบออกจากระบบอย่างถาวร`
+    if (!window.confirm(confirmMessage)) return
+
+    setDeletingId(p.project_id)
+    try {
+      await deleteProjectRecord(p.project_id)
+      onProjectsRefresh?.()
+    } catch (err: any) {
+      alert(err?.message || 'ไม่สามารถลบโครงการได้')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const filteredProjects = projects.filter((p) => {
     const term = searchTerm.toLowerCase().trim()
@@ -191,16 +212,30 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal }: P
                     {getStatusBadge(p.status, p.bottleneck)}
                   </td>
                   <td className="py-4 px-4 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onSelectProject(p)
-                      }}
-                      className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-[#003B71] transition-colors inline-flex items-center gap-1 cursor-pointer"
-                      title="ดูรายละเอียดโครงการ"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                    <div className="inline-flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onSelectProject(p)
+                        }}
+                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-[#003B71] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        title="ดูรายละเอียดโครงการ"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteProject(e, p)}
+                          disabled={deletingId === p.project_id}
+                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-800 border border-rose-200 hover:border-rose-300 transition-colors inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          title="ลบโครงการนี้ออกจากระบบ (เฉพาะผู้บริหาร/ผู้ดูแล)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
