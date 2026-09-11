@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { ProjectWithHeadAndAssignees, ProjectStatus, ProjectAssignment, Evidence } from '@/types/database.types'
-import { X, Calendar, DollarSign, Upload, FileText, CheckCircle, UserCheck, Trash2, Download, ExternalLink, FileUp, AlertCircle, FileImage } from 'lucide-react'
+import { X, Upload, UserCheck, Trash2, Download, FileUp, AlertCircle, Calendar, DollarSign, FileText, CheckCircle, FileImage } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments, deleteProjectRecord } from '@/lib/services/okr-service'
 import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
@@ -47,29 +47,22 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
 
   if (!project) return null
 
-  // Check if current user is assigned to this project in Project_Assignments or is Head or Admin
+  // User context & role flags:
   const isHead = currentUser ? project.head_of_project === currentUser.user_id : false
-  const isAssigneeFromProp = currentUser ? project.assignees?.some(a => a.user_id === currentUser.user_id) : false
-  const isAssignedInTable = currentUser ? assignments.some(a => a.user_id === currentUser.user_id) : false
+  const isAssigned = currentUser ? (project.assignees?.some(a => a.user_id === currentUser.user_id) || assignments.some(a => a.user_id === currentUser.user_id)) : false
   const isAdmin = currentRole === 'admin'
   const isExecutive = currentRole === 'executive'
-  const isTeacher = currentRole === 'teacher'
-  const isStaff = currentRole === 'staff'
-  const isTeacherOrStaff = isTeacher || isStaff
+  const isTeacherOrStaff = currentRole === 'teacher' || currentRole === 'staff'
 
-  // Progress edit permission:
-  // ONLY Admin, Project Head, or OKR Head can adjust progress slider. Teacher and Staff cannot adjust progress!
+  // Permission rules:
+  // 1. Progress: Admin, Project Head, or Head OKR (Teacher/Staff cannot adjust)
   const canEditProgress = (isAdmin || isHead || currentRole === 'head_okr') && !isTeacherOrStaff
 
-  // Spending edit permission:
-  // Teacher and Staff can input spending details, as can Head and Admin. Executive cannot edit.
-  const canEditSpending = (isAdmin || isHead || isAssigneeFromProp || isAssignedInTable || isTeacherOrStaff) && !isExecutive
+  // 2. Spending: Teacher, Staff, Project Head, Admin, or Assigned members (Executive is read-only)
+  const canEditSpending = (isAdmin || isHead || isAssigned || isTeacherOrStaff) && !isExecutive
 
   const canEdit = canEditProgress || canEditSpending
-  const canUploadEvidence = (isAssigneeFromProp || isAssignedInTable || isHead || isAdmin || isTeacherOrStaff) && !isExecutive
-
-  // Project Deletion permission:
-  // ONLY Executive and Admin are authorized to delete projects
+  const canUploadEvidence = (isAssigned || isHead || isAdmin || isTeacherOrStaff) && !isExecutive
   const canDeleteProject = isExecutive || isAdmin
 
   const handleDeleteProject = async () => {

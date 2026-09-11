@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { ProjectWithHeadAndAssignees } from '@/types/database.types'
-import { Search, Eye, Plus, AlertCircle, CheckCircle2, Clock, PauseCircle, Users, Trash2 } from 'lucide-react'
+import { Search, Eye, Plus, AlertCircle, CheckCircle2, Clock, PauseCircle, Trash2 } from 'lucide-react'
 import { mockDepartments } from '@/lib/mock-data'
 import { useRole } from '@/components/RoleContext'
 import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
@@ -15,6 +15,148 @@ interface ProjectTableProps {
   onProjectsRefresh?: () => void
 }
 
+// -------------------------------------------------------------
+// 1. Status Badge Component (Declarative Lookup)
+// -------------------------------------------------------------
+interface StatusBadgeProps {
+  status: string
+  bottleneck: string | null
+}
+
+const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; className: string }> = {
+  Completed: {
+    label: 'สำเร็จ',
+    icon: CheckCircle2,
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  },
+  'In Progress': {
+    label: 'ดำเนินการ',
+    icon: Clock,
+    className: 'bg-sky-50 text-[#003B71] border-sky-200'
+  },
+  Delayed: {
+    label: 'ล่าช้า',
+    icon: AlertCircle,
+    className: 'bg-amber-50 text-amber-700 border-amber-200'
+  }
+}
+
+export const ProjectStatusBadge = React.memo(function ProjectStatusBadge({ status, bottleneck }: StatusBadgeProps) {
+  if (bottleneck && bottleneck.trim().length > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+        <AlertCircle className="w-3.5 h-3.5" />
+        ติดปัญหา
+      </span>
+    )
+  }
+
+  const config = STATUS_CONFIG[status] || {
+    label: 'ร่าง',
+    icon: PauseCircle,
+    className: 'bg-slate-50 text-slate-700 border-slate-200'
+  }
+  const Icon = config.icon
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${config.className}`}>
+      <Icon className="w-3.5 h-3.5" />
+      {config.label}
+    </span>
+  )
+})
+
+// -------------------------------------------------------------
+// 2. Project Table Row Component (Memoized)
+// -------------------------------------------------------------
+interface ProjectTableRowProps {
+  project: ProjectWithHeadAndAssignees
+  canDelete: boolean
+  isDeleting: boolean
+  onSelect: (p: ProjectWithHeadAndAssignees) => void
+  onDelete: (e: React.MouseEvent, p: ProjectWithHeadAndAssignees) => void
+}
+
+const ProjectTableRow = React.memo(function ProjectTableRow({
+  project,
+  canDelete,
+  isDeleting,
+  onSelect,
+  onDelete
+}: ProjectTableRowProps) {
+  const headName = getUserFullName(project.head)
+  const budgetFormatted = (Number(project.budget) / 1000).toLocaleString()
+
+  return (
+    <tr
+      onClick={() => onSelect(project)}
+      className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+    >
+      <td className="py-4 px-4">
+        <div className="font-bold text-slate-900 text-sm sm:text-base line-clamp-1 max-w-sm">
+          {project.project_name}
+        </div>
+        <span className="text-xs text-slate-500 font-medium">{project.project_type}</span>
+      </td>
+      <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
+        {formatDepartmentShort(project.department)}
+      </td>
+      <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
+        {headName}
+      </td>
+      <td className="py-4 px-4 text-center font-extrabold text-slate-900 text-sm">
+        {budgetFormatted}k ฿
+      </td>
+      <td className="py-4 px-4">
+        <div className="w-32">
+          <div className="flex justify-between text-xs font-bold mb-1">
+            <span className="text-slate-800">{project.progress_percentage}%</span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-[#003B71] h-2 rounded-full transition-all duration-300"
+              style={{ width: `${project.progress_percentage}%` }}
+            />
+          </div>
+        </div>
+      </td>
+      <td className="py-4 px-4 text-center">
+        <ProjectStatusBadge status={project.status} bottleneck={project.bottleneck} />
+      </td>
+      <td className="py-4 px-4 text-right">
+        <div className="inline-flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelect(project)
+            }}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-[#003B71] transition-colors inline-flex items-center gap-1 cursor-pointer"
+            title="ดูรายละเอียดโครงการ"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+
+          {canDelete && (
+            <button
+              type="button"
+              onClick={(e) => onDelete(e, project)}
+              disabled={isDeleting}
+              className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-800 border border-rose-200 hover:border-rose-300 transition-colors inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              title="ลบโครงการนี้ออกจากระบบ (เฉพาะผู้บริหาร/ผู้ดูแล)"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+})
+
+// -------------------------------------------------------------
+// 3. Main ProjectTable Component
+// -------------------------------------------------------------
 export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onProjectsRefresh }: ProjectTableProps) {
   const { currentRole } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,8 +165,9 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onP
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const canDelete = currentRole === 'executive' || currentRole === 'admin'
+  const canCreate = currentRole ? ['admin', 'head_okr', 'executive', 'teacher'].includes(currentRole) : false
 
-  const handleDeleteProject = async (e: React.MouseEvent, p: ProjectWithHeadAndAssignees) => {
+  const handleDeleteProject = useCallback(async (e: React.MouseEvent, p: ProjectWithHeadAndAssignees) => {
     e.stopPropagation()
     const confirmMessage = `ยืนยันการลบโครงการ "${p.project_name}" หรือไม่?\n\nคำเตือน: ข้อมูลความก้าวหน้า รายละเอียดการใช้เงิน และหลักฐานทั้งหมดจะถูกลบออกจากระบบอย่างถาวร`
     if (!window.confirm(confirmMessage)) return
@@ -38,64 +181,23 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onP
     } finally {
       setDeletingId(null)
     }
-  }
+  }, [onProjectsRefresh])
 
-  const filteredProjects = projects.filter((p) => {
+  const filteredProjects = useMemo(() => {
     const term = searchTerm.toLowerCase().trim()
-    const matchesSearch =
-      !term ||
-      (p.project_name || '').toLowerCase().includes(term) ||
-      getUserFullName(p.head).toLowerCase().includes(term) ||
-      (p.department || '').toLowerCase().includes(term)
+    return projects.filter((p) => {
+      const matchesSearch =
+        !term ||
+        (p.project_name || '').toLowerCase().includes(term) ||
+        getUserFullName(p.head).toLowerCase().includes(term) ||
+        (p.department || '').toLowerCase().includes(term)
 
-    const matchesDept = selectedDept === 'ทั้งหมด' || p.department === selectedDept
-    const matchesStatus = selectedStatus === 'all' || p.status === selectedStatus
+      const matchesDept = selectedDept === 'ทั้งหมด' || p.department === selectedDept
+      const matchesStatus = selectedStatus === 'all' || p.status === selectedStatus
 
-    return matchesSearch && matchesDept && matchesStatus
-  })
-
-  const getStatusBadge = (status: string, bottleneck: string | null) => {
-    if (bottleneck && bottleneck.length > 0) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-          <AlertCircle className="w-3.5 h-3.5" />
-          ติดปัญหา
-        </span>
-      )
-    }
-    switch (status) {
-      case 'Completed':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            สำเร็จ
-          </span>
-        )
-      case 'In Progress':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-[#003B71] border border-sky-200">
-            <Clock className="w-3.5 h-3.5" />
-            ดำเนินการ
-          </span>
-        )
-      case 'Delayed':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <AlertCircle className="w-3.5 h-3.5" />
-            ล่าช้า
-          </span>
-        )
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-50 text-slate-700 border border-slate-200">
-            <PauseCircle className="w-3.5 h-3.5" />
-            ร่าง
-          </span>
-        )
-    }
-  }
-
-  const canCreate = currentRole ? ['admin', 'head_okr', 'executive', 'teacher'].includes(currentRole) : false
+      return matchesSearch && matchesDept && matchesStatus
+    })
+  }, [projects, searchTerm, selectedDept, selectedStatus])
 
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-8 border border-slate-200 shadow-sm space-y-5">
@@ -174,72 +276,28 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onP
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {filteredProjects.map((p) => {
-              const headName = getUserFullName(p.head)
-              return (
-                <tr
+            {filteredProjects.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Search className="w-7 h-7 text-slate-300" />
+                    <p className="text-sm font-semibold text-slate-600">ไม่พบโครงการที่ตรงกับเงื่อนไขการค้นหา</p>
+                    <p className="text-xs text-slate-400">ลองเปลี่ยนคำค้นหา หรือเลือกหน่วยงาน/สถานะอื่น</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filteredProjects.map((p) => (
+                <ProjectTableRow
                   key={p.project_id}
-                  onClick={() => onSelectProject(p)}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer"
-                >
-                  <td className="py-4 px-4">
-                    <div className="font-bold text-slate-900 text-sm sm:text-base line-clamp-1 max-w-sm">{p.project_name}</div>
-                    <span className="text-xs text-slate-500 font-medium">{p.project_type}</span>
-                  </td>
-                  <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
-                    {formatDepartmentShort(p.department)}
-                  </td>
-                  <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
-                    {headName}
-                  </td>
-                  <td className="py-4 px-4 text-center font-extrabold text-slate-900 text-sm">
-                    {(Number(p.budget) / 1000).toLocaleString()}k ฿
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="w-32">
-                      <div className="flex justify-between text-xs font-bold mb-1">
-                        <span className="text-slate-800">{p.progress_percentage}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-[#003B71] h-2 rounded-full"
-                          style={{ width: `${p.progress_percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    {getStatusBadge(p.status, p.bottleneck)}
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    <div className="inline-flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onSelectProject(p)
-                        }}
-                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-[#003B71] transition-colors inline-flex items-center gap-1 cursor-pointer"
-                        title="ดูรายละเอียดโครงการ"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-
-                      {canDelete && (
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteProject(e, p)}
-                          disabled={deletingId === p.project_id}
-                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-800 border border-rose-200 hover:border-rose-300 transition-colors inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                          title="ลบโครงการนี้ออกจากระบบ (เฉพาะผู้บริหาร/ผู้ดูแล)"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
+                  project={p}
+                  canDelete={canDelete}
+                  isDeleting={deletingId === p.project_id}
+                  onSelect={onSelectProject}
+                  onDelete={handleDeleteProject}
+                />
+              ))
+            )}
           </tbody>
         </table>
       </div>
