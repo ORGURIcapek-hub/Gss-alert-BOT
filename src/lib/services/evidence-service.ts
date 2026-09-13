@@ -69,6 +69,20 @@ export async function deleteEvidenceRecord(evidenceId: string, projectId: string
 export async function fetchEvidenceSubmissions(
   projectId?: string
 ): Promise<(EvidenceSubmission & { sender?: UserProfile; project?: ProjectWithHeadAndAssignees })[]> {
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/evidences')
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && Array.isArray(json.evidences)) {
+          inMemoryEvidenceSubmissions = json.evidences
+        }
+      }
+    } catch (e) {
+      console.warn('[evidence-service] fetch /api/evidences failed', e)
+    }
+  }
+
   const users = getInMemoryUsers()
   const cachedUsers = getCachedUsers()
   const projects = getInMemoryProjects()
@@ -89,6 +103,7 @@ export async function fetchEvidenceSubmissions(
             file_name: ev.file_name,
             file_path: ev.file_path,
             file_type: ev.file_name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+            description: ev.description || null,
             submitted_at: ev.upload_date || new Date().toISOString()
           })
         }
@@ -129,30 +144,29 @@ export async function submitEvidenceSubmission(data: {
     file_name: data.file_name,
     file_path: data.file_path,
     file_type: data.file_type,
+    description: data.description || null,
     submitted_at: new Date().toISOString()
   }
 
-  // 1. Persist to Server API /api/projects
+  // 1. Persist to Server API /api/evidences
   if (typeof window !== 'undefined') {
     try {
-      await fetch('/api/projects', {
+      await fetch('/api/evidences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'submit_evidence',
-          submission: {
-            evidence_id: newId,
-            project_id: data.project_id,
-            sender_id: data.sender_id,
-            file_name: data.file_name,
-            file_path: data.file_path,
-            file_type: data.file_type,
-            description: data.description
-          }
+          action: 'create',
+          evidence_id: newId,
+          project_id: data.project_id,
+          sender_id: data.sender_id,
+          file_name: data.file_name,
+          file_path: data.file_path,
+          file_type: data.file_type,
+          description: data.description
         })
       })
     } catch (e) {
-      console.warn('[evidence-service] POST /api/projects failed, fallback to local', e)
+      console.warn('[evidence-service] POST /api/evidences failed, fallback to local', e)
     }
   }
 
@@ -193,20 +207,19 @@ export async function submitEvidenceSubmission(data: {
 
 /** Delete evidence submission */
 export async function deleteEvidenceSubmission(evidenceId: string, projectId?: string): Promise<void> {
-  // 1. Persist to Server API /api/projects
+  // 1. Persist to Server API /api/evidences
   if (typeof window !== 'undefined') {
     try {
-      await fetch('/api/projects', {
+      await fetch('/api/evidences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'delete_evidence',
-          evidence_id: evidenceId,
-          project_id: projectId
+          action: 'delete',
+          evidence_id: evidenceId
         })
       })
     } catch (e) {
-      console.warn('[evidence-service] POST delete_evidence failed', e)
+      console.warn('[evidence-service] POST /api/evidences delete failed', e)
     }
   }
 

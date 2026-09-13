@@ -329,22 +329,32 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
             </div>
 
             {/* Modal Body: Inline Viewer */}
-            <div className="p-4 sm:p-6 flex-1 overflow-y-auto bg-slate-100 flex items-center justify-center">
-              {isPdf(previewFile) ? (
-                <iframe
-                  src={previewFile.file_path}
-                  title="PDF Preview"
-                  className="w-full h-[65vh] rounded-2xl border border-slate-300 bg-white shadow-inner"
-                />
-              ) : (
-                <div className="max-h-[65vh] flex items-center justify-center overflow-hidden rounded-2xl bg-white p-2 border border-slate-200 shadow-md">
-                  <img
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto bg-slate-100 flex flex-col gap-4">
+              <div className="flex-1 flex items-center justify-center">
+                {isPdf(previewFile) ? (
+                  <iframe
                     src={previewFile.file_path}
-                    alt={previewFile.file_name}
-                    className="max-h-[60vh] max-w-full object-contain rounded-xl"
+                    title="PDF Preview"
+                    className="w-full h-[65vh] rounded-2xl border border-slate-300 bg-white shadow-inner"
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="max-h-[65vh] flex items-center justify-center overflow-hidden rounded-2xl bg-white p-2 border border-slate-200 shadow-md">
+                    <img
+                      src={previewFile.file_path}
+                      alt={previewFile.file_name}
+                      className="max-h-[60vh] max-w-full object-contain rounded-xl"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Evidence Description Section */}
+              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">รายละเอียดหลักฐาน</span>
+                <p className="text-sm font-medium text-slate-800 break-words whitespace-pre-wrap">
+                  {previewFile.description || 'ไม่มีรายละเอียดแนบมา'}
+                </p>
+              </div>
             </div>
 
             {/* Modal Footer */}

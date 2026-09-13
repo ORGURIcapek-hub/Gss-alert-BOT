@@ -128,6 +128,7 @@ export interface Database {
           file_name: string
           file_path: string
           file_type: string
+          description: string | null
           submitted_at: string
         }
         Insert: {
@@ -137,6 +138,7 @@ export interface Database {
           file_name: string
           file_path: string
           file_type: string
+          description?: string | null
           submitted_at?: string
         }
         Update: {
@@ -146,6 +148,7 @@ export interface Database {
           file_name?: string
           file_path?: string
           file_type?: string
+          description?: string | null
           submitted_at?: string
         }
         Relationships: [
@@ -170,27 +173,33 @@ export interface Database {
           eval_id: string
           report_id: string | null
           dashboard_id: string | null
+          project_id: string | null
           evaluator_id: string | null
           head_score: number
           team_score: number | null
+          executive_score: number | null
           created_at: string
         }
         Insert: {
           eval_id?: string
           report_id?: string | null
           dashboard_id?: string | null
+          project_id?: string | null
           evaluator_id?: string | null
           head_score: number
           team_score?: number | null
+          executive_score?: number | null
           created_at?: string
         }
         Update: {
           eval_id?: string
           report_id?: string | null
           dashboard_id?: string | null
+          project_id?: string | null
           evaluator_id?: string | null
           head_score?: number
           team_score?: number | null
+          executive_score?: number | null
           created_at?: string
         }
         Relationships: [

@@ -100,6 +100,41 @@ export async function fetchOKRs(year?: number): Promise<OKR[]> {
   return year ? inMemoryOKRs.filter(o => o.year === year) : inMemoryOKRs
 }
 
+/** Create a new OKR goal */
+export async function createOKR(data: {
+  okr_title: string
+  okr_type: string
+  year: number
+  quarter?: string
+  created_by?: string
+}): Promise<OKR> {
+  const newId = crypto.randomUUID()
+  const now = new Date().toISOString()
+  const newOKR: OKR = {
+    okr_id: newId,
+    okr_title: data.okr_title,
+    okr_type: data.okr_type || 'ยุทธศาสตร์คณะ',
+    year: data.year || 2567,
+    quarter: data.quarter || 'ALL',
+    status: 'In Progress',
+    created_by: data.created_by || null,
+    created_at: now,
+    updated_at: now
+  }
+
+  const supabase = getSafeSupabaseClient()
+  if (supabase) {
+    try {
+      await (supabase.from('okrs') as any).insert(newOKR)
+    } catch (e) {
+      console.warn('[createOKR] Supabase insert failed', e)
+    }
+  }
+
+  inMemoryOKRs.unshift(newOKR)
+  return newOKR
+}
+
 /** Fetch projects with persistent server storage fallback */
 export async function fetchProjects(filters?: {
   year?: number

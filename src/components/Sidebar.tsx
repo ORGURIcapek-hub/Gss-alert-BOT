@@ -23,7 +23,8 @@ import {
   KeyRound,
   User,
   Inbox,
-  Send
+  Send,
+  Award
 } from 'lucide-react'
 import { getRoleBadge, getUserFullName, DEFAULT_AVATAR } from '@/lib/user-constants'
 
@@ -56,6 +57,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
           { id: 'workspace', label: 'พื้นที่บริหารโครงการ OKR', icon: Layers },
           { id: 'team_evidences', label: 'หลักฐานจากลูกทีม', icon: FileCheck2, highlight: true },
           { id: 'create_dashboard', label: 'ส่งสรุป Dashboard ให้ผู้บริหาร', icon: Send },
+          { id: 'executive_scores', label: 'คะแนนจากผู้บริหาร', icon: Award },
           { id: 'create_normal_report', label: 'สร้างรายงานทั่วไป', icon: FileSpreadsheet },
           { id: 'normal_reports', label: 'Report โครงการ OKR', icon: FileText },
           { id: 'projects', label: 'โครงการในภาควิชา', icon: FolderGit2 },
@@ -88,7 +90,6 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
       case 'staff':
       default:
         return [
-          { id: 'dashboard', label: 'ภาพรวมระบบ (Dashboard)', icon: LayoutDashboard },
           { id: 'normal_reports', label: 'Report โครงการ OKR', icon: FileText },
           { id: 'projects', label: 'โครงการและภารกิจ', icon: FolderGit2 },
           { id: 'evidences', label: 'หลักฐานการดำเนินงาน', icon: FileCheck2 },

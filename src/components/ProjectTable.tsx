@@ -165,7 +165,7 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onP
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const canDelete = currentRole === 'executive' || currentRole === 'admin'
-  const canCreate = currentRole ? ['admin', 'head_okr', 'executive', 'teacher'].includes(currentRole) : false
+  const canCreate = currentRole ? ['admin', 'head_okr'].includes(currentRole) : false
 
   const handleDeleteProject = useCallback(async (e: React.MouseEvent, p: ProjectWithHeadAndAssignees) => {
     e.stopPropagation()

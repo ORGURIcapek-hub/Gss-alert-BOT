@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { DashboardReportWithDetails, ProjectWithHeadAndAssignees, ExecutiveSummaryProjectSnapshot } from '@/types/database.types'
+import { DashboardReportWithDetails, ProjectWithHeadAndAssignees, ExecutiveSummaryProjectSnapshot, Evaluation } from '@/types/database.types'
 import {
   Inbox,
   Sparkles,
@@ -21,7 +21,7 @@ import {
   Layers,
   ArrowUpRight
 } from 'lucide-react'
-import { fetchDashboardReports } from '@/lib/services/okr-service'
+import { fetchDashboardReports, fetchEvaluations, saveEvaluationRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { formatDepartmentShort, formatThaiDate, removeTitlesAndRoles } from '@/lib/user-constants'
 
@@ -37,11 +37,45 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedYear, setSelectedYear] = useState<string>('ALL')
 
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([])
+  const [ratingLoadingId, setRatingLoadingId] = useState<string | null>(null)
+
+  const handleRate = async (dashboardId: string, score: number) => {
+    if (!currentUser) return
+    setRatingLoadingId(dashboardId)
+    try {
+      const newEval = await saveEvaluationRecord({
+        dashboard_id: dashboardId,
+        evaluator_id: currentUser.user_id,
+        head_score: 0, // Executive isn't rating head's self-score, but we must pass it, wait, head_score is required in the type. We can fetch existing head_score or pass 0.
+        executive_score: score
+      })
+      // Update local state
+      setEvaluations(prev => {
+        const idx = prev.findIndex(e => e.dashboard_id === dashboardId)
+        if (idx !== -1) {
+          const arr = [...prev]
+          arr[idx] = newEval
+          return arr
+        }
+        return [newEval, ...prev]
+      })
+      alert('บันทึกผลการประเมินจากผู้บริหารเรียบร้อยแล้ว')
+    } catch (e) {
+      console.error(e)
+      alert('เกิดข้อผิดพลาดในการบันทึก')
+    } finally {
+      setRatingLoadingId(null)
+    }
+  }
+
   const loadData = async () => {
     setIsLoading(true)
     try {
       const fetchedReports = await fetchDashboardReports()
       setReports(fetchedReports)
+      const evals = await fetchEvaluations()
+      setEvaluations(evals)
     } catch (e) {
       console.error('[ExecutiveSummaryRoom] Error loading reports', e)
     } finally {
@@ -385,6 +419,42 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                         })}
                       </div>
                     )}
+                  </div>
+                  
+                  {/* Executive Evaluation Section */}
+                  <div className="mt-8 pt-6 border-t border-slate-200">
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <Award className="w-5 h-5 text-indigo-600" />
+                          <span>ส่วนการประเมินจากผู้บริหาร (Executive Evaluation)</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          ให้คะแนนความพึงพอใจต่อผลงานของหัวหน้าโครงการนี้ (1-5 ดาว)
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => {
+                          const existingScore = evaluations.find(e => e.dashboard_id === report.dashboard_id)?.executive_score || 0
+                          const isFilled = star <= existingScore
+                          return (
+                            <button
+                              key={star}
+                              onClick={() => handleRate(report.dashboard_id, star)}
+                              disabled={ratingLoadingId === report.dashboard_id}
+                              className={`p-2 rounded-xl border transition-all cursor-pointer hover:scale-110 active:scale-95 ${
+                                isFilled
+                                  ? 'bg-amber-100 border-amber-300 text-amber-500 shadow-sm'
+                                  : 'bg-white border-slate-200 text-slate-300 hover:border-amber-300 hover:text-amber-400'
+                              }`}
+                              title={`ให้ ${star} ดาว`}
+                            >
+                              <Sparkles className="w-5 h-5 fill-current" />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

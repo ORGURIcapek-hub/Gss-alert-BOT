@@ -96,6 +96,21 @@ export async function createDashboardReport(reportData: {
 
 /** Fetch normal reports */
 export async function fetchNormalReports(): Promise<NormalReport[]> {
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/normal-reports')
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && Array.isArray(json.reports)) {
+          inMemoryNormalReports = json.reports
+          return json.reports
+        }
+      }
+    } catch (e) {
+      console.warn('[report-service] fetch /api/normal-reports failed', e)
+    }
+  }
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     const data = await dbCall<NormalReport[]>(
@@ -137,6 +152,18 @@ export async function createNormalReport(reportData: {
     updated_at: new Date().toISOString()
   }
 
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/normal-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', ...newReport })
+      })
+    } catch (e) {
+      console.warn('[report-service] POST /api/normal-reports failed', e)
+    }
+  }
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     await dbCall(() => (supabase.from('normal_reports') as any).insert(newReport), 'createNormalReport')
@@ -157,35 +184,76 @@ function filterEvaluations(filter?: { report_id?: string; dashboard_id?: string 
 }
 
 /** Fetch 1-5 star evaluations */
-export async function fetchEvaluations(filter?: { report_id?: string; dashboard_id?: string }): Promise<Evaluation[]> {
+export async function fetchEvaluations(filter?: { report_id?: string; dashboard_id?: string; project_id?: string }): Promise<Evaluation[]> {
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/evaluations')
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && Array.isArray(json.evaluations)) {
+          inMemoryEvaluations = json.evaluations
+        }
+      }
+    } catch (e) {
+      console.warn('[report-service] fetch /api/evaluations failed', e)
+    }
+  }
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     let query = (supabase.from('evaluations') as any).select('*')
     if (filter?.report_id) query = query.eq('report_id', filter.report_id)
     if (filter?.dashboard_id) query = query.eq('dashboard_id', filter.dashboard_id)
+    if (filter?.project_id) query = query.eq('project_id', filter.project_id)
     const data = await dbCall<Evaluation[]>(() => query, 'fetchEvaluations')
     if (data && data.length > 0) return data
   }
-  return filterEvaluations(filter)
+  
+  if (filter?.report_id) {
+    return inMemoryEvaluations.filter(e => e.report_id === filter.report_id)
+  }
+  if (filter?.dashboard_id) {
+    return inMemoryEvaluations.filter(e => e.dashboard_id === filter.dashboard_id)
+  }
+  if (filter?.project_id) {
+    return inMemoryEvaluations.filter(e => e.project_id === filter.project_id)
+  }
+  return inMemoryEvaluations
 }
 
 /** Save or update 1-5 star evaluation record */
 export async function saveEvaluationRecord(data: {
   report_id?: string | null
   dashboard_id?: string | null
+  project_id?: string | null
   evaluator_id: string
   head_score: number
   team_score?: number | null
+  executive_score?: number | null
 }): Promise<Evaluation> {
   const newId = crypto.randomUUID()
   const evaluation: Evaluation = {
     eval_id: newId,
     report_id: data.report_id || null,
     dashboard_id: data.dashboard_id || null,
+    project_id: data.project_id || null,
     evaluator_id: data.evaluator_id,
     head_score: data.head_score,
     team_score: data.team_score !== undefined ? data.team_score : null,
+    executive_score: data.executive_score !== undefined ? data.executive_score : null,
     created_at: new Date().toISOString()
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/evaluations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create_or_update', ...evaluation })
+      })
+    } catch (e) {
+      console.warn('[report-service] POST /api/evaluations failed', e)
+    }
   }
 
   const supabase = getSafeSupabaseClient()
@@ -195,10 +263,12 @@ export async function saveEvaluationRecord(data: {
 
   const existingIdx = inMemoryEvaluations.findIndex(e =>
     (data.report_id && e.report_id === data.report_id) ||
-    (data.dashboard_id && e.dashboard_id === data.dashboard_id)
+    (data.dashboard_id && e.dashboard_id === data.dashboard_id) ||
+    (data.project_id && e.project_id === data.project_id)
   )
 
   if (existingIdx !== -1) {
+    evaluation.eval_id = inMemoryEvaluations[existingIdx].eval_id
     inMemoryEvaluations[existingIdx] = evaluation
   } else {
     inMemoryEvaluations.unshift(evaluation)

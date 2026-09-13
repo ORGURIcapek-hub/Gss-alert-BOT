@@ -22,6 +22,7 @@ import { CreateNormalReportView } from '@/components/CreateNormalReportView'
 import { NormalReportView } from '@/components/NormalReportView'
 import { HeadEvidenceView } from '@/components/HeadEvidenceView'
 import { ExecutiveSummaryRoom } from '@/components/ExecutiveSummaryRoom'
+import { ExecutiveEvaluationsView } from '@/components/ExecutiveEvaluationsView'
 import { useRole } from '@/components/RoleContext'
 import { fetchOKRs, fetchProjects } from '@/lib/services/okr-service'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
@@ -82,10 +83,18 @@ export default function HomePage() {
           setActiveTab(savedTab)
         } else if (currentRole === 'admin') {
           handleTabChange('pending_users')
+        } else if (currentRole === 'staff') {
+          handleTabChange('normal_reports')
         }
       } catch {}
     }
   }, [])
+
+  useEffect(() => {
+    if (currentRole === 'staff' && activeTab === 'workspace') {
+      handleTabChange('normal_reports')
+    }
+  }, [currentRole, activeTab])
 
   useEffect(() => {
     if (mounted && isAuthenticated) {
@@ -129,6 +138,8 @@ export default function HomePage() {
     if (!mounted) return
     if (currentRole === 'admin' && activeTab === 'workspace') {
       handleTabChange('pending_users')
+    } else if (currentRole === 'staff' && activeTab === 'workspace') {
+      handleTabChange('normal_reports')
     }
   }, [currentRole, mounted])
 
@@ -200,18 +211,6 @@ export default function HomePage() {
                   onOpenCreateModal={() => setIsCreateModalOpen(true)}
                 />
               )}
-
-              {currentRole === 'staff' && (
-                <div className="space-y-6">
-                  <DashboardMetrics okrs={okrs} projects={projects} />
-                  <ProjectTable
-                    projects={projects}
-                    onSelectProject={(p) => setSelectedProject(p)}
-                    onOpenCreateModal={() => setIsCreateModalOpen(true)}
-                    onProjectsRefresh={loadData}
-                  />
-                </div>
-              )}
             </>
           )}
 
@@ -247,20 +246,12 @@ export default function HomePage() {
             />
           )}
 
-          {activeTab === 'normal_reports' && (
-            <NormalReportView />
+          {activeTab === 'executive_scores' && currentRole === 'head_okr' && (
+            <ExecutiveEvaluationsView />
           )}
 
-          {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              <DashboardMetrics okrs={okrs} projects={projects} />
-              <ProjectTable
-                projects={projects}
-                onSelectProject={(p) => setSelectedProject(p)}
-                onOpenCreateModal={() => setIsCreateModalOpen(true)}
-                onProjectsRefresh={loadData}
-              />
-            </div>
+          {activeTab === 'normal_reports' && (
+            <NormalReportView />
           )}
 
           {activeTab === 'okrs' && (
@@ -269,6 +260,7 @@ export default function HomePage() {
               projects={projects}
               onSelectProject={(p) => setSelectedProject(p)}
               onOpenCreateProject={() => setIsCreateModalOpen(true)}
+              onRefresh={loadData}
             />
           )}
 
