@@ -200,5 +200,7 @@
       "created_at": "2026-09-11T13:34:03.922Z"
     }
   ],
-  "deletedProjectIds": []
+  "deletedProjectIds": [
+    "0eb5af22-6be1-4282-bad4-1634d6a05355"
+  ]
 }
