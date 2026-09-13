@@ -179,6 +179,9 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
         upload_date: new Date().toISOString()
       }
       setEvidences(prev => [newEv, ...prev.filter(e => e.evidence_id !== newEv.evidence_id)])
+      if (project) {
+        project.evidences = [newEv, ...(project.evidences || []).filter(e => e.evidence_id !== newEv.evidence_id)]
+      }
 
       setSelectedFile(null)
       setUploadDescription('')
@@ -196,6 +199,9 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
     setDeletingId(evidenceId)
     await deleteEvidenceSubmission(evidenceId, project.project_id)
     setEvidences(prev => prev.filter(e => e.evidence_id !== evidenceId))
+    if (project) {
+      project.evidences = (project.evidences || []).filter(e => e.evidence_id !== evidenceId)
+    }
     setDeletingId(null)
     onUpdated()
   }

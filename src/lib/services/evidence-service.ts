@@ -148,7 +148,7 @@ export async function submitEvidenceSubmission(data: {
     submitted_at: new Date().toISOString()
   }
 
-  // 1. Persist to Server API /api/evidences
+  // 1. Persist to Server API /api/evidences and /api/projects
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/evidences', {
@@ -167,6 +167,27 @@ export async function submitEvidenceSubmission(data: {
       })
     } catch (e) {
       console.warn('[evidence-service] POST /api/evidences failed, fallback to local', e)
+    }
+
+    try {
+      await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submit_evidence',
+          submission: {
+            evidence_id: newId,
+            project_id: data.project_id,
+            sender_id: data.sender_id,
+            file_name: data.file_name,
+            file_path: data.file_path,
+            file_type: data.file_type,
+            description: data.description
+          }
+        })
+      })
+    } catch (e) {
+      console.warn('[evidence-service] POST /api/projects submit_evidence failed', e)
     }
   }
 
@@ -207,7 +228,7 @@ export async function submitEvidenceSubmission(data: {
 
 /** Delete evidence submission */
 export async function deleteEvidenceSubmission(evidenceId: string, projectId?: string): Promise<void> {
-  // 1. Persist to Server API /api/evidences
+  // 1. Persist to Server API /api/evidences and /api/projects
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/evidences', {
@@ -220,6 +241,20 @@ export async function deleteEvidenceSubmission(evidenceId: string, projectId?: s
       })
     } catch (e) {
       console.warn('[evidence-service] POST /api/evidences delete failed', e)
+    }
+
+    try {
+      await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_evidence',
+          evidence_id: evidenceId,
+          project_id: projectId
+        })
+      })
+    } catch (e) {
+      console.warn('[evidence-service] POST /api/projects delete_evidence failed', e)
     }
   }
 

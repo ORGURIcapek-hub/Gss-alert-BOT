@@ -4,24 +4,25 @@ import React, { useState, useEffect } from 'react'
 import { OKR, UserProfile } from '@/types/database.types'
 import { X, FolderPlus, CheckCircle } from 'lucide-react'
 import { mockDepartments } from '@/lib/mock-data'
-import { createProjectRecord, assignProjectRole } from '@/lib/services/okr-service'
+import { createProjectRecord, assignProjectRole, fetchOKRs } from '@/lib/services/okr-service'
 import { getUserFullName, formatDepartmentShort, removeTitlesAndRoles } from '@/lib/user-constants'
 import { useRole } from '@/components/RoleContext'
 
 interface CreateProjectModalProps {
-  okrs: OKR[]
+  okrs?: OKR[]
   users: UserProfile[]
   onClose: () => void
   onCreated: () => void
 }
 
-export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreateProjectModalProps) {
+export function CreateProjectModal({ okrs = [], users, onClose, onCreated }: CreateProjectModalProps) {
   const { currentRole, currentUser } = useRole()
   const isTeacher = currentRole === 'teacher'
 
   // Only head_okr, staff, and teacher can be project heads (exclude admin and executive)
   const eligibleHeads = users.filter(u => u.role !== 'admin' && u.role !== 'executive')
 
+  const [allOkrs, setAllOkrs] = useState<OKR[]>(okrs)
   const [okrId, setOkrId] = useState(okrs[0]?.okr_id || '')
   const [projectName, setProjectName] = useState('')
   const [projectType, setProjectType] = useState('งานวิจัยขั้นแนวหน้า')
@@ -47,8 +48,20 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
   }, [users, headId])
 
   useEffect(() => {
-    if (okrs.length > 0 && !okrId) {
-      setOkrId(okrs[0].okr_id)
+    if (okrs && okrs.length > 0) {
+      setAllOkrs(okrs)
+      if (!okrId) {
+        setOkrId(okrs[0].okr_id)
+      }
+    } else {
+      fetchOKRs().then(res => {
+        if (res && res.length > 0) {
+          setAllOkrs(res)
+          if (!okrId) {
+            setOkrId(res[0].okr_id)
+          }
+        }
+      })
     }
   }, [okrs, okrId])
 
@@ -118,6 +131,28 @@ export function CreateProjectModal({ okrs, users, onClose, onCreated }: CreatePr
               required
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
             />
+          </div>
+
+          <div>
+            <label className="block text-slate-700 font-bold mb-1 text-xs">
+              เป้าหมาย OKR คณะที่รองรับ (OKR Goal) *
+            </label>
+            <select
+              value={okrId}
+              onChange={(e) => setOkrId(e.target.value)}
+              required
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-[#003B71]"
+            >
+              {allOkrs.length === 0 ? (
+                <option value="">-- ไม่พบเป้าหมาย OKR ในระบบ --</option>
+              ) : (
+                allOkrs.map((o) => (
+                  <option key={o.okr_id} value={o.okr_id}>
+                    [{o.okr_type}] {o.okr_title} (ปี {o.year})
+                  </option>
+                ))
+              )}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

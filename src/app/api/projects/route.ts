@@ -6,6 +6,7 @@ import { ProjectWithHeadAndAssignees, ProjectAssignment, ProjectStatus, UserProf
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-projects.json')
 const USERS_FILE_PATH = path.join(DATA_DIR, 'persisted-users.json')
+const EVIDENCES_FILE_PATH = path.join(DATA_DIR, 'persisted-evidences.json')
 
 function getSafeSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -34,6 +35,19 @@ async function getStoredUsers(): Promise<UserProfile[]> {
       const parsed = JSON.parse(content)
       if (parsed && Array.isArray(parsed.users)) {
         return parsed.users
+      }
+    }
+  } catch {}
+  return []
+}
+
+async function getStoredEvidences(): Promise<any[]> {
+  try {
+    if (fs.existsSync(EVIDENCES_FILE_PATH)) {
+      const content = await fs.promises.readFile(EVIDENCES_FILE_PATH, 'utf-8')
+      const parsed = JSON.parse(content)
+      if (parsed && Array.isArray(parsed.evidences)) {
+        return parsed.evidences
       }
     }
   } catch {}
@@ -101,6 +115,7 @@ export async function GET(req: NextRequest) {
     const storage = await ensureDataFile()
     const supabase = getSafeSupabaseClient()
     const allUsers = await getStoredUsers()
+    const storedEvidences = await getStoredEvidences()
 
     // If Supabase is available, sync with Supabase
     if (supabase) {
@@ -122,16 +137,26 @@ export async function GET(req: NextRequest) {
               const localProj = storage.projects.find(lp => lp.project_id === sp.project_id)
               const localEvs = localProj?.evidences || []
               const spEvs = sp.evidences || []
-              const seen = new Set(spEvs.map((e: any) => e.evidence_id))
-              const combined = [...spEvs]
-              for (const le of localEvs) {
-                if (!seen.has(le.evidence_id)) {
-                  combined.push(le)
-                }
-              }
+              const fileEvs = storedEvidences
+                .filter(e => e.project_id === sp.project_id)
+                .map(e => ({
+                  evidence_id: e.evidence_id,
+                  project_id: e.project_id,
+                  uploaded_by: e.sender_id,
+                  file_name: e.file_name,
+                  file_path: e.file_path,
+                  file_size: e.file_size || 1024 * 1024 * 2,
+                  description: e.description || `แนบหลักฐานไฟล์ ${e.file_name}`,
+                  upload_date: e.submitted_at || new Date().toISOString()
+                }))
+              const evMap = new Map()
+              for (const le of localEvs) evMap.set(le.evidence_id, le)
+              for (const se of spEvs) evMap.set(se.evidence_id, se)
+              for (const fe of fileEvs) evMap.set(fe.evidence_id, fe)
+
               return {
                 ...sp,
-                evidences: combined
+                evidences: Array.from(evMap.values())
               }
             }),
             ...localOnly
@@ -154,10 +179,31 @@ export async function GET(req: NextRequest) {
           ...a,
           user: a.user || allUsers.find(u => u.user_id === a.user_id) || undefined
         }))
+
+        // Merge evidences for this project
+        const projectEvidences = p.evidences || []
+        const matchedEvs = storedEvidences
+          .filter(e => e.project_id === p.project_id)
+          .map(e => ({
+            evidence_id: e.evidence_id,
+            project_id: e.project_id,
+            uploaded_by: e.sender_id,
+            file_name: e.file_name,
+            file_path: e.file_path,
+            file_size: e.file_size || 1024 * 1024 * 2,
+            description: e.description || `แนบหลักฐานไฟล์ ${e.file_name}`,
+            upload_date: e.submitted_at || new Date().toISOString()
+          }))
+
+        const evMap = new Map()
+        for (const ev of projectEvidences) evMap.set(ev.evidence_id, ev)
+        for (const ev of matchedEvs) evMap.set(ev.evidence_id, ev)
+
         return {
           ...p,
           head,
-          assignees
+          assignees,
+          evidences: Array.from(evMap.values())
         }
       })
 
