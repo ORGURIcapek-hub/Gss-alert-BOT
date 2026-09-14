@@ -29,24 +29,27 @@ interface StorageSchema {
 let memoryCache: StorageSchema | null = null
 
 async function ensureDataFile(): Promise<StorageSchema> {
-  if (memoryCache) return memoryCache
-
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true })
     }
 
     if (fs.existsSync(FILE_PATH)) {
-      const content = await fs.promises.readFile(FILE_PATH, 'utf-8')
-      const parsed = JSON.parse(content)
-      if (parsed && Array.isArray(parsed.users)) {
-        memoryCache = {
-          users: parsed.users,
-          deletedUserIds: Array.isArray(parsed.deletedUserIds) ? parsed.deletedUserIds : []
+      const raw = await fs.promises.readFile(FILE_PATH, 'utf-8')
+      const content = raw.replace(/^\uFEFF/, '').trim()
+      if (content) {
+        const parsed = JSON.parse(content)
+        if (parsed && Array.isArray(parsed.users)) {
+          memoryCache = {
+            users: parsed.users,
+            deletedUserIds: Array.isArray(parsed.deletedUserIds) ? parsed.deletedUserIds : []
+          }
+          return memoryCache
         }
-        return memoryCache
       }
     }
+
+    if (memoryCache) return memoryCache
 
     // Initialize with mockUsers (defaulting status to 'approved')
     const initialUsers: UserProfile[] = mockUsers.map(u => ({
@@ -64,6 +67,7 @@ async function ensureDataFile(): Promise<StorageSchema> {
     return memoryCache
   } catch (err) {
     console.error('[api/users] Error ensuring data file:', err)
+    if (memoryCache) return memoryCache
     return {
       users: mockUsers.map(u => ({ ...u, status: u.status || 'approved' })),
       deletedUserIds: []
@@ -180,6 +184,9 @@ export async function POST(req: NextRequest) {
            (u.email.toLowerCase() === email || (u.username && u.username.toLowerCase() === username))
     )
     if (existing) {
+      if (existing.status === 'pending') {
+        return NextResponse.json({ success: true, user: existing })
+      }
       return NextResponse.json(
         { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' },
         { status: 400 }
@@ -282,6 +289,23 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // Fallback: If user is not found in storage, but client passed user details in body.user
+    if (!user && body.user) {
+      const fallbackRole: UserRole = body.assignedRole || body.user.role || 'teacher'
+      const fallbackUser: UserProfile = {
+        ...body.user,
+        user_id: userId,
+        status: action === 'approve' ? 'approved' : (body.user.status || 'approved'),
+        role: fallbackRole,
+        management_order: getManagementOrder(fallbackRole),
+        updated_at: new Date().toISOString()
+      }
+      user = fallbackUser
+      storage.users.push(user)
+      userIndex = storage.users.length - 1
+      storage.deletedUserIds = storage.deletedUserIds.filter(id => id !== userId)
+    }
+
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
     }
@@ -296,6 +320,7 @@ export async function PUT(req: NextRequest) {
           user.management_order = getManagementOrder(body.assignedRole)
         }
         user.updated_at = now
+        storage.deletedUserIds = storage.deletedUserIds.filter(id => id !== userId)
         break
       }
 

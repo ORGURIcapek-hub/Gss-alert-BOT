@@ -209,7 +209,11 @@ export async function registerUserRecord(userData: {
 }
 
 /** Approve pending user */
-export async function approveUserRecord(userId: string, assignedRole?: UserRole): Promise<UserProfile> {
+export async function approveUserRecord(
+  userId: string,
+  assignedRole?: UserRole,
+  userFallback?: UserProfile
+): Promise<UserProfile> {
   let updatedUser: UserProfile | null = null
 
   if (typeof window !== 'undefined') {
@@ -217,7 +221,12 @@ export async function approveUserRecord(userId: string, assignedRole?: UserRole)
       const res = await fetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve', userId, assignedRole })
+        body: JSON.stringify({
+          action: 'approve',
+          userId,
+          assignedRole,
+          user: userFallback
+        })
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
@@ -242,6 +251,12 @@ export async function approveUserRecord(userId: string, assignedRole?: UserRole)
     }
     return u
   })
+
+  // If user was not in inMemoryUsers yet, add them
+  if (updatedUser && !inMemoryUsers.some(u => u.user_id === userId)) {
+    inMemoryUsers.push(updatedUser)
+  }
+
   setCachedUsers(inMemoryUsers)
   return updatedUser || inMemoryUsers.find(u => u.user_id === userId)!
 }

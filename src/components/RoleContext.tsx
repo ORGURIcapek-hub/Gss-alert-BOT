@@ -311,11 +311,18 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   }
 
   const approveUser = async (userId: string, assignedRole?: UserRole): Promise<{ success: boolean; error?: string }> => {
+    const targetUser = allUsers.find(u => u.user_id === userId)
     try {
+      const fallbackPayload = targetUser ? {
+        ...targetUser,
+        status: 'approved' as const,
+        ...(assignedRole ? { role: assignedRole } : {})
+      } : undefined
+
       setAllUsers(prev =>
         prev.map(u => (u.user_id === userId ? { ...u, status: 'approved', ...(assignedRole ? { role: assignedRole } : {}) } : u))
       )
-      await approveUserRecord(userId, assignedRole)
+      await approveUserRecord(userId, assignedRole, fallbackPayload)
       broadcastSync()
       await refreshUsers(true)
       return { success: true }
