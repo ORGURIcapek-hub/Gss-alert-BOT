@@ -1,21 +1,14 @@
-// =============================================================================
-// PASSWORD UTILITIES — shared validation & strength-meter logic
-// EMAIL UTILITIES — email format validation
-// Used by: ChangePasswordModal, ForgotPasswordModal, RoleContext, LoginPage
-// =============================================================================
-
 export const PASSWORD_SPECIAL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/
 
 export interface PasswordCriteria {
-  hasLength: boolean   // 8–15 chars
-  hasLetter: boolean   // at least one a-z / A-Z
-  hasNumber: boolean   // at least one 0-9
-  hasSpecial: boolean  // at least one special char
-  isValid: boolean     // all four criteria met
+  hasLength: boolean   
+  hasLetter: boolean   
+  hasNumber: boolean   
+  hasSpecial: boolean  
+  isValid: boolean     
   criteriaCount: number
 }
 
-/** Evaluate all password criteria and return a structured result. */
 export function validatePassword(password: string): PasswordCriteria {
   const hasLength = password.length >= 8 && password.length <= 15
   const hasLetter = /[a-zA-Z]/.test(password)
@@ -26,22 +19,11 @@ export function validatePassword(password: string): PasswordCriteria {
   return { hasLength, hasLetter, hasNumber, hasSpecial, isValid, criteriaCount }
 }
 
-// ─── Email Validation ─────────────────────────────────────────────────────────
-
 export interface EmailValidation {
   isValid: boolean
   error: string | null
 }
 
-/**
- * Validate email format client-side.
- * Rules:
- *  - Must have exactly one @
- *  - Local part (before @) must be non-empty
- *  - Domain part (after @) must have at least one dot with chars on both sides
- *  - TLD (last segment) must be at least 2 chars
- *  - No spaces allowed anywhere
- */
 export function validateEmail(email: string): EmailValidation {
   const trimmed = email.trim()
 
@@ -70,7 +52,6 @@ export function validateEmail(email: string): EmailValidation {
     return { isValid: false, error: 'ส่วนต่อท้ายอีเมล (TLD) ต้องมีอย่างน้อย 2 ตัวอักษร เช่น .th, .com' }
   }
 
-  // Full RFC-lite regex
   const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/
   if (!EMAIL_REGEX.test(trimmed)) {
     return { isValid: false, error: 'รูปแบบอีเมลไม่ถูกต้อง เช่น name@domain.com หรือ somchai@science.ac.th' }
@@ -78,8 +59,6 @@ export function validateEmail(email: string): EmailValidation {
 
   return { isValid: true, error: null }
 }
-
-// ─── Password Strength ───────────────────────────────────────────────────────
 
 export interface PasswordStrengthMeta {
   label: string
@@ -89,7 +68,6 @@ export interface PasswordStrengthMeta {
   badgeBg: string
 }
 
-/** Return Tailwind CSS classes + label for a password strength progress bar. */
 export function getPasswordStrengthMeta(password: string): PasswordStrengthMeta {
   if (!password) {
     return {

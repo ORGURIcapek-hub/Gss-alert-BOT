@@ -9,8 +9,6 @@ import {
   Eye, EyeOff, Check, X, KeyRound, RefreshCw, Send, ArrowLeft, Clock
 } from 'lucide-react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface ForgotPasswordModalProps {
   isOpen: boolean
   onClose: () => void
@@ -96,8 +94,6 @@ function modalReducer(state: ModalState, action: ModalAction): ModalState {
   }
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
 function AlertBanner({ type, message }: { type: 'error' | 'success'; message: string }) {
   const isError = type === 'error'
   return (
@@ -146,8 +142,6 @@ function PasswordInput({ value, onChange, show, onToggle, placeholder, id, extra
 
 const Spinner = () => <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
 
-// ─── Style constants ──────────────────────────────────────────────────────────
-
 const CLS = {
   btnSecondary: 'px-6 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm sm:text-base font-bold transition-all cursor-pointer',
   btnPrimary:   'px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#003B71] via-[#005B94] to-[#00A8B5] hover:opacity-95 text-white text-sm sm:text-base font-extrabold shadow-lg shadow-[#003B71]/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95',
@@ -156,30 +150,22 @@ const CLS = {
   footer:       'flex items-center justify-end gap-3 pt-3 border-t border-slate-100',
 }
 
-// ─── OTP focus helper ─────────────────────────────────────────────────────────
-
 const focusOtpBox = (idx: number) =>
   (document.getElementById(`modal-otp-input-${idx}`) as HTMLInputElement | null)?.focus()
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: ForgotPasswordModalProps) {
   const { allUsers, refreshUsers } = useRole()
   const [s, dispatch] = useReducer(modalReducer, INITIAL_STATE(initialEmail))
 
-  // Sync initialEmail prop
   useEffect(() => {
     dispatch({ type: 'SET_EMAIL', value: initialEmail })
   }, [initialEmail])
 
-  // Resend cooldown ticker
   useEffect(() => {
     if (!isOpen || s.step !== 2 || s.resendCooldown <= 0) return
     const timer = setInterval(() => dispatch({ type: 'TICK_COOLDOWN' }), 1000)
     return () => clearInterval(timer)
   }, [isOpen, s.step, s.resendCooldown])
-
-  // ── Handlers (must be declared before early return to satisfy Rules of Hooks) ──
 
   const dispatchOtp = useCallback(async (user: UserProfile) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
@@ -288,15 +274,12 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   const STEPS = ['1. ระบุอีเมล', '2. ยืนยัน OTP', '3. ตั้งรหัสใหม่'] as const
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden relative my-8">
 
-        {/* ── Header ── */}
         <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] p-7 sm:p-9 text-white relative">
           <button onClick={handleClose} type="button" aria-label="ปิด"
             className="absolute right-5 top-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
@@ -313,7 +296,7 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
               <h3 className="text-xl sm:text-2xl font-black mt-1 text-white">รีเซ็ตรหัสผ่านผ่าน OTP ทางอีเมล</h3>
             </div>
           </div>
-          {/* Step indicator */}
+
           <div className="flex items-center gap-2 sm:gap-3 mt-4 text-xs sm:text-sm text-slate-200 overflow-x-auto py-1">
             {STEPS.map((label, i) => (
               <React.Fragment key={label}>
@@ -326,12 +309,10 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
           </div>
         </div>
 
-        {/* ── Body ── */}
         <div className="p-7 sm:p-10 space-y-6">
           {s.errorMsg   && <AlertBanner type="error"   message={s.errorMsg} />}
           {s.successMsg && <AlertBanner type="success" message={s.successMsg} />}
 
-          {/* Step 1 — Email */}
           {s.step === 1 && (
             <form onSubmit={handleSendOtp} className="space-y-6">
               <div className="space-y-2.5">
@@ -358,7 +339,6 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
             </form>
           )}
 
-          {/* Step 2 — OTP */}
           {s.step === 2 && (
             <form onSubmit={handleVerifyOtp} className="space-y-6">
               <div className="text-center space-y-2 bg-sky-50/60 p-4 sm:p-5 rounded-2xl border border-sky-100">
@@ -407,10 +387,9 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
             </form>
           )}
 
-          {/* Step 3 — New password */}
           {s.step === 3 && (
             <form onSubmit={handleResetPassword} className="space-y-5">
-              {/* New password field */}
+
               <div className={`space-y-2.5 ${CLS.fieldCard}`}>
                 <div className="flex items-center justify-between">
                   <label htmlFor="new-password" className="flex items-center gap-2 text-sm sm:text-base font-bold text-slate-800">
@@ -442,7 +421,6 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
                 )}
               </div>
 
-              {/* Confirm password field */}
               <div className={`space-y-2 ${CLS.fieldCard}`}>
                 <div className="flex items-center justify-between">
                   <label htmlFor="confirm-password" className="flex items-center gap-2 text-sm sm:text-base font-bold text-slate-800">
@@ -472,7 +450,6 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
             </form>
           )}
 
-          {/* Step 4 — Success */}
           {s.step === 4 && (
             <div className="py-6 text-center space-y-6">
               <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 text-emerald-600 mx-auto flex items-center justify-center shadow-sm animate-in zoom-in-95">

@@ -34,7 +34,6 @@ export function ChangePasswordModal() {
 
   if (!isChangePasswordOpen || !currentUser) return null
 
-  // Password criteria evaluation
   const { hasLength: isPasswordValidLength, hasLetter, hasNumber, hasSpecial, isValid: isPasswordAllValid, criteriaCount: passedCriteriaCount } = validatePassword(newPassword)
   const isMatching = newPassword && confirmPassword && newPassword === confirmPassword
   const strengthMeta = getPasswordStrengthMeta(newPassword)
@@ -92,7 +91,7 @@ export function ChangePasswordModal() {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden relative my-8">
-        {/* Modal Header Banner */}
+
         <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] p-6 text-white relative">
           <button
             onClick={handleClose}
@@ -121,9 +120,8 @@ export function ChangePasswordModal() {
           </p>
         </div>
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Notifications */}
+
           {errorMsg && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl flex items-center gap-2.5 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
@@ -138,7 +136,6 @@ export function ChangePasswordModal() {
             </div>
           )}
 
-          {/* 1. Current Password */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-slate-400" />
@@ -165,7 +162,6 @@ export function ChangePasswordModal() {
             </div>
           </div>
 
-          {/* 2. New Password with Strength Meter */}
           <div className="space-y-1.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -200,11 +196,9 @@ export function ChangePasswordModal() {
               </button>
             </div>
 
-            {/* Strength Progress Bar & 4-point Requirements Checklist */}
             {newPassword && <PasswordChecklist password={newPassword} />}
           </div>
 
-          {/* 3. Confirm New Password */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -240,7 +234,6 @@ export function ChangePasswordModal() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="pt-3 flex items-center justify-end gap-2.5">
             <button
               type="button"

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { NormalReport } from '@/types/database.types'
+import { writeJsonAtomic, readJsonSafe } from '@/lib/atomic-storage'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-normal-reports.json')
@@ -27,42 +31,24 @@ let memoryCache: NormalReportsStorageSchema | null = null
 async function ensureDataFile(): Promise<NormalReportsStorageSchema> {
   if (memoryCache) return memoryCache
 
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-
-    if (fs.existsSync(FILE_PATH)) {
-      const content = await fs.promises.readFile(FILE_PATH, 'utf-8')
-      const parsed = JSON.parse(content)
-      if (parsed && Array.isArray(parsed.reports)) {
-        memoryCache = {
-          reports: parsed.reports
-        }
-        return memoryCache
-      }
-    }
-
-    const initialData: NormalReportsStorageSchema = {
-      reports: []
-    }
-
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(initialData, null, 2), 'utf-8')
-    memoryCache = initialData
+  const fallback: NormalReportsStorageSchema = { reports: [] }
+  const data = await readJsonSafe<NormalReportsStorageSchema | null>(FILE_PATH, null)
+  if (data && Array.isArray(data.reports)) {
+    memoryCache = { reports: data.reports }
     return memoryCache
-  } catch (err) {
-    console.error('[api/normal-reports] Error ensuring data file:', err)
-    return { reports: [] }
   }
+
+  if (memoryCache) return memoryCache
+
+  await writeJsonAtomic(FILE_PATH, fallback)
+  memoryCache = fallback
+  return memoryCache
 }
 
 async function saveReportsFile(data: NormalReportsStorageSchema): Promise<void> {
   memoryCache = data
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8')
+    await writeJsonAtomic(FILE_PATH, data)
   } catch (err) {
     console.error('[api/normal-reports] Error writing reports file:', err)
   }

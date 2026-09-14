@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { DashboardReportWithDetails } from '@/types/database.types'
+import { writeJsonAtomic, readJsonSafe } from '@/lib/atomic-storage'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-dashboard-reports.json')
@@ -27,42 +31,24 @@ let memoryCache: ReportsStorageSchema | null = null
 async function ensureDataFile(): Promise<ReportsStorageSchema> {
   if (memoryCache) return memoryCache
 
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-
-    if (fs.existsSync(FILE_PATH)) {
-      const content = await fs.promises.readFile(FILE_PATH, 'utf-8')
-      const parsed = JSON.parse(content)
-      if (parsed && Array.isArray(parsed.reports)) {
-        memoryCache = {
-          reports: parsed.reports
-        }
-        return memoryCache
-      }
-    }
-
-    const initialData: ReportsStorageSchema = {
-      reports: []
-    }
-
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(initialData, null, 2), 'utf-8')
-    memoryCache = initialData
+  const fallback: ReportsStorageSchema = { reports: [] }
+  const data = await readJsonSafe<ReportsStorageSchema | null>(FILE_PATH, null)
+  if (data && Array.isArray(data.reports)) {
+    memoryCache = { reports: data.reports }
     return memoryCache
-  } catch (err) {
-    console.error('[api/dashboard-reports] Error ensuring data file:', err)
-    return { reports: [] }
   }
+
+  if (memoryCache) return memoryCache
+
+  await writeJsonAtomic(FILE_PATH, fallback)
+  memoryCache = fallback
+  return memoryCache
 }
 
 async function saveReportsFile(data: ReportsStorageSchema): Promise<void> {
   memoryCache = data
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8')
+    await writeJsonAtomic(FILE_PATH, data)
   } catch (err) {
     console.error('[api/dashboard-reports] Error writing reports file:', err)
   }
@@ -72,7 +58,6 @@ export async function GET() {
   const storage = await ensureDataFile()
   let reports = [...storage.reports]
 
-  // If Supabase is configured, also fetch from Supabase and merge
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     try {
@@ -87,7 +72,7 @@ export async function GET() {
           if (!localMap.has(item.dashboard_id)) {
             reports.push(item)
           } else {
-            // merge supabase score if updated
+
             const local = localMap.get(item.dashboard_id)!
             local.okr_head_evaluation_score = item.okr_head_evaluation_score ?? local.okr_head_evaluation_score
           }
@@ -98,7 +83,6 @@ export async function GET() {
     }
   }
 
-  // Sort descending
   reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   return NextResponse.json({ success: true, reports })
@@ -127,7 +111,6 @@ export async function POST(req: NextRequest) {
       storage.reports.unshift(newReport)
       await saveReportsFile(storage)
 
-      // Supabase insert if available
       const supabase = getSafeSupabaseClient()
       if (supabase) {
         try {

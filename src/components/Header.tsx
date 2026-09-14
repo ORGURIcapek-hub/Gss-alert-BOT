@@ -40,7 +40,7 @@ export function Header({
           >
             <Menu className="w-5 h-5" />
           </button>
-          
+
           <div className="flex items-center gap-3">
             <SDULogo size="sm" showText={false} className="hidden sm:flex" />
             <div>
@@ -53,7 +53,7 @@ export function Header({
       </div>
 
       <div className="flex items-center flex-wrap gap-2.5">
-        {/* Admin Permission Request Notification Badge */}
+
         {isAdmin && pendingCount > 0 && (
           <button
             onClick={() => onNavigateTab?.('pending_users')}
@@ -65,7 +65,6 @@ export function Header({
           </button>
         )}
 
-        {/* Fiscal Year Selector */}
         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs flex-1 sm:flex-none justify-between sm:justify-start">
           <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
             <Calendar className="w-3.5 h-3.5 text-[#003B71]" />
@@ -82,7 +81,6 @@ export function Header({
           </select>
         </div>
 
-        {/* Quarter Selector - Available for all roles */}
         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs flex-1 sm:flex-none justify-between sm:justify-start">
           <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
             <Filter className="w-3.5 h-3.5 text-[#00A8B5]" />

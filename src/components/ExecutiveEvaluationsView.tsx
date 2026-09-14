@@ -12,33 +12,61 @@ export function ExecutiveEvaluationsView() {
   const [dashboards, setDashboards] = useState<DashboardReportWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true)
-      try {
-        const evals = await fetchEvaluations()
-        const dashes = await fetchDashboardReports()
-        
-        setEvaluations(evals)
-        setDashboards(dashes)
-      } catch (e) {
-        console.error('Failed to load executive evaluations', e)
-      } finally {
-        setIsLoading(false)
-      }
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      const evals = await fetchEvaluations()
+      const dashes = await fetchDashboardReports()
+
+      setEvaluations(evals)
+      setDashboards(dashes)
+    } catch (e) {
+      console.error('Failed to load executive evaluations', e)
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
+
+    let channel: BroadcastChannel | null = null
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        channel = new BroadcastChannel('sdu_okr_sync_channel')
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'EVALUATIONS_UPDATED' || event.data?.type === 'PROJECTS_UPDATED') {
+            loadData()
+          }
+        }
+      }
+    } catch {}
+
+    return () => {
+      channel?.close()
+    }
   }, [])
 
-  // Filter evaluations that belong to dashboards created by this head of OKR
-  // and have an executive score
-  const myDashboards = dashboards.filter(d => d.head_id === currentUser?.user_id)
+  const isMyDashboard = (d: DashboardReportWithDetails) => {
+    if (!currentUser) return false
+    if (d.head_id && d.head_id === currentUser.user_id) return true
+    if (d.head_name && currentUser.name && (d.head_name.includes(currentUser.name) || currentUser.name.includes(d.head_name))) return true
+    if (d.project_snapshots && Array.isArray(d.project_snapshots)) {
+      if (d.project_snapshots.some(ps => ps.head_name && currentUser.name && (ps.head_name.includes(currentUser.name) || currentUser.name.includes(ps.head_name)))) {
+        return true
+      }
+    }
+    return false
+  }
+
+  const myDashboards = dashboards.filter(isMyDashboard)
   const myDashboardIds = new Set(myDashboards.map(d => d.dashboard_id))
-  
-  const executiveScores = evaluations.filter(e => 
-    e.dashboard_id && 
-    myDashboardIds.has(e.dashboard_id) && 
-    e.executive_score && 
+
+  const executiveScores = evaluations.filter(e =>
+    e.dashboard_id &&
+    myDashboardIds.has(e.dashboard_id) &&
+    e.executive_score !== null &&
+    e.executive_score !== undefined &&
     e.executive_score > 0
   )
 
@@ -119,7 +147,7 @@ export function ExecutiveEvaluationsView() {
             {executiveScores.map(evaluation => {
               const dash = myDashboards.find(d => d.dashboard_id === evaluation.dashboard_id)
               const score = evaluation.executive_score || 0
-              
+
               return (
                 <div key={evaluation.eval_id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-[#003B71]">
                   <div className="space-y-1">

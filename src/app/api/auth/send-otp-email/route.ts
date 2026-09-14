@@ -20,7 +20,6 @@ export async function POST(req: Request) {
     const smtpSecure = process.env.SMTP_SECURE === 'false' ? false : true
     const smtpFrom = process.env.SMTP_FROM || `"ระบบติดตาม OKR มหาวิทยาลัยสวนดุสิต" <${smtpUser || 'noreply@dusit.ac.th'}>`
 
-    // Styled HTML Email Template matching SDU Branding
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="th">
@@ -78,7 +77,6 @@ export async function POST(req: Request) {
     </html>
     `
 
-    // Check if real SMTP credentials are provided
     if (smtpUser && smtpPass) {
       const transporter = nodemailer.createTransport({
         host: smtpHost,
@@ -108,7 +106,7 @@ export async function POST(req: Request) {
         message: `ส่งอีเมลจริงไปยัง ${email} สำเร็จเรียบร้อยแล้ว`
       })
     } else {
-      // SMTP is not configured yet in .env
+
       console.warn(`[send-otp-email] SMTP_USER / SMTP_PASS not set. Simulated OTP: ${otp} for ${email}`)
       return NextResponse.json({
         success: true,

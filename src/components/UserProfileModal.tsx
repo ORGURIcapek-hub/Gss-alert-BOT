@@ -50,7 +50,6 @@ export function UserProfileModal() {
   const prevOpenRef = useRef(false)
   const currentLoadedUserIdRef = useRef<string | null>(null)
 
-  // Populate form with current user data only when modal opens or active user ID changes
   useEffect(() => {
     if (isProfileModalOpen) {
       if (!prevOpenRef.current || currentLoadedUserIdRef.current !== currentUser?.user_id) {
@@ -72,7 +71,6 @@ export function UserProfileModal() {
 
   if (!isProfileModalOpen || !currentUser) return null
 
-  // Handle local image file upload & convert to base64 data URL
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -128,8 +126,7 @@ export function UserProfileModal() {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden relative my-8">
-        
-        {/* Header Branding */}
+
         <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] p-6 sm:p-7 text-white relative">
           <button
             onClick={closeProfileModal}
@@ -155,10 +152,8 @@ export function UserProfileModal() {
           </div>
         </div>
 
-        {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
-          
-          {/* Alerts */}
+
           {errorMsg && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl flex items-center gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
@@ -173,9 +168,8 @@ export function UserProfileModal() {
             </div>
           )}
 
-          {/* Section 1: Avatar Upload & Selection */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-center gap-5">
-            {/* Avatar Preview with Camera Overlay */}
+
             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
               <img
                 src={avatarUrl || PRESET_AVATARS[0]}
@@ -206,7 +200,6 @@ export function UserProfileModal() {
                 </p>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
                 <button
                   type="button"
@@ -228,7 +221,6 @@ export function UserProfileModal() {
                 </button>
               </div>
 
-              {/* Preset Avatars Row */}
               <div className="pt-1.5">
                 <span className="text-[10px] font-bold text-slate-400 block mb-1 flex items-center justify-center sm:justify-start gap-1">
                   <Sparkles className="w-3 h-3 text-[#00A8B5]" />
@@ -252,7 +244,6 @@ export function UserProfileModal() {
             </div>
           </div>
 
-          {/* Section 2: Full Name (Editable) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-bold text-slate-800">
@@ -286,7 +277,6 @@ export function UserProfileModal() {
             </div>
           </div>
 
-          {/* Section 3: Department & Position (Editable) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
@@ -321,7 +311,6 @@ export function UserProfileModal() {
             </div>
           </div>
 
-          {/* Section 4: Account Details & Security Badges (Read-Only) */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs sm:text-sm">
             <div className="flex items-center justify-between">
               <span className="text-slate-500 font-semibold flex items-center gap-1.5">
@@ -357,7 +346,6 @@ export function UserProfileModal() {
             </div>
           </div>
 
-          {/* Footer Submit Buttons */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
             <button
               type="button"

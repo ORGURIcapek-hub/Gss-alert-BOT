@@ -37,7 +37,6 @@ export function HeadOKRWorkspace({
 }: HeadOKRWorkspaceProps) {
   const { currentUser, allUsers, refreshUsers } = useRole()
 
-  // Assign Team Member modal state
   const [isAssignMemberOpen, setIsAssignMemberOpen] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [selectedUserId, setSelectedUserId] = useState<string>('')
@@ -46,14 +45,16 @@ export function HeadOKRWorkspace({
   const [projectAssignments, setProjectAssignments] = useState<ProjectAssignment[]>([])
 
   const myDeptProjects = projects.filter(
-    p => p.department === currentUser?.department || p.head_of_project === currentUser?.user_id
+    p =>
+      p.head_of_project === currentUser?.user_id ||
+      p.head?.user_id === currentUser?.user_id ||
+      (p.department && currentUser?.department && p.department === currentUser?.department)
   )
 
   const myCompleted = myDeptProjects.filter(p => p.progress_percentage === 100).length
   const myInProgress = myDeptProjects.filter(p => p.progress_percentage < 100 && (!p.bottleneck || p.bottleneck.length === 0)).length
   const myDelayed = myDeptProjects.filter(p => p.bottleneck && p.bottleneck.length > 0).length
 
-  // Fetch real-time assignments for the currently selected project in modal
   useEffect(() => {
     if (selectedProjectId && isAssignMemberOpen) {
       fetchProjectAssignments(selectedProjectId)
@@ -68,7 +69,6 @@ export function HeadOKRWorkspace({
     }
   }, [selectedProjectId, isAssignMemberOpen])
 
-  // Collect user IDs already associated with the currently selected project (as Head or Assigned Member)
   const currentSelectedProject = projects.find(p => p.project_id === selectedProjectId)
   const existingUserIdsInProject = useMemo(() => {
     const ids = new Set<string>()
@@ -88,12 +88,10 @@ export function HeadOKRWorkspace({
     return ids
   }, [currentSelectedProject, projectAssignments])
 
-  // Filter roles: head_okr, teacher, staff (3 levels only, exclude admin and executive)
-  // Exclude users already present in the currently selected project (won't show duplicate in that project, but will show in other projects)
   const availableTeachers = useMemo(() => {
     return allUsers.filter(
       u =>
-        (u.role === 'head_okr' || u.role === 'teacher' || u.role === 'staff') &&
+        u.role === 'teacher' &&
         u.status !== 'pending' &&
         u.status !== 'rejected' &&
         !existingUserIdsInProject.has(u.user_id)
@@ -128,7 +126,7 @@ export function HeadOKRWorkspace({
 
   return (
     <div className="space-y-6">
-      {/* Top Action Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -161,7 +159,6 @@ export function HeadOKRWorkspace({
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
         <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
           <div className="w-13 h-13 rounded-2xl bg-[#003B71]/10 flex items-center justify-center text-[#003B71] flex-shrink-0">
@@ -196,7 +193,6 @@ export function HeadOKRWorkspace({
         </div>
       </div>
 
-      {/* Projects List */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
@@ -255,7 +251,6 @@ export function HeadOKRWorkspace({
         </div>
       </div>
 
-      {/* MODAL: ASSIGN TEAM MEMBER */}
       {isAssignMemberOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 relative space-y-5">
@@ -330,7 +325,6 @@ export function HeadOKRWorkspace({
                   ))}
                 </select>
               </div>
-
 
               <button
                 type="submit"

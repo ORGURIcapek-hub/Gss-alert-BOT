@@ -9,10 +9,6 @@ import {
   type LucideIcon
 } from 'lucide-react'
 
-// =============================================================================
-// ROLE CONFIGURATIONS & LABELS
-// =============================================================================
-
 export interface RoleConfigItem {
   value: UserRole
   label: string
@@ -95,10 +91,6 @@ export const DEFAULT_ROLE_POSITIONS: Record<UserRole, string> = {
   admin: 'ผู้ดูแลระบบ'
 }
 
-// =============================================================================
-// DEPARTMENTS
-// =============================================================================
-
 export const DEPARTMENT_OPTIONS: string[] = [
   'ภาควิชาวิทยาการคอมพิวเตอร์',
   'ภาควิชาเคมี',
@@ -109,10 +101,6 @@ export const DEPARTMENT_OPTIONS: string[] = [
 ]
 
 export const DEFAULT_DEPARTMENT = DEPARTMENT_OPTIONS[0]
-
-// =============================================================================
-// AVATARS
-// =============================================================================
 
 export const PRESET_AVATARS: string[] = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -125,11 +113,6 @@ export const PRESET_AVATARS: string[] = [
 
 export const DEFAULT_AVATAR = PRESET_AVATARS[0]
 
-// =============================================================================
-// USER UTILITIES
-// =============================================================================
-
-/** Format full name from user record, falling back appropriately */
 export function getUserFullName(user?: {
   first_name?: string | null
   last_name?: string | null
@@ -144,7 +127,6 @@ export function getUserFullName(user?: {
   return user.name?.trim() || 'ไม่ระบุชื่อ'
 }
 
-/** Split a full name into first and last name components */
 export function splitFullName(fullName: string): { firstName: string; lastName: string } {
   const trimmed = fullName.trim()
   if (!trimmed) {
@@ -156,7 +138,6 @@ export function splitFullName(fullName: string): { firstName: string; lastName: 
   return { firstName, lastName }
 }
 
-/** Case-insensitive fuzzy search across all user identity fields */
 export function filterUsersBySearchQuery(users: UserProfile[], query: string): UserProfile[] {
   const term = query.toLowerCase().trim()
   if (!term) return users
@@ -180,13 +161,11 @@ export function filterUsersBySearchQuery(users: UserProfile[], query: string): U
   })
 }
 
-/** Safely format a department name by stripping "ภาควิชา" prefix without crashing on null/undefined */
 export function formatDepartmentShort(dept?: string | null): string {
   if (!dept) return 'ส่วนกลาง'
   return dept.replace('ภาควิชา', '').trim() || 'ส่วนกลาง'
 }
 
-/** Safely format ISO date string into Thai locale date without throwing on invalid date */
 export function formatThaiDate(dateStr?: string | null, options?: Intl.DateTimeFormatOptions): string {
   if (!dateStr) return '-'
   try {
@@ -198,7 +177,6 @@ export function formatThaiDate(dateStr?: string | null, options?: Intl.DateTimeF
   }
 }
 
-/** Strip academic ranks/titles (ยศ/คำนำหน้าทางวิชาการ) and role tags from name string */
 export function removeTitlesAndRoles(name: string): string {
   if (!name) return ''
   return name
@@ -208,7 +186,6 @@ export function removeTitlesAndRoles(name: string): string {
     .trim()
 }
 
-/** Maps a UserRole to its management_order integer (1: admin, 2: executive, 3: head_okr, 4: others) */
 export function getManagementOrder(role?: string): number {
   if (role === 'admin') return 1
   if (role === 'executive') return 2
@@ -216,7 +193,6 @@ export function getManagementOrder(role?: string): number {
   return 4
 }
 
-/** Check whether two UserProfile objects have identical core profile fields */
 export function isUserIdentical(u1: UserProfile, u2: UserProfile): boolean {
   return (
     u1.user_id === u2.user_id &&
@@ -232,4 +208,3 @@ export function isUserIdentical(u1: UserProfile, u2: UserProfile): boolean {
     u1.password === u2.password
   )
 }
-

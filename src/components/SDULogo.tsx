@@ -26,7 +26,7 @@ export function SDULogo({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* Official SDU Symbol from IMG folder */}
+
       <div className={`${currentSize.icon} relative flex-shrink-0 flex items-center justify-center`}>
         <img
           src="/IMG/sdu-logo.png"
@@ -48,4 +48,3 @@ export function SDULogo({
     </div>
   )
 }
-

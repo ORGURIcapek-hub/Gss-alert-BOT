@@ -1,12 +1,11 @@
 import { mockEvidenceSubmissions } from '@/lib/mock-data'
 import { EvidenceSubmission, ProjectWithHeadAndAssignees, UserProfile, Evidence } from '@/types/database.types'
-import { getSafeSupabaseClient, dbCall, getCachedUsers } from './service-helpers'
+import { getSafeSupabaseClient, dbCall, getCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 import { getInMemoryUsers } from './user-service'
 import { getInMemoryProjects, setInMemoryProjects, setCachedProjects, notifyProjectsChannel } from './project-service'
 
 let inMemoryEvidenceSubmissions: EvidenceSubmission[] = [...mockEvidenceSubmissions]
 
-/** Upload evidence file record */
 export async function uploadEvidenceRecord(
   projectId: string,
   userId: string,
@@ -43,7 +42,6 @@ export async function uploadEvidenceRecord(
   notifyProjectsChannel()
 }
 
-/** Delete evidence record */
 export async function deleteEvidenceRecord(evidenceId: string, projectId: string): Promise<void> {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
@@ -65,18 +63,17 @@ export async function deleteEvidenceRecord(evidenceId: string, projectId: string
   notifyProjectsChannel()
 }
 
-/** Fetch evidence submissions with sender & project populated */
 export async function fetchEvidenceSubmissions(
   projectId?: string
 ): Promise<(EvidenceSubmission & { sender?: UserProfile; project?: ProjectWithHeadAndAssignees })[]> {
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/evidences')
-      if (res.ok) {
-        const json = await res.json()
-        if (json.success && Array.isArray(json.evidences)) {
-          inMemoryEvidenceSubmissions = json.evidences
-        }
+      const json = await fetchWithDeduplication<{ success: boolean; evidences: EvidenceSubmission[] }>(
+        '/api/evidences',
+        { ttl: 2500 }
+      )
+      if (json?.success && Array.isArray(json.evidences)) {
+        inMemoryEvidenceSubmissions = json.evidences
       }
     } catch (e) {
       console.warn('[evidence-service] fetch /api/evidences failed', e)
@@ -87,7 +84,6 @@ export async function fetchEvidenceSubmissions(
   const cachedUsers = getCachedUsers()
   const projects = getInMemoryProjects()
 
-  // Collect all submissions from inMemoryEvidenceSubmissions + any project.evidences not already present
   const allSubmissions: EvidenceSubmission[] = [...inMemoryEvidenceSubmissions]
   const seenIds = new Set(allSubmissions.map(s => s.evidence_id))
 
@@ -127,7 +123,6 @@ export async function fetchEvidenceSubmissions(
   })
 }
 
-/** Submit an evidence submission */
 export async function submitEvidenceSubmission(data: {
   project_id: string
   sender_id: string
@@ -148,7 +143,8 @@ export async function submitEvidenceSubmission(data: {
     submitted_at: new Date().toISOString()
   }
 
-  // 1. Persist to Server API /api/evidences and /api/projects
+  invalidateApiCache('/api/evidences')
+  invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/evidences', {
@@ -191,7 +187,6 @@ export async function submitEvidenceSubmission(data: {
     }
   }
 
-  // 2. Supabase insert if configured
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     await dbCall(() => (supabase.from('evidence_submissions') as any).insert(newSubmission), 'submitEvidenceSubmission')
@@ -199,7 +194,6 @@ export async function submitEvidenceSubmission(data: {
 
   inMemoryEvidenceSubmissions.unshift(newSubmission)
 
-  // 3. Sync to project evidences in memory, cache, and notify channel
   const newEvidence: Evidence = {
     evidence_id: newId,
     project_id: data.project_id,
@@ -226,9 +220,10 @@ export async function submitEvidenceSubmission(data: {
   return newSubmission
 }
 
-/** Delete evidence submission */
 export async function deleteEvidenceSubmission(evidenceId: string, projectId?: string): Promise<void> {
-  // 1. Persist to Server API /api/evidences and /api/projects
+
+  invalidateApiCache('/api/evidences')
+  invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/evidences', {

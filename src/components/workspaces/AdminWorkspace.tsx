@@ -20,7 +20,7 @@ export function AdminWorkspace({
 }: AdminWorkspaceProps) {
   return (
     <div className="space-y-6">
-      {/* Top Action Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -37,7 +37,6 @@ export function AdminWorkspace({
         </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 mb-1">

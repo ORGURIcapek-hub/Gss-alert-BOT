@@ -15,9 +15,6 @@ interface ProjectTableProps {
   onProjectsRefresh?: () => void
 }
 
-// -------------------------------------------------------------
-// 1. Status Badge Component (Declarative Lookup)
-// -------------------------------------------------------------
 interface StatusBadgeProps {
   status: string
   bottleneck: string | null
@@ -66,9 +63,6 @@ export const ProjectStatusBadge = React.memo(function ProjectStatusBadge({ statu
   )
 })
 
-// -------------------------------------------------------------
-// 2. Project Table Row Component (Memoized)
-// -------------------------------------------------------------
 interface ProjectTableRowProps {
   project: ProjectWithHeadAndAssignees
   canDelete: boolean
@@ -154,9 +148,6 @@ const ProjectTableRow = React.memo(function ProjectTableRow({
   )
 })
 
-// -------------------------------------------------------------
-// 3. Main ProjectTable Component
-// -------------------------------------------------------------
 export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onProjectsRefresh }: ProjectTableProps) {
   const { currentRole } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
@@ -201,7 +192,7 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onP
 
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-8 border border-slate-200 shadow-sm space-y-5">
-      {/* Header Bar */}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -261,7 +252,6 @@ export function ProjectTable({ projects, onSelectProject, onOpenCreateModal, onP
         </div>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           <thead>

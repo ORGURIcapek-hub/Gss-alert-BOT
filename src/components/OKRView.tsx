@@ -19,7 +19,6 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
   const { currentRole, currentUser } = useRole()
   const [expandedOkr, setExpandedOkr] = useState<string | null>(okrs[0]?.okr_id || null)
 
-  // Add OKR Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newType, setNewType] = useState('ยุทธศาสตร์ที่ 1: การพัฒนาคุณภาพบัณฑิต')
@@ -58,7 +57,7 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
 
   return (
     <div className="space-y-6">
-      {/* Top Action Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -77,7 +76,6 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
         )}
       </div>
 
-      {/* Add OKR Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-scaleUp">
@@ -192,7 +190,6 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
         </div>
       )}
 
-      {/* OKR Accordions */}
       <div className="space-y-4">
         {okrs.map((okr) => {
           const okrProjects = projects.filter((p) => p.okr_id === okr.okr_id)

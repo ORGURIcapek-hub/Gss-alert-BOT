@@ -1,41 +1,31 @@
 import { mockUsers } from '@/lib/mock-data'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { getManagementOrder } from '@/lib/user-constants'
-import { getCachedUsers, setCachedUsers } from './service-helpers'
+import { getCachedUsers, setCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 
 let inMemoryUsers: UserProfile[] = [...mockUsers]
 
-/** Retrieve current in-memory users cache */
 export function getInMemoryUsers(): UserProfile[] {
   return inMemoryUsers
 }
 
-/** Set in-memory users cache */
 export function setInMemoryUsers(users: UserProfile[]): void {
   inMemoryUsers = users
 }
 
-/** Fetch all active users via server API /api/users, fallback to local cache/mock */
-export async function fetchUsers(): Promise<UserProfile[]> {
+export async function fetchUsers(force: boolean = false): Promise<UserProfile[]> {
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch(`/api/users?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
+      const data = await fetchWithDeduplication<{ success: boolean; users: UserProfile[] }>('/api/users', {
+        forceRefresh: force,
+        ttl: 2500
       })
-      if (res.ok) {
-        const data = await res.json()
-        if (data?.success && Array.isArray(data.users) && data.users.length > 0) {
-          inMemoryUsers = data.users
-          setCachedUsers(data.users)
-          return data.users
-        }
+      if (data?.success && Array.isArray(data.users) && data.users.length > 0) {
+        inMemoryUsers = data.users
+        setCachedUsers(data.users)
+        return data.users
       }
     } catch {
-      // Fall through to cache/in-memory
     }
   }
 
@@ -48,8 +38,8 @@ export async function fetchUsers(): Promise<UserProfile[]> {
   return inMemoryUsers
 }
 
-/** Update user role */
 export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
+  invalidateApiCache('/api/users')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/users', {
@@ -64,8 +54,8 @@ export async function updateUserRoleRecord(userId: string, role: UserRole): Prom
   setCachedUsers(inMemoryUsers)
 }
 
-/** Update user password */
 export async function updateUserPasswordRecord(userId: string, newPassword: string): Promise<void> {
+  invalidateApiCache('/api/users')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/users', {
@@ -80,8 +70,8 @@ export async function updateUserPasswordRecord(userId: string, newPassword: stri
   setCachedUsers(inMemoryUsers)
 }
 
-/** Delete user record */
 export async function deleteUserRecord(userId: string): Promise<void> {
+  invalidateApiCache('/api/users')
   if (typeof window !== 'undefined') {
     try {
       await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' })
@@ -92,7 +82,6 @@ export async function deleteUserRecord(userId: string): Promise<void> {
   setCachedUsers(inMemoryUsers)
 }
 
-/** Update user profile fields */
 export async function updateUserProfileRecord(
   userId: string,
   updates: {
@@ -104,6 +93,7 @@ export async function updateUserProfileRecord(
     position?: string
   }
 ): Promise<UserProfile | null> {
+  invalidateApiCache('/api/users')
   const computedFirstName = updates.first_name || (updates.name ? updates.name.split(' ')[0] : undefined)
   const computedLastName = updates.last_name || (updates.name ? updates.name.split(' ').slice(1).join(' ') : undefined)
   const computedName = updates.name || (computedFirstName && computedLastName ? `${computedFirstName} ${computedLastName}` : undefined)
@@ -131,7 +121,6 @@ export async function updateUserProfileRecord(
   return inMemoryUsers.find(u => u.user_id === userId) || null
 }
 
-/** Register new user record */
 export async function registerUserRecord(userData: {
   username?: string
   name?: string
@@ -156,6 +145,7 @@ export async function registerUserRecord(userData: {
   const userAvatar = userData.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
 
   let createdUser: UserProfile | null = null
+  invalidateApiCache('/api/users')
 
   if (typeof window !== 'undefined') {
     try {
@@ -216,12 +206,12 @@ export async function registerUserRecord(userData: {
   return newUser
 }
 
-/** Approve pending user */
 export async function approveUserRecord(
   userId: string,
   assignedRole?: UserRole,
   userFallback?: UserProfile
 ): Promise<UserProfile> {
+  invalidateApiCache('/api/users')
   let updatedUser: UserProfile | null = null
 
   if (typeof window !== 'undefined') {
@@ -260,7 +250,6 @@ export async function approveUserRecord(
     return u
   })
 
-  // If user was not in inMemoryUsers yet, add them
   if (updatedUser && !inMemoryUsers.some(u => u.user_id === userId)) {
     inMemoryUsers.push(updatedUser)
   }
@@ -269,8 +258,8 @@ export async function approveUserRecord(
   return updatedUser || inMemoryUsers.find(u => u.user_id === userId)!
 }
 
-/** Reject pending user */
 export async function rejectUserRecord(userId: string): Promise<void> {
+  invalidateApiCache('/api/users')
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/users', {
@@ -292,7 +281,6 @@ export async function rejectUserRecord(userId: string): Promise<void> {
   setCachedUsers(inMemoryUsers)
 }
 
-/** Fetch pending approval users */
 export async function fetchPendingUsers(): Promise<UserProfile[]> {
   const users = await fetchUsers()
   return users.filter(u => u.status === 'pending')

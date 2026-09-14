@@ -107,33 +107,33 @@
       "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
       "start_date": "2026-09-11",
       "end_date": "2026-09-12",
-      "head_of_project": "df89070e-23fb-4211-a391-0fce520acf23",
+      "head_of_project": "7fb7cc1a-4f31-4352-8246-2376ab3892d4",
       "progress_percentage": 50,
       "budget": 100000000,
       "spent_amount": 500000,
       "status": "In Progress",
       "bottleneck": null,
       "created_at": "2026-09-11T13:23:27.208Z",
-      "updated_at": "2026-09-11T13:41:16.757Z",
+      "updated_at": "2026-09-14T14:40:50.819Z",
       "head": {
-        "user_id": "df89070e-23fb-4211-a391-0fce520acf23",
-        "username": "prem",
-        "name": "นาย เปรมศักดิ์ บรรจงชาติ",
-        "email": "premm1175@gmail.com",
-        "password": "pass-123",
+        "user_id": "7fb7cc1a-4f31-4352-8246-2376ab3892d4",
+        "username": "themehackers",
+        "name": "นาย ภูดหก ดกหดหก",
+        "email": "taokosit11111@gmail.com",
+        "password": "##!@Theme171149",
         "first_name": "นาย",
-        "last_name": "เปรมศักดิ์ บรรจงชาติ",
+        "last_name": "ภูดหก ดกหดหก",
         "position": "อาจารย์ประจำภาควิชา",
         "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
-        "role": "head_okr",
+        "role": "staff",
         "admin_type": null,
         "executive_level": null,
         "employment_status": "Full-Time",
-        "management_order": 3,
+        "management_order": 4,
         "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
         "status": "approved",
-        "created_at": "2026-09-09T16:37:43.415Z",
-        "updated_at": "2026-09-09T16:38:13.666Z"
+        "created_at": "2026-09-14T14:03:50.555Z",
+        "updated_at": "2026-09-14T14:34:42.534Z"
       },
       "assignees": [
         {
@@ -183,6 +183,14 @@
     }
   ],
   "assignments": [
+    {
+      "assignment_id": "5ae8f1b5-5343-4b25-992b-6cd082f8dc02",
+      "project_id": "d3a81dfb-4f96-4ac5-8470-0a6748925de2",
+      "user_id": "7fb7cc1a-4f31-4352-8246-2376ab3892d4",
+      "role_type": "Head",
+      "assigned_by": "9c9f89f5-7714-4f19-9a74-ccb068a66899",
+      "created_at": "2026-09-14T14:40:50.819Z"
+    },
     {
       "assignment_id": "7a805e82-9fbe-4bb0-8868-a5e178ead0e2",
       "project_id": "79d2483a-7166-4821-adec-43e6a99dce51",

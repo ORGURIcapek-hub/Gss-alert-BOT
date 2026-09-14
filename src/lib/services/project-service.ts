@@ -1,6 +1,6 @@
 import { mockOKRs, mockProjects } from '@/lib/mock-data'
 import { OKR, ProjectWithHeadAndAssignees, ProjectStatus } from '@/types/database.types'
-import { getSafeSupabaseClient, dbCall, getCachedUsers } from './service-helpers'
+import { getSafeSupabaseClient, dbCall, getCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 import { getInMemoryUsers } from './user-service'
 
 const PROJECTS_CACHE_KEY = 'sdu_okr_projects_cache'
@@ -32,21 +32,28 @@ export function notifyProjectsChannel() {
   } catch {}
 }
 
+export function notifyOKRsChannel() {
+  try {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('sdu_okr_sync_channel')
+      channel.postMessage({ type: 'OKRS_UPDATED', timestamp: Date.now() })
+      channel.close()
+    }
+  } catch {}
+}
+
 let inMemoryOKRs: OKR[] = [...mockOKRs]
 let inMemoryProjects: ProjectWithHeadAndAssignees[] = [...mockProjects]
 
-/** Retrieve current in-memory projects */
 export function getInMemoryProjects(): ProjectWithHeadAndAssignees[] {
   return inMemoryProjects
 }
 
-/** Set in-memory projects */
 export function setInMemoryProjects(projects: ProjectWithHeadAndAssignees[]): void {
   inMemoryProjects = projects
   setCachedProjects(projects)
 }
 
-/** Enrich project with overdue calculations and linked OKR metadata */
 export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): ProjectWithHeadAndAssignees {
   let isOverdue = false
   let daysOverdue = 0
@@ -63,18 +70,18 @@ export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): 
       const diffMs = dueDate.getTime() - today.getTime()
       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
-      if (diffDays < 0) {
+      if (diffDays < 0 && project.progress_percentage < 100) {
+        isOverdue = true
         daysOverdue = Math.abs(diffDays)
-        daysRemaining = 0
-        if (project.status !== 'Completed') {
-          isOverdue = true
-          effectiveStatus = 'Delayed'
-        }
-      } else {
+        effectiveStatus = 'Delayed'
+      } else if (diffDays >= 0) {
         daysRemaining = diffDays
-        daysOverdue = 0
       }
     }
+  }
+
+  if (project.progress_percentage === 100) {
+    effectiveStatus = 'Completed'
   }
 
   return {
@@ -88,8 +95,18 @@ export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): 
   }
 }
 
-/** Fetch OKRs by optional year */
 export async function fetchOKRs(year?: number): Promise<OKR[]> {
+  if (typeof window !== 'undefined') {
+    try {
+      const url = year ? `/api/okrs?year=${year}` : '/api/okrs'
+      const data = await fetchWithDeduplication<{ success: boolean; okrs: OKR[] }>(url, { ttl: 2500 })
+      if (data?.success && Array.isArray(data.okrs)) {
+        inMemoryOKRs = data.okrs
+        return data.okrs
+      }
+    } catch {}
+  }
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     let query = (supabase.from('okrs') as any).select('*')
@@ -100,7 +117,6 @@ export async function fetchOKRs(year?: number): Promise<OKR[]> {
   return year ? inMemoryOKRs.filter(o => o.year === year) : inMemoryOKRs
 }
 
-/** Create a new OKR goal */
 export async function createOKR(data: {
   okr_title: string
   okr_type: string
@@ -122,6 +138,19 @@ export async function createOKR(data: {
     updated_at: now
   }
 
+  invalidateApiCache('/api/okrs')
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/okrs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', okr: newOKR })
+      })
+    } catch (e) {
+      console.warn('[createOKR] POST /api/okrs failed', e)
+    }
+  }
+
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     try {
@@ -132,47 +161,81 @@ export async function createOKR(data: {
   }
 
   inMemoryOKRs.unshift(newOKR)
+  notifyOKRsChannel()
   return newOKR
 }
 
-/** Fetch projects with persistent server storage fallback */
+export async function updateProjectOKR(projectId: string, okrId: string): Promise<void> {
+  invalidateApiCache('/api/projects')
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_project_okr',
+          project_id: projectId,
+          okr_id: okrId
+        })
+      })
+    } catch (e) {
+      console.warn('[updateProjectOKR] POST failed', e)
+    }
+  }
+
+  const projects = getInMemoryProjects()
+  const okr = inMemoryOKRs.find(o => o.okr_id === okrId) || null
+  const updatedProjects = projects.map(p => {
+    if (p.project_id === projectId) {
+      return {
+        ...p,
+        okr_id: okrId,
+        okr: okr || p.okr,
+        updated_at: new Date().toISOString()
+      }
+    }
+    return p
+  })
+
+  setInMemoryProjects(updatedProjects)
+  notifyProjectsChannel()
+}
+
 export async function fetchProjects(filters?: {
   year?: number
   quarter?: string
   department?: string
   status?: string
 }): Promise<ProjectWithHeadAndAssignees[]> {
-  // 1. Fetch from persistent Server API /api/projects
+
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/projects')
-      if (res.ok) {
-        const data = await res.json()
-        if (data?.success && Array.isArray(data.projects)) {
-          inMemoryProjects = data.projects
-          setCachedProjects(data.projects)
-          let list = data.projects.map(enrichProjectWithOverdue)
-          if (filters?.department && filters.department !== 'ทั้งหมด') {
-            list = list.filter((p: ProjectWithHeadAndAssignees) => p.department === filters.department)
-          }
-          if (filters?.status && filters.status !== 'all') {
-            list = list.filter((p: ProjectWithHeadAndAssignees) => p.status === filters.status)
-          }
-          if (filters?.year) {
-            list = list.filter((p: ProjectWithHeadAndAssignees) => (p.okr ? p.okr.year === filters.year : true))
-          }
-          if (filters?.quarter && filters.quarter !== 'ALL') {
-            list = list.filter((p: ProjectWithHeadAndAssignees) => (p.okr ? p.okr.quarter === filters.quarter : true))
-          }
-          return list
+      const data = await fetchWithDeduplication<{ success: boolean; projects: ProjectWithHeadAndAssignees[] }>(
+        '/api/projects',
+        { ttl: 2500 }
+      )
+      if (data?.success && Array.isArray(data.projects)) {
+        inMemoryProjects = data.projects
+        setCachedProjects(data.projects)
+        let list = data.projects.map(enrichProjectWithOverdue)
+        if (filters?.department && filters.department !== 'ทั้งหมด') {
+          list = list.filter((p: ProjectWithHeadAndAssignees) => p.department === filters.department)
         }
+        if (filters?.status && filters.status !== 'all') {
+          list = list.filter((p: ProjectWithHeadAndAssignees) => p.status === filters.status)
+        }
+        if (filters?.year) {
+          list = list.filter((p: ProjectWithHeadAndAssignees) => (p.okr ? p.okr.year === filters.year : true))
+        }
+        if (filters?.quarter && filters.quarter !== 'ALL') {
+          list = list.filter((p: ProjectWithHeadAndAssignees) => (p.okr ? p.okr.quarter === filters.quarter : true))
+        }
+        return list
       }
     } catch {
-      // Fallback to cache
     }
   }
 
-  // 2. Fallback to localStorage cache
   const cached = getCachedProjects()
   if (cached && cached.length > 0) {
     inMemoryProjects = cached
@@ -194,7 +257,6 @@ export async function fetchProjects(filters?: {
   return memList
 }
 
-/** Create a new project record and persist to server */
 export async function createProjectRecord(projectData: {
   okr_id: string
   project_name: string
@@ -253,7 +315,7 @@ export async function createProjectRecord(projectData: {
     quarter: linkedOkr?.quarter || null
   })
 
-  // 1. Persist to Server API /api/projects
+  invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/projects', {
@@ -272,8 +334,8 @@ export async function createProjectRecord(projectData: {
   return newProj
 }
 
-/** Delete a project record */
 export async function deleteProjectRecord(projectId: string): Promise<void> {
+  invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
       await fetch(`/api/projects?projectId=${encodeURIComponent(projectId)}`, {
@@ -287,8 +349,8 @@ export async function deleteProjectRecord(projectId: string): Promise<void> {
   notifyProjectsChannel()
 }
 
-/** Clear all projects */
 export async function clearAllProjectsRecord(): Promise<void> {
+  invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/projects?clearAll=true', { method: 'DELETE' })
@@ -300,7 +362,6 @@ export async function clearAllProjectsRecord(): Promise<void> {
   notifyProjectsChannel()
 }
 
-/** Update project progress and budget spent */
 export async function updateProjectProgressRecord(
   projectId: string,
   progress: number,
@@ -308,6 +369,7 @@ export async function updateProjectProgressRecord(
   status: ProjectStatus,
   spent?: number
 ): Promise<void> {
+  invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/projects', {

@@ -2,11 +2,6 @@
 
 import { useState } from 'react'
 
-// =============================================================================
-// usePasswordReveal — shared hook for Admin password reveal / copy UI
-// Used by: AdminPendingApprovals, AdminUserManagement
-// =============================================================================
-
 export interface UsePasswordRevealReturn {
   revealedPasswords: Record<string, boolean>
   showAllPasswords: boolean

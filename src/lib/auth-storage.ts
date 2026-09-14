@@ -11,7 +11,6 @@ function isBrowser(): boolean {
   return typeof window !== 'undefined'
 }
 
-/** Get the currently saved user ID from sessionStorage */
 export function getStoredUserId(): string | null {
   if (!isBrowser()) return null
   try {
@@ -21,7 +20,6 @@ export function getStoredUserId(): string | null {
   }
 }
 
-/** Get the cached UserProfile object from sessionStorage */
 export function getStoredCachedUser(): UserProfile | null {
   if (!isBrowser()) return null
   try {
@@ -34,7 +32,6 @@ export function getStoredCachedUser(): UserProfile | null {
   }
 }
 
-/** Save the user ID and cached profile into sessionStorage */
 export function setStoredUser(user: UserProfile): void {
   if (!isBrowser()) return
   try {
@@ -43,7 +40,6 @@ export function setStoredUser(user: UserProfile): void {
   } catch {}
 }
 
-/** Get list of locally deleted user IDs from localStorage */
 export function getStoredDeletedUserIds(): string[] {
   if (!isBrowser()) return []
   try {
@@ -56,7 +52,6 @@ export function getStoredDeletedUserIds(): string[] {
   }
 }
 
-/** Clear all user auth sessions from sessionStorage and legacy localStorage */
 export function clearAuthStorage(): void {
   if (!isBrowser()) return
   try {
@@ -69,7 +64,6 @@ export function clearAuthStorage(): void {
   } catch {}
 }
 
-/** Clean legacy permanent localStorage sessions */
 export function cleanLegacyAuthStorage(): void {
   if (!isBrowser()) return
   try {

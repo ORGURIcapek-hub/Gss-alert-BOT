@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRole } from '@/components/RoleContext'
 import { UserRole, UserProfile } from '@/types/database.types'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
@@ -15,7 +15,8 @@ import {
   Mail,
   User,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw
 } from 'lucide-react'
 import { PasswordCell } from '@/components/ui/PasswordCell'
 import {
@@ -27,11 +28,27 @@ import {
 } from '@/lib/user-constants'
 
 export function AdminPendingApprovals() {
-  const { allUsers, pendingUsers, approveUser, rejectUser } = useRole()
+  const { allUsers, pendingUsers, approveUser, rejectUser, refreshUsers } = useRole()
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'pending' | 'approved'>('pending')
   const [selectedRoleOverrides, setSelectedRoleOverrides] = useState<Record<string, UserRole>>({})
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await refreshUsers(true)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    refreshUsers(false)
+
+  }, [])
+
   const {
     revealedPasswords,
     showAllPasswords,
@@ -125,15 +142,12 @@ export function AdminPendingApprovals() {
   return (
     <div className="space-y-6">
 
-
-      {/* Notification Toast */}
       {notification && (
         <div
-          className={`p-4 rounded-2xl border flex items-center gap-3 text-sm font-semibold transition-all ${
-            notification.type === 'success'
+          className={`p-4 rounded-2xl border flex items-center gap-3 text-sm font-semibold transition-all ${notification.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : 'bg-rose-50 border-rose-200 text-rose-800'
-          }`}
+            }`}
         >
           {notification.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -144,15 +158,13 @@ export function AdminPendingApprovals() {
         </div>
       )}
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
           onClick={() => setViewMode('pending')}
-          className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer shadow-sm flex items-center justify-between ${
-            viewMode === 'pending'
+          className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer shadow-sm flex items-center justify-between ${viewMode === 'pending'
               ? 'border-amber-400 ring-2 ring-amber-300 shadow-amber-500/10'
               : 'border-slate-200 hover:border-slate-300'
-          }`}
+            }`}
         >
           <div>
             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">รอการอนุมัติ</div>
@@ -166,11 +178,10 @@ export function AdminPendingApprovals() {
 
         <div
           onClick={() => setViewMode('approved')}
-          className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer shadow-sm flex items-center justify-between ${
-            viewMode === 'approved'
+          className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer shadow-sm flex items-center justify-between ${viewMode === 'approved'
               ? 'border-emerald-400 ring-2 ring-emerald-300 shadow-emerald-500/10'
               : 'border-slate-200 hover:border-slate-300'
-          }`}
+            }`}
         >
           <div>
             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">อนุมัติแล้วในระบบ</div>
@@ -194,9 +205,8 @@ export function AdminPendingApprovals() {
         </div>
       </div>
 
-      {/* Main Table / List Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Search & Filter Header */}
+
         <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
@@ -204,11 +214,10 @@ export function AdminPendingApprovals() {
                 <button
                   type="button"
                   onClick={() => setViewMode('pending')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    viewMode === 'pending'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${viewMode === 'pending'
                       ? 'bg-white text-[#003B71] shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                   <span>รอการตรวจสอบสิทธิ์</span>
@@ -220,11 +229,10 @@ export function AdminPendingApprovals() {
                 <button
                   type="button"
                   onClick={() => setViewMode('approved')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    viewMode === 'approved'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${viewMode === 'approved'
                       ? 'bg-white text-emerald-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>อนุมัติแล้วในระบบ</span>
@@ -243,12 +251,22 @@ export function AdminPendingApprovals() {
 
           <div className="flex items-center flex-wrap gap-2.5">
             <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm bg-white hover:bg-slate-100 text-[#003B71] border-slate-300 disabled:opacity-50"
+              title="ดึงข้อมูลคำขอสิทธิ์ล่าสุดจากเซิร์ฟเวอร์"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#003B71] ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'กำลังโหลด...' : 'รีเฟรชข้อมูล'}</span>
+            </button>
+
+            <button
               onClick={() => setShowAllPasswords(!showAllPasswords)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
-                showAllPasswords
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${showAllPasswords
                   ? 'bg-amber-50 text-amber-800 border-amber-300 ring-2 ring-amber-200'
                   : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
-              }`}
+                }`}
               title="สลับการแสดงรหัสผ่านของทุกคน"
             >
               {showAllPasswords ? <EyeOff className="w-3.5 h-3.5 text-amber-600" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
@@ -268,7 +286,6 @@ export function AdminPendingApprovals() {
           </div>
         </div>
 
-        {/* Content Section: Pending Mode */}
         {viewMode === 'pending' && (
           filteredPending.length === 0 ? (
             <div className="py-16 px-4 text-center">
@@ -281,14 +298,25 @@ export function AdminPendingApprovals() {
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                 ทุกคำขอได้รับการอนุมัติเรียบร้อยแล้ว เมื่อมีผู้ใช้งานสมัครสมาชิกใหม่ผ่านหน้า Sign Up รายชื่อจะปรากฏที่นี่ทันที
               </p>
-              <button
-                type="button"
-                onClick={() => setViewMode('approved')}
-                className="mt-4 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-all inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>ดูรายชื่อผู้ใช้งานที่อนุมัติแล้ว ({approvedUsersCount} บัญชี)</span>
-              </button>
+              <div className="mt-4 flex items-center justify-center gap-2.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleManualRefresh}
+                  disabled={isRefreshing}
+                  className="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 transition-all inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-amber-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span>{isRefreshing ? 'กำลังโหลดคำขอใหม่...' : 'ตรวจสอบคำขอใหม่อีกครั้ง'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('approved')}
+                  className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>ดูรายชื่อผู้ใช้งานที่อนุมัติแล้ว ({approvedUsersCount} บัญชี)</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto custom-scrollbar">
@@ -314,7 +342,7 @@ export function AdminPendingApprovals() {
 
                     return (
                       <tr key={user.user_id} className="hover:bg-slate-50/80 transition-colors">
-                        {/* User Info */}
+
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3.5">
                             <img
@@ -340,7 +368,6 @@ export function AdminPendingApprovals() {
                           </div>
                         </td>
 
-                        {/* Department & Position */}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-1.5 text-slate-900 font-bold text-sm">
                             <Building2 className="w-4 h-4 text-[#003B71]" />
@@ -351,7 +378,6 @@ export function AdminPendingApprovals() {
                           </div>
                         </td>
 
-                        {/* Requested Role */}
                         <td className="py-4 px-4">
                           <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${reqRoleInfo.color}`}>
                             <reqRoleInfo.icon className="w-3.5 h-3.5" />
@@ -359,7 +385,6 @@ export function AdminPendingApprovals() {
                           </div>
                         </td>
 
-                        {/* Password Column */}
                         <td className="py-4 px-4">
                           <PasswordCell
                             userId={user.user_id}
@@ -371,7 +396,6 @@ export function AdminPendingApprovals() {
                           />
                         </td>
 
-                        {/* Role Selector Override */}
                         <td className="py-4 px-4">
                           <select
                             value={chosenRole}
@@ -386,7 +410,6 @@ export function AdminPendingApprovals() {
                           </select>
                         </td>
 
-                        {/* Registered Date */}
                         <td className="py-4 px-4 text-slate-600 text-xs font-medium">
                           {user.created_at ? formatThaiDate(user.created_at, {
                             year: 'numeric',
@@ -397,7 +420,6 @@ export function AdminPendingApprovals() {
                           }) : 'เพิ่งสมัคร'}
                         </td>
 
-                        {/* Actions */}
                         <td className="py-4 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
@@ -430,7 +452,6 @@ export function AdminPendingApprovals() {
           )
         )}
 
-        {/* Content Section: Approved Mode */}
         {viewMode === 'approved' && (
           filteredApproved.length === 0 ? (
             <div className="py-16 px-4 text-center">
@@ -457,7 +478,7 @@ export function AdminPendingApprovals() {
 
                     return (
                       <tr key={user.user_id} className="hover:bg-slate-50/80 transition-colors">
-                        {/* User Info */}
+
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3.5">
                             <img
@@ -483,7 +504,6 @@ export function AdminPendingApprovals() {
                           </div>
                         </td>
 
-                        {/* Department & Position */}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-1.5 text-slate-900 font-bold text-sm">
                             <Building2 className="w-4 h-4 text-[#003B71]" />
@@ -494,7 +514,6 @@ export function AdminPendingApprovals() {
                           </div>
                         </td>
 
-                        {/* Role */}
                         <td className="py-4 px-4">
                           <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${roleInfo.color}`}>
                             <roleInfo.icon className="w-3.5 h-3.5" />
@@ -502,7 +521,6 @@ export function AdminPendingApprovals() {
                           </div>
                         </td>
 
-                        {/* Password Column */}
                         <td className="py-4 px-4">
                           <PasswordCell
                             userId={user.user_id}
@@ -514,7 +532,6 @@ export function AdminPendingApprovals() {
                           />
                         </td>
 
-                        {/* Date */}
                         <td className="py-4 px-4 text-slate-600 text-xs font-medium">
                           {user.updated_at || user.created_at ? formatThaiDate(user.updated_at || user.created_at, {
                             year: 'numeric',
@@ -525,7 +542,6 @@ export function AdminPendingApprovals() {
                           }) : '-'}
                         </td>
 
-                        {/* Status */}
                         <td className="py-4 px-4 text-right">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -542,15 +558,13 @@ export function AdminPendingApprovals() {
         )}
       </div>
 
-      {/* Confirmation Modal */}
       {confirmModal.isOpen && confirmModal.user && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${
-              confirmModal.action === 'approve'
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${confirmModal.action === 'approve'
                 ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                 : 'bg-rose-50 text-rose-600 border border-rose-200'
-            }`}>
+              }`}>
               {confirmModal.action === 'approve' ? (
                 <CheckCircle2 className="w-6 h-6" />
               ) : (
@@ -598,11 +612,10 @@ export function AdminPendingApprovals() {
               <button
                 type="button"
                 onClick={handleConfirmAction}
-                className={`px-5 py-2 rounded-xl text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer ${
-                  confirmModal.action === 'approve'
+                className={`px-5 py-2 rounded-xl text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer ${confirmModal.action === 'approve'
                     ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
                     : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
-                }`}
+                  }`}
               >
                 {confirmModal.action === 'approve' ? 'ยืนยันการอนุมัติ' : 'ยืนยันปฏิเสธ'}
               </button>

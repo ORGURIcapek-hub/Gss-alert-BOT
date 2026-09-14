@@ -85,7 +85,7 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
 
     await createDashboardReport({
       overall_okr_info: overallInfo.trim(),
-      okr_head_evaluation_score: 80, // Default baseline for Executive to evaluate
+      okr_head_evaluation_score: 80,
       head_id: currentUser.user_id,
       head_name: getUserFullName(currentUser),
       academic_year: 2567,
@@ -112,7 +112,6 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
         </div>
       )}
 
-      {/* Main Form Box */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
         <div className="border-b border-slate-200 pb-4">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
@@ -125,15 +124,14 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {/* Quick Select Projects for Summary */}
+
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-[#003B71]" />
                 เลือกโครงการที่ต้องการส่งสรุปให้ผู้บริหาร ({selectedProjectIds.length}/{projects.length} โครงการ)
               </label>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -203,7 +201,6 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
             </div>
           </div>
 
-          {/* Preview of chosen projects that will appear as individual graphs to Executive */}
           {selectedProjects.length > 0 && (
             <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-200 space-y-2.5">
               <div className="flex items-center justify-between">
@@ -230,7 +227,6 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
             </div>
           )}
 
-          {/* Text Area for overall_okr_info (คำเขียนสรุป) */}
           <div className="space-y-1.5">
             <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-500" />
@@ -249,7 +245,6 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
             />
           </div>
 
-          {/* Submitter Info Preview */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
             <div>
               <span className="text-slate-500 font-semibold block">ผู้ส่งสรุป (Head of OKR):</span>
@@ -261,7 +256,6 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
             </div>
           </div>
 
-          {/* Submit Action Button */}
           <button
             type="submit"
             disabled={isSubmitting || !overallInfo.trim() || selectedProjectIds.length === 0}

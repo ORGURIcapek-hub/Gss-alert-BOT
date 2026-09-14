@@ -47,18 +47,14 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
 
   if (!project) return null
 
-  // User context & role flags:
   const isHead = currentUser ? project.head_of_project === currentUser.user_id : false
   const isAssigned = currentUser ? (project.assignees?.some(a => a.user_id === currentUser.user_id) || assignments.some(a => a.user_id === currentUser.user_id)) : false
   const isAdmin = currentRole === 'admin'
   const isExecutive = currentRole === 'executive'
   const isTeacherOrStaff = currentRole === 'teacher' || currentRole === 'staff'
 
-  // Permission rules:
-  // 1. Progress: Admin, Project Head, or Head OKR (Teacher/Staff cannot adjust)
   const canEditProgress = (isAdmin || isHead || currentRole === 'head_okr') && !isTeacherOrStaff
 
-  // 2. Spending: Teacher, Staff, Project Head, Admin, or Assigned members (Executive is read-only)
   const canEditSpending = (isAdmin || isHead || isAssigned || isTeacherOrStaff) && !isExecutive
 
   const canEdit = canEditProgress || canEditSpending
@@ -140,7 +136,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
     setIsUploading(true)
 
     try {
-      // Read file as Data URL (base64) so it persists and opens reliably across sessions
+
       let fileUrl = URL.createObjectURL(selectedFile)
       try {
         if (selectedFile.size < 4 * 1024 * 1024) {
@@ -167,7 +163,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
         description: desc
       })
 
-      // Immediately update local evidences list for instantaneous display
       const newEv: Evidence = {
         evidence_id: newSubmission.evidence_id,
         project_id: project.project_id,
@@ -211,7 +206,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar relative">
-        {/* Header Actions: Delete (Executive/Admin) & Close Button */}
+
         <div className="absolute top-5 right-5 flex items-center gap-2">
           {canDeleteProject && (
             <button
@@ -234,7 +229,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
           </button>
         </div>
 
-        {/* Department and Type Badge */}
         <div className="flex items-center gap-2 mb-2 pr-36 sm:pr-44">
           <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
             {formatDepartmentShort(project.department)}
@@ -244,12 +238,10 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
           </span>
         </div>
 
-        {/* Project Name */}
         <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug pr-36 sm:pr-44">
           {project.project_name}
         </h2>
 
-        {/* Key Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-5">
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#003B71]/10 flex items-center justify-center text-[#003B71] flex-shrink-0">
@@ -286,7 +278,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
           </div>
         </div>
 
-        {/* Objectives Box */}
         <div className="space-y-4 text-xs">
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
             <h3 className="font-bold text-slate-900 text-xs mb-1">เป้าหมายหลักและตัวชี้วัด (Objectives)</h3>
@@ -298,7 +289,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
             )}
           </div>
 
-          {/* Progress & Bottleneck Update */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
@@ -313,7 +303,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
               )}
             </div>
 
-            {/* Progress Section: Slider for Head/Admin, Read-only progress bar for Teacher/Staff */}
             {canEditProgress ? (
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1.5">
@@ -413,7 +402,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
             )}
           </div>
 
-          {/* Evidence Attachments Section with Native Picker & Permission Validation */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
@@ -435,7 +423,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                     className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      {ev.file_name.toLowerCase().endsWith('.pdf') ? (
+                      {(ev.file_name || '').toLowerCase().endsWith('.pdf') ? (
                         <FileText className="w-4 h-4 text-rose-500 flex-shrink-0" />
                       ) : (
                         <FileImage className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -480,7 +468,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
               )}
             </div>
 
-            {/* Validation Check: Only Assigned Members / OKR Head can view upload form */}
             {canUploadEvidence ? (
               <form onSubmit={handleUploadEvidence} className="space-y-3 pt-3 border-t border-slate-200">
                 {uploadError && (
@@ -491,7 +478,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                 )}
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  {/* Hidden Native File Input restricted strictly to PDF, JPG, JPEG, PNG */}
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -501,7 +488,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                     id="evidence-native-file-picker"
                   />
 
-                  {/* Native Picker Trigger Button */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -543,7 +529,6 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
             )}
           </div>
 
-          {/* Danger Zone: Project Deletion for Executive & Admin */}
           {canDeleteProject && (
             <div className="mt-8 pt-6 border-t border-rose-200">
               <div className="rounded-2xl bg-rose-50/70 border border-rose-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

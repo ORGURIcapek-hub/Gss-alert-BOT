@@ -1,22 +1,21 @@
 import { mockDashboardReports, mockNormalReports, mockEvaluations } from '@/lib/mock-data'
 import { DashboardReport, DashboardReportWithDetails, ExecutiveSummaryProjectSnapshot, NormalReport, Evaluation } from '@/types/database.types'
-import { getSafeSupabaseClient, dbCall } from './service-helpers'
+import { getSafeSupabaseClient, dbCall, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 
 let inMemoryDashboardReports: DashboardReportWithDetails[] = [...mockDashboardReports]
 let inMemoryNormalReports: NormalReport[] = [...mockNormalReports]
 let inMemoryEvaluations: Evaluation[] = [...mockEvaluations]
 
-/** Fetch dashboard reports with persistent API integration */
 export async function fetchDashboardReports(): Promise<DashboardReportWithDetails[]> {
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/dashboard-reports')
-      if (res.ok) {
-        const json = await res.json()
-        if (json.success && Array.isArray(json.reports)) {
-          inMemoryDashboardReports = json.reports
-          return json.reports
-        }
+      const json = await fetchWithDeduplication<{ success: boolean; reports: DashboardReportWithDetails[] }>(
+        '/api/dashboard-reports',
+        { ttl: 2500 }
+      )
+      if (json?.success && Array.isArray(json.reports)) {
+        inMemoryDashboardReports = json.reports
+        return json.reports
       }
     } catch (e) {
       console.warn('[report-service] fetch /api/dashboard-reports failed, fallback', e)
@@ -34,7 +33,6 @@ export async function fetchDashboardReports(): Promise<DashboardReportWithDetail
   return inMemoryDashboardReports
 }
 
-/** Create a dashboard report with project snapshots */
 export async function createDashboardReport(reportData: {
   overall_okr_info: string
   okr_head_evaluation_score: number
@@ -58,7 +56,7 @@ export async function createDashboardReport(reportData: {
     updated_at: new Date().toISOString()
   }
 
-  // 1. Post to persistent API route
+  invalidateApiCache('/api/dashboard-reports')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/dashboard-reports', {
@@ -74,7 +72,6 @@ export async function createDashboardReport(reportData: {
     }
   }
 
-  // 2. Supabase insert if available
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     await dbCall(() => (supabase.from('dashboard') as any).insert({
@@ -93,18 +90,16 @@ export async function createDashboardReport(reportData: {
   return newReport
 }
 
-
-/** Fetch normal reports */
 export async function fetchNormalReports(): Promise<NormalReport[]> {
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/normal-reports')
-      if (res.ok) {
-        const json = await res.json()
-        if (json.success && Array.isArray(json.reports)) {
-          inMemoryNormalReports = json.reports
-          return json.reports
-        }
+      const json = await fetchWithDeduplication<{ success: boolean; reports: NormalReport[] }>(
+        '/api/normal-reports',
+        { ttl: 2500 }
+      )
+      if (json?.success && Array.isArray(json.reports)) {
+        inMemoryNormalReports = json.reports
+        return json.reports
       }
     } catch (e) {
       console.warn('[report-service] fetch /api/normal-reports failed', e)
@@ -122,7 +117,6 @@ export async function fetchNormalReports(): Promise<NormalReport[]> {
   return inMemoryNormalReports
 }
 
-/** Create a normal operational report */
 export async function createNormalReport(reportData: {
   project_id?: string
   project_name: string
@@ -152,6 +146,7 @@ export async function createNormalReport(reportData: {
     updated_at: new Date().toISOString()
   }
 
+  invalidateApiCache('/api/normal-reports')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/normal-reports', {
@@ -183,16 +178,15 @@ function filterEvaluations(filter?: { report_id?: string; dashboard_id?: string 
   return inMemoryEvaluations
 }
 
-/** Fetch 1-5 star evaluations */
 export async function fetchEvaluations(filter?: { report_id?: string; dashboard_id?: string; project_id?: string }): Promise<Evaluation[]> {
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/evaluations')
-      if (res.ok) {
-        const json = await res.json()
-        if (json.success && Array.isArray(json.evaluations)) {
-          inMemoryEvaluations = json.evaluations
-        }
+      const json = await fetchWithDeduplication<{ success: boolean; evaluations: Evaluation[] }>(
+        '/api/evaluations',
+        { ttl: 2500 }
+      )
+      if (json?.success && Array.isArray(json.evaluations)) {
+        inMemoryEvaluations = json.evaluations
       }
     } catch (e) {
       console.warn('[report-service] fetch /api/evaluations failed', e)
@@ -208,7 +202,7 @@ export async function fetchEvaluations(filter?: { report_id?: string; dashboard_
     const data = await dbCall<Evaluation[]>(() => query, 'fetchEvaluations')
     if (data && data.length > 0) return data
   }
-  
+
   if (filter?.report_id) {
     return inMemoryEvaluations.filter(e => e.report_id === filter.report_id)
   }
@@ -221,7 +215,16 @@ export async function fetchEvaluations(filter?: { report_id?: string; dashboard_
   return inMemoryEvaluations
 }
 
-/** Save or update 1-5 star evaluation record */
+export function notifyEvaluationsChannel() {
+  try {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('sdu_okr_sync_channel')
+      channel.postMessage({ type: 'EVALUATIONS_UPDATED', timestamp: Date.now() })
+      channel.close()
+    }
+  } catch {}
+}
+
 export async function saveEvaluationRecord(data: {
   report_id?: string | null
   dashboard_id?: string | null
@@ -244,6 +247,10 @@ export async function saveEvaluationRecord(data: {
     created_at: new Date().toISOString()
   }
 
+  invalidateApiCache('/api/evaluations')
+  if (data.dashboard_id) invalidateApiCache('/api/dashboard-reports')
+  if (data.report_id) invalidateApiCache('/api/normal-reports')
+
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/evaluations', {
@@ -262,9 +269,11 @@ export async function saveEvaluationRecord(data: {
   }
 
   const existingIdx = inMemoryEvaluations.findIndex(e =>
-    (data.report_id && e.report_id === data.report_id) ||
-    (data.dashboard_id && e.dashboard_id === data.dashboard_id) ||
-    (data.project_id && e.project_id === data.project_id)
+    e.evaluator_id === evaluation.evaluator_id && (
+      (data.report_id && e.report_id === data.report_id) ||
+      (data.dashboard_id && e.dashboard_id === data.dashboard_id) ||
+      (data.project_id && e.project_id === data.project_id)
+    )
   )
 
   if (existingIdx !== -1) {
@@ -274,7 +283,6 @@ export async function saveEvaluationRecord(data: {
     inMemoryEvaluations.unshift(evaluation)
   }
 
-  // Update parent report scores if normal report
   if (data.report_id) {
     const normalRep = inMemoryNormalReports.find(r => r.report_id === data.report_id)
     if (normalRep) {
@@ -287,8 +295,11 @@ export async function saveEvaluationRecord(data: {
 
   if (data.dashboard_id) {
     const dashRep = inMemoryDashboardReports.find(d => d.dashboard_id === data.dashboard_id)
+    const effectiveScore = data.executive_score !== null && data.executive_score !== undefined
+      ? data.executive_score * 20
+      : data.head_score * 20
     if (dashRep) {
-      dashRep.okr_head_evaluation_score = data.head_score * 20
+      dashRep.okr_head_evaluation_score = effectiveScore
     }
     if (typeof window !== 'undefined') {
       try {
@@ -298,7 +309,7 @@ export async function saveEvaluationRecord(data: {
           body: JSON.stringify({
             action: 'rate',
             dashboard_id: data.dashboard_id,
-            score: data.head_score * 20
+            score: effectiveScore
           })
         }).catch(e => console.warn('[report-service] rate sync error', e))
       } catch (e) {
@@ -307,5 +318,6 @@ export async function saveEvaluationRecord(data: {
     }
   }
 
+  notifyEvaluationsChannel()
   return evaluation
 }

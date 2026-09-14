@@ -60,7 +60,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
   const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Categorize projects
   const completedProjects = useMemo(
     () => projects.filter(p => p.progress_percentage === 100 || p.status === 'Completed'),
     [projects]
@@ -91,7 +90,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
   const delayedPct = ((delayedProjects.length / totalCount) * 100).toFixed(1)
   const onHoldPct = ((onHoldProjects.length / totalCount) * 100).toFixed(1)
 
-  // Filtered projects list based on status selection and search query
   const displayedProjects = useMemo(() => {
     let list: ProjectWithHeadAndAssignees[] = []
     if (activeStatusFilter === 'COMPLETED') list = completedProjects
@@ -114,7 +112,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
     return list
   }, [activeStatusFilter, completedProjects, inProgressProjects, delayedProjects, onHoldProjects, projects, searchQuery])
 
-  // Chart 1: Doughnut Chart Data (สัดส่วนสถานะโครงการ)
   const doughnutData = {
     labels: [
       `เสร็จสิ้น (${completedProjects.length})`,
@@ -139,7 +136,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
     ]
   }
 
-  // Department Aggregations
   const deptMap: Record<string, { totalBudget: number; totalSpent: number; totalProgress: number; count: number }> = {}
   projects.forEach(p => {
     const dept = p.department || 'ส่วนกลาง'
@@ -159,7 +155,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
     deptMap[d].totalBudget > 0 ? ((deptMap[d].totalSpent / deptMap[d].totalBudget) * 100).toFixed(1) : '0'
   )
 
-  // Chart 2: Bar Chart - ความก้าวหน้าและการเบิกจ่าย (%) ตามภาควิชา
   const barData = {
     labels: shortDeptLabels,
     datasets: [
@@ -180,7 +175,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
     ]
   }
 
-  // Chart 3: Financial Bar Chart - งบประมาณที่ได้รับ vs เบิกจ่ายจริง (ล้านบาท)
   const budgetAllocatedMB = deptLabels.map(d => (deptMap[d].totalBudget / 1000000).toFixed(2))
   const budgetSpentMB = deptLabels.map(d => (deptMap[d].totalSpent / 1000000).toFixed(2))
 
@@ -204,7 +198,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
     ]
   }
 
-  // Chart 4: Line Chart - ผลสัมฤทธิ์รายไตรมาส (Actual vs Target Trajectory)
   const lineData = {
     labels: ['ม.ค. (Q1)', 'ก.พ.', 'มี.ค.', 'เม.ย. (Q2)', 'พ.ค.', 'มิ.ย.', 'ก.ค. (Q3)', 'ส.ค.', 'ก.ย.', 'ต.ค. (Q4)', 'พ.ย.', 'ธ.ค.'],
     datasets: [
@@ -268,9 +261,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
 
   return (
     <div className="space-y-6">
-      {/* ========================================================================= */}
-      {/* 1. STATUS PROPORTION BREAKDOWN INTERACTIVE BAR & SUMMARY CARDS */}
-      {/* ========================================================================= */}
+
       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
@@ -285,7 +276,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
           </span>
         </div>
 
-        {/* Visual Segmented Progress Bar */}
         <div className="space-y-2">
           <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner p-0.5 gap-0.5">
             {completedProjects.length > 0 && (
@@ -323,9 +313,8 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
           </div>
         </div>
 
-        {/* 4 Clickable Status Filter Badges */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Completed */}
+
           <button
             type="button"
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
@@ -349,7 +338,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
             </div>
           </button>
 
-          {/* In Progress */}
           <button
             type="button"
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
@@ -373,7 +361,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
             </div>
           </button>
 
-          {/* Delayed / Bottleneck */}
           <button
             type="button"
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'DELAYED' ? 'ALL' : 'DELAYED')}
@@ -397,7 +384,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
             </div>
           </button>
 
-          {/* On Hold / Draft */}
           <button
             type="button"
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'ON_HOLD' ? 'ALL' : 'ON_HOLD')}
@@ -423,11 +409,8 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 2. ENHANCED EXECUTIVE SUMMARY CHARTS (กราฟสรุปข้อมูลสำหรับผู้บริหาร) */}
-      {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Chart 1: Donut Proportion */}
+
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -468,7 +451,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
           </div>
         </div>
 
-        {/* Chart 2: Progress & Spent Percentage by Department */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -484,7 +466,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
           </div>
         </div>
 
-        {/* Chart 3: Financial Allocation vs Spent in MB */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -500,7 +481,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
           </div>
         </div>
 
-        {/* Chart 4: Quarterly OKR Trajectory Trend */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -517,9 +497,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 3. PROJECT LIST ACCORDING TO PROPORTION (รายชื่อโครงการพร้อมสถานะ) */}
-      {/* ========================================================================= */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
@@ -534,7 +511,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {/* Quick Status Filter Pills */}
+
             <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 overflow-x-auto">
               <button
                 type="button"
@@ -574,7 +551,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
               </button>
             </div>
 
-            {/* Search Input */}
             <div className="relative min-w-[200px]">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -588,7 +564,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
           </div>
         </div>
 
-        {/* Project Cards Grid */}
         {displayedProjects.length === 0 ? (
           <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-400 text-sm font-medium">
             ไม่พบโครงการที่ตรงกับเงื่อนไขการค้นหา
@@ -639,7 +614,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                   className="rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200 hover:border-[#003B71]/40 hover:shadow-md transition-all p-5 space-y-3.5 cursor-pointer flex flex-col justify-between group"
                 >
                   <div className="space-y-2">
-                    {/* Top row: Department and Status Badge */}
+
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 truncate">
                         <Building2 className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
@@ -652,12 +627,10 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                       </span>
                     </div>
 
-                    {/* Project Name */}
                     <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#003B71] transition-colors leading-snug line-clamp-2">
                       {p.project_name}
                     </h4>
 
-                    {/* Responsible Head */}
                     <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
                       <User className="w-3.5 h-3.5 text-slate-400" />
                       <span>หัวหน้าโครงการ: </span>
@@ -667,7 +640,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                     </div>
                   </div>
 
-                  {/* Progress & Budget */}
                   <div className="space-y-2 pt-1 border-t border-slate-200/60">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-slate-600">ความคืบหน้า</span>
@@ -687,7 +659,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                     </div>
                   </div>
 
-                  {/* Bottleneck Warning Box if delayed */}
                   {p.bottleneck && (
                     <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-start gap-2 animate-in fade-in">
                       <ShieldAlert className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
@@ -698,7 +669,6 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                     </div>
                   )}
 
-                  {/* Footer detail action */}
                   <div className="flex items-center justify-end text-xs font-bold text-[#003B71] group-hover:translate-x-0.5 transition-transform pt-1">
                     <span>คลิกเพื่อดูรายละเอียดโครงการ</span>
                     <ChevronRight className="w-4 h-4 ml-0.5" />

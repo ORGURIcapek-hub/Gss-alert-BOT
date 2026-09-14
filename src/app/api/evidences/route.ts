@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { EvidenceSubmission } from '@/types/database.types'
+import { writeJsonAtomic, readJsonSafe } from '@/lib/atomic-storage'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-evidences.json')
@@ -27,37 +28,24 @@ let memoryCache: EvidencesStorageSchema | null = null
 async function ensureDataFile(): Promise<EvidencesStorageSchema> {
   if (memoryCache) return memoryCache
 
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-
-    if (fs.existsSync(FILE_PATH)) {
-      const content = await fs.promises.readFile(FILE_PATH, 'utf-8')
-      const parsed = JSON.parse(content)
-      if (parsed && Array.isArray(parsed.evidences)) {
-        memoryCache = { evidences: parsed.evidences }
-        return memoryCache
-      }
-    }
-
-    const initialData: EvidencesStorageSchema = { evidences: [] }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(initialData, null, 2), 'utf-8')
-    memoryCache = initialData
+  const fallback: EvidencesStorageSchema = { evidences: [] }
+  const data = await readJsonSafe<EvidencesStorageSchema | null>(FILE_PATH, null)
+  if (data && Array.isArray(data.evidences)) {
+    memoryCache = { evidences: data.evidences }
     return memoryCache
-  } catch (err) {
-    console.error('[api/evidences] Error ensuring data file:', err)
-    return { evidences: [] }
   }
+
+  if (memoryCache) return memoryCache
+
+  await writeJsonAtomic(FILE_PATH, fallback)
+  memoryCache = fallback
+  return memoryCache
 }
 
 async function saveEvidencesFile(data: EvidencesStorageSchema): Promise<void> {
   memoryCache = data
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8')
+    await writeJsonAtomic(FILE_PATH, data)
   } catch (err) {
     console.error('[api/evidences] Error writing file:', err)
   }

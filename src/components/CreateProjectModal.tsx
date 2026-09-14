@@ -19,7 +19,6 @@ export function CreateProjectModal({ okrs = [], users, onClose, onCreated }: Cre
   const { currentRole, currentUser } = useRole()
   const isTeacher = currentRole === 'teacher'
 
-  // Only head_okr, staff, and teacher can be project heads (exclude admin and executive)
   const eligibleHeads = users.filter(u => u.role !== 'admin' && u.role !== 'executive')
 
   const [allOkrs, setAllOkrs] = useState<OKR[]>(okrs)
@@ -84,7 +83,6 @@ export function CreateProjectModal({ okrs = [], users, onClose, onCreated }: Cre
       end_date: endDate
     })
 
-    // If the creator is not the chosen head, automatically assign creator as project Member
     if (currentUser && currentUser.user_id !== headId && createdProj) {
       await assignProjectRole({
         project_id: createdProj.project_id,

@@ -102,7 +102,8 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
       return
     }
 
-    if (!isPasswordAllValid) {
+    const pwCheck = validatePassword(regPassword)
+    if (!pwCheck.isValid) {
       const msg = 'รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
       setLocalError(msg)
       onError(msg)
@@ -122,7 +123,7 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-h-[62vh] overflow-y-auto pr-1 custom-scrollbar">
-      {/* Profile Avatar Upload & Selector */}
+
       <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-4">
         <div
           className="relative group cursor-pointer flex-shrink-0"
@@ -179,7 +180,6 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
         </div>
       </div>
 
-      {/* Row 1: Username & Full Name */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div className="space-y-1.5">
           <label className="block text-xs sm:text-sm font-bold text-slate-800">
@@ -213,7 +213,6 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
         </div>
       </div>
 
-      {/* Row 2: Email & Role */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div className="space-y-1.5">
           <label className="block text-xs sm:text-sm font-bold text-slate-800">
@@ -279,7 +278,6 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
         </div>
       </div>
 
-      {/* Row 3: Password */}
       <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200">
         <div className="flex items-center justify-between">
           <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
@@ -318,7 +316,6 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
         {regPassword && <PasswordChecklist password={regPassword} />}
       </div>
 
-      {/* Row 4: Department */}
       <div className="space-y-1.5">
         <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <Building2 className="w-4 h-4 text-[#003B71]" />
@@ -337,7 +334,6 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
         </select>
       </div>
 
-      {/* Inline Form Error Notification */}
       {(localError || errorMsg) && (
         <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />

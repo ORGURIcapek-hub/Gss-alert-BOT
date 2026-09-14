@@ -67,6 +67,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
       case 'teacher':
         return [
           { id: 'workspace', label: 'โครงการที่ได้รับมอบหมาย', icon: GraduationCap },
+          { id: 'teacher_evaluations', label: 'คะแนนการประเมิน', icon: Award },
           { id: 'normal_reports', label: 'Report โครงการ OKR', icon: FileText },
           { id: 'evidences', label: 'แนบและดูหลักฐาน', icon: FileCheck2 },
           { id: 'okrs', label: 'เป้าหมาย OKR คณะ', icon: Target },
@@ -119,7 +120,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Brand Header */}
+
         <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
           <SDULogo size="md" textColor="dark" showText={true} />
 
@@ -132,7 +133,6 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
           </button>
         </div>
 
-        {/* Current User Profile Card */}
         <div className="p-4 sm:p-5 border-b border-slate-200 bg-white">
           <div
             onClick={openProfileModal}
@@ -172,7 +172,6 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
           </button>
         </div>
 
-        {/* Menu Navigation */}
         <nav className="flex-1 px-3.5 py-4 space-y-1.5 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => {
             const Icon = item.icon
@@ -208,7 +207,6 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
           })}
         </nav>
 
-        {/* Logout Button */}
         <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50/50">
           <button
             onClick={logout}

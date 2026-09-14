@@ -4,6 +4,7 @@ import path from 'path'
 import { mockUsers } from '@/lib/mock-data'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { getManagementOrder } from '@/lib/user-constants'
+import { writeJsonAtomic, readJsonSafe } from '@/lib/atomic-storage'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -35,95 +36,77 @@ interface StorageSchema {
   deletedUserIds: string[]
 }
 
-// In-memory cache for fast reads
 let memoryCache: StorageSchema | null = null
+let lastCacheTimestamp = 0
+let lastSupabaseSync = 0
+const MEMORY_CACHE_TTL = 3000 
+const SUPABASE_SYNC_INTERVAL = 10000 
 
-async function ensureDataFile(): Promise<StorageSchema> {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-
-    if (fs.existsSync(FILE_PATH)) {
-      const raw = await fs.promises.readFile(FILE_PATH, 'utf-8')
-      const content = raw.replace(/^\uFEFF/, '').trim()
-      if (content) {
-        const parsed = JSON.parse(content)
-        if (parsed && Array.isArray(parsed.users)) {
-          memoryCache = {
-            users: parsed.users,
-            deletedUserIds: Array.isArray(parsed.deletedUserIds) ? parsed.deletedUserIds : []
-          }
-          return memoryCache
-        }
-      }
-    }
-
-    if (memoryCache) return memoryCache
-
-    // Initialize with mockUsers (defaulting status to 'approved')
-    const initialUsers: UserProfile[] = mockUsers.map(u => ({
-      ...u,
-      status: u.status || 'approved'
-    }))
-
-    const initialData: StorageSchema = {
-      users: initialUsers,
-      deletedUserIds: []
-    }
-
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(initialData, null, 2), 'utf-8')
-    memoryCache = initialData
+async function ensureDataFile(forceDiskRead = false): Promise<StorageSchema> {
+  if (!forceDiskRead && memoryCache && Date.now() - lastCacheTimestamp < MEMORY_CACHE_TTL) {
     return memoryCache
-  } catch (err) {
-    console.error('[api/users] Error ensuring data file:', err)
-    if (memoryCache) return memoryCache
-    return {
-      users: mockUsers.map(u => ({ ...u, status: u.status || 'approved' })),
-      deletedUserIds: []
-    }
   }
+
+  const fallback: StorageSchema = {
+    users: mockUsers.map(u => ({ ...u, status: u.status || 'approved' })),
+    deletedUserIds: []
+  }
+
+  const data = await readJsonSafe<StorageSchema | null>(FILE_PATH, null)
+  if (data && Array.isArray(data.users) && data.users.length > 0) {
+    memoryCache = {
+      users: data.users,
+      deletedUserIds: Array.isArray(data.deletedUserIds) ? data.deletedUserIds : []
+    }
+    lastCacheTimestamp = Date.now()
+    return memoryCache
+  }
+
+  if (memoryCache) {
+    return memoryCache
+  }
+
+  await writeJsonAtomic(FILE_PATH, fallback)
+  memoryCache = fallback
+  lastCacheTimestamp = Date.now()
+  return memoryCache
 }
 
 async function saveStorage(data: StorageSchema): Promise<void> {
   memoryCache = data
+  lastCacheTimestamp = Date.now()
   try {
     if (process.env.VERCEL) {
       return
     }
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8')
+    await writeJsonAtomic(FILE_PATH, data)
   } catch (err) {
     console.warn('[api/users] Error saving storage:', err)
   }
 }
 
-// =============================================================================
-// GET: Fetch all active users
-// =============================================================================
 export async function GET(req: NextRequest) {
   try {
-    // 1. If Supabase is configured, fetch from Supabase (shared cloud database across all machines)
     const storage = await ensureDataFile()
     const supabase = getSafeSupabaseClient()
-    if (supabase) {
+    const shouldSyncSupabase = supabase && (Date.now() - lastSupabaseSync > SUPABASE_SYNC_INTERVAL)
+
+    if (shouldSyncSupabase) {
       try {
+        lastSupabaseSync = Date.now()
         const { data, error } = await supabase
           .from('users')
           .select('*')
           .order('management_order', { ascending: true })
 
         if (!error && data && data.length > 0) {
-          // Filter out any users deleted locally
+
           const validSupabaseUsers = data.filter((u: any) => !storage.deletedUserIds.includes(u.user_id))
-          // Merge with any local users that might not yet be in Supabase
+
           const supabaseIds = new Set(validSupabaseUsers.map((u: any) => u.user_id))
           const localOnlyUsers = storage.users.filter(u => !storage.deletedUserIds.includes(u.user_id) && !supabaseIds.has(u.user_id))
           const mergedUsers = [...validSupabaseUsers, ...localOnlyUsers]
 
-          // Keep storage.users synced with Supabase users so PUT and other operations always find them
           let modified = false
           for (const sbUser of validSupabaseUsers) {
             const idx = storage.users.findIndex(u => u.user_id === sbUser.user_id)
@@ -150,14 +133,13 @@ export async function GET(req: NextRequest) {
             success: true,
             users: mergedUsers,
             source: 'supabase'
-          })
+          }, { headers: NO_CACHE_HEADERS })
         }
       } catch (dbErr) {
         console.warn('[api/users] Supabase query fallback to local:', dbErr)
       }
     }
 
-    // 2. Fallback to local persistent file / memory cache
     const activeUsers = storage.users.filter(u => !storage.deletedUserIds.includes(u.user_id))
 
     return NextResponse.json({
@@ -173,9 +155,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// =============================================================================
-// POST: Register / Create new user
-// =============================================================================
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -193,9 +172,14 @@ export async function POST(req: NextRequest) {
     const computedLastName = body.last_name || (body.name ? body.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
     const computedName = body.name || `${computedFirstName} ${computedLastName}`
     const userPassword = body.password || 'password123'
+    if (body.password && (typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 15)) {
+      return NextResponse.json(
+        { success: false, error: 'รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร' },
+        { status: 400, headers: NO_CACHE_HEADERS }
+      )
+    }
     const userAvatar = body.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
 
-    // Check for existing user (active or deleted)
     const existingIndex = storage.users.findIndex(
       u => !storage.deletedUserIds.includes(u.user_id) &&
            (u.email.toLowerCase() === email || (u.username && u.username.toLowerCase() === username))
@@ -204,7 +188,7 @@ export async function POST(req: NextRequest) {
     if (existingIndex !== -1) {
       const existing = storage.users[existingIndex]
       if (existing.status === 'pending') {
-        // Update pending user with newly submitted role/name/password and re-save
+
         const updatedPending: UserProfile = {
           ...existing,
           name: computedName,
@@ -252,13 +236,11 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString()
     }
 
-    // Add to storage and persist
     storage.users.push(newUser)
-    // Ensure newId is not in deletedUserIds
+
     storage.deletedUserIds = storage.deletedUserIds.filter(id => id !== newId)
     await saveStorage(storage)
 
-    // Sync with Supabase if available
     const supabase = getSafeSupabaseClient()
     if (supabase) {
       try {
@@ -281,9 +263,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// =============================================================================
-// PUT: Update user (approve, reject, role, password, profile)
-// =============================================================================
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json()
@@ -299,7 +278,6 @@ export async function PUT(req: NextRequest) {
 
     const supabase = getSafeSupabaseClient()
 
-    // If user not in local storage, query Supabase
     if (!user && supabase) {
       try {
         const { data: sbUser, error: sbErr } = await supabase
@@ -318,7 +296,6 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Fallback: If user is not found in storage, but client passed user details in body.user
     if (!user && body.user) {
       const fallbackRole: UserRole = body.assignedRole || body.user.role || 'teacher'
       const fallbackUser: UserProfile = {
@@ -369,10 +346,11 @@ export async function PUT(req: NextRequest) {
       }
 
       case 'update_password': {
-        if (body.password) {
-          user.password = body.password
-          user.updated_at = now
+        if (!body.password || typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 15) {
+          return NextResponse.json({ success: false, error: 'รหัสผ่านใหม่ต้องมีความยาว 8-15 ตัวอักษร' }, { status: 400 })
         }
+        user.password = body.password
+        user.updated_at = now
         break
       }
 
@@ -393,7 +371,6 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Save to local storage
     if (userIndex >= 0 && userIndex < storage.users.length) {
       storage.users[userIndex] = user
     } else {
@@ -401,7 +378,6 @@ export async function PUT(req: NextRequest) {
     }
     await saveStorage(storage)
 
-    // Sync with Supabase if available
     if (supabase) {
       try {
         const updatePayload: Record<string, any> = {
@@ -444,9 +420,6 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// =============================================================================
-// DELETE: Delete user
-// =============================================================================
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -461,11 +434,9 @@ export async function DELETE(req: NextRequest) {
       storage.deletedUserIds.push(userId)
     }
 
-    // Also remove from active users array
     storage.users = storage.users.filter(u => u.user_id !== userId)
     await saveStorage(storage)
 
-    // Sync with Supabase if available
     const supabase = getSafeSupabaseClient()
     if (supabase) {
       try {

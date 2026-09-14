@@ -14,33 +14,30 @@ interface CreateNormalReportViewProps {
 
 export function CreateNormalReportView({ projects, onSuccess }: CreateNormalReportViewProps) {
   const { currentUser, allUsers } = useRole()
-  
+
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.project_id || '')
   const [projectName, setProjectName] = useState<string>(projects[0]?.project_name || '')
   const [projectDetails, setProjectDetails] = useState<string>('')
-  
-  // Multi-Select Responsible Persons (Tags/Badges)
+
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([])
   const [assigneeSelectValue, setAssigneeSelectValue] = useState<string>('')
-  
+
   const [headName, setHeadName] = useState<string>(currentUser ? getUserFullName(currentUser) : '')
   const [projectOutcome, setProjectOutcome] = useState<string>('')
   const [initialExpectedOutcome, setInitialExpectedOutcome] = useState<string>(projects[0]?.main_objective || '')
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
-  // Whenever selected project changes, automatically pull initial_expected_outcome from project's main_objective
   useEffect(() => {
     const proj = projects.find(p => p.project_id === selectedProjectId)
     if (proj) {
       setProjectName(proj.project_name)
       setInitialExpectedOutcome(proj.main_objective || proj.description || '')
-      
+
       const headStr = proj.head ? getUserFullName(proj.head) : (currentUser ? getUserFullName(currentUser) : '')
       setHeadName(headStr)
 
-      // Initialize default assignees from project
       if (proj.assignees && proj.assignees.length > 0) {
         const initialNames = proj.assignees
           .map(a => a.user ? getUserFullName(a.user) : '')
@@ -81,7 +78,7 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
       head_name: headName.trim() || undefined,
       project_outcome: projectOutcome.trim() || undefined,
       initial_expected_outcome: initialExpectedOutcome.trim() || undefined,
-      head_evaluation_score: 80, // Default baseline for report record, evaluated interactively in view mode
+      head_evaluation_score: 80,
       team_evaluation_score: 80,
       created_by: currentUser?.user_id
     })
@@ -103,7 +100,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
         </div>
       )}
 
-      {/* Main Form */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
         <div className="border-b border-slate-200 pb-4">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -112,8 +108,7 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          
-          {/* Select Project */}
+
           <div className="space-y-1.5">
             <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
               <FolderGit2 className="w-4 h-4 text-[#003B71]" />
@@ -133,7 +128,7 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Multi-Select Responsible Persons (Tag Input UI) */}
+
             <div className="space-y-2">
               <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
@@ -143,7 +138,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
                 <span className="text-[11px] text-slate-400 font-normal">เลือกได้หลายท่าน</span>
               </label>
 
-              {/* Tag / Badge List */}
               <div className="min-h-[46px] p-2 bg-slate-50 border border-slate-200 rounded-2xl flex flex-wrap items-center gap-1.5">
                 {selectedAssignees.length === 0 ? (
                   <span className="text-xs text-slate-400 px-2">ยังไม่ได้เลือกผู้รับผิดชอบ (กรุณาเลือกจากดรอปดาวน์ด้านล่าง)</span>
@@ -167,7 +161,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
                 )}
               </div>
 
-              {/* Dropdown to add assignee from registered users */}
               <div className="flex gap-2">
                 <select
                   value={assigneeSelectValue}
@@ -191,7 +184,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
               </div>
             </div>
 
-            {/* Head Name */}
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-[#003B71]" />
@@ -208,7 +200,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
             </div>
           </div>
 
-          {/* Initial Expected Outcome - pulled from main_objective */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
@@ -227,7 +218,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
             />
           </div>
 
-          {/* Project Details */}
           <div className="space-y-1.5">
             <label className="block text-xs sm:text-sm font-bold text-slate-800">
               รายละเอียดความก้าวหน้าโครงการ (project_details)
@@ -241,7 +231,6 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
             />
           </div>
 
-          {/* Project Outcome */}
           <div className="space-y-1.5">
             <label className="block text-xs sm:text-sm font-bold text-slate-800">
               ผลสัมฤทธิ์ที่เกิดขึ้นจริง (project_outcome) *
@@ -256,13 +245,11 @@ export function CreateNormalReportView({ projects, onSuccess }: CreateNormalRepo
             />
           </div>
 
-          {/* Note: Scoring removed from creation forms per requirements and moved to view-mode evaluation */}
           <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200 text-xs text-[#003B71] flex items-center gap-2">
             <Target className="w-4 h-4 flex-shrink-0" />
             <span>หมายเหตุ: การให้คะแนนประเมิน (1-5 ดาว) จะทำผ่านมุมมองการตรวจรายงานในเมนู "Report โครงการ OKR"</span>
           </div>
 
-          {/* Submit Action */}
           <button
             type="submit"
             disabled={isSubmitting}

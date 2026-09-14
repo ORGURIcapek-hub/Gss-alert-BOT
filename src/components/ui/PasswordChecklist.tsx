@@ -18,7 +18,7 @@ export function PasswordChecklist({
 
   return (
     <div className="space-y-2 pt-1">
-      {/* Strength Progress Bar */}
+
       {showStrengthBar && password && (
         <div className="space-y-1">
           <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
@@ -29,7 +29,6 @@ export function PasswordChecklist({
         </div>
       )}
 
-      {/* 4-point Requirements Checklist */}
       <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
         <div className={`flex items-center gap-1.5 ${hasLength ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
           <span

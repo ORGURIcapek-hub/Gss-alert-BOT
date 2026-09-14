@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { mockUsers } from '@/lib/mock-data'
 import {
@@ -108,21 +108,36 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const lastFetchTimeRef = useRef<number>(0)
   const isFetchingRef = useRef<boolean>(false)
 
-  const refreshUsers = async (force: boolean = false) => {
+  const refreshUsers = useCallback(async (force: boolean = false) => {
     const now = Date.now()
-    if (!force && now - lastFetchTimeRef.current < 3000) return
+    const minGap = force ? 1500 : 3000
+
+    if (now - lastFetchTimeRef.current < minGap) return
     if (isFetchingRef.current) return
     isFetchingRef.current = true
+    lastFetchTimeRef.current = now
 
     try {
-      const users = await fetchUsers()
-      lastFetchTimeRef.current = Date.now()
-      setAllUsers(users)
+      const users = await fetchUsers(force)
+
+      setAllUsers(prev => {
+        if (
+          prev.length === users.length &&
+          prev.every((u, i) => isUserIdentical(u, users[i]) && u.status === users[i].status)
+        ) {
+          return prev 
+        }
+        return users
+      })
 
       const current = currentUserRef.current
       if (current) {
         const updated = users.find(u => u.user_id === current.user_id)
-        if (updated && !isUserIdentical(current, updated)) {
+        if (!updated || updated.status === 'rejected' || updated.status === 'pending') {
+          setCurrentUser(null)
+          setIsAuthenticated(false)
+          clearAuthStorage()
+        } else if (!isUserIdentical(current, updated)) {
           setCurrentUser(updated)
           setStoredUser(updated)
         }
@@ -132,9 +147,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     } finally {
       isFetchingRef.current = false
     }
-  }
+  }, [])
 
-  // Cross-tab and window focus sync
   useEffect(() => {
     let channel: BroadcastChannel | null = null
     try {
@@ -162,19 +176,17 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener('visibilitychange', handleSync)
       channel?.close()
     }
-  }, [])
+  }, [refreshUsers])
 
-  // Periodic background refresh for Admin
   useEffect(() => {
     if (!currentUser || currentUser.role !== 'admin') return
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       refreshUsers(false)
-    }, 4000)
+    }, 20000)
     return () => clearInterval(timer)
-  }, [currentUser?.role])
+  }, [currentUser?.role, refreshUsers])
 
-  // Initial Auth Session loader
   useEffect(() => {
     let isMounted = true
     const initAuth = async () => {
@@ -189,10 +201,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
           const deletedIds = getStoredDeletedUserIds()
           if (!deletedIds.includes(savedUserId)) {
             const found = users.find(u => u.user_id === savedUserId) || getStoredCachedUser()
-            if (found) {
+            if (found && (found.status === 'approved' || !found.status)) {
               setCurrentUser(found)
               setIsAuthenticated(true)
               setStoredUser(found)
+            } else {
+              clearAuthStorage()
+              setCurrentUser(null)
+              setIsAuthenticated(false)
             }
           } else {
             clearAuthStorage()
@@ -222,7 +238,6 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setAllUsers(freshUsers)
       searchPool = freshUsers
     } catch {
-      // Fall back to in-memory allUsers
     }
 
     const foundUser = searchPool.find(
@@ -290,13 +305,11 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' }
       }
 
-      if (userData.password) {
-        const { isValid } = validatePassword(userData.password)
-        if (!isValid) {
-          return {
-            success: false,
-            error: 'รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
-          }
+      const { isValid: isPwValid } = validatePassword(userData.password || '')
+      if (!isPwValid) {
+        return {
+          success: false,
+          error: 'รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
         }
       }
 
@@ -369,7 +382,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const switchUser = (userId: string) => {
     const found = allUsers.find(u => u.user_id === userId)
-    if (found) {
+    if (found && (found.status === 'approved' || !found.status)) {
       setCurrentUser(found)
       setIsAuthenticated(true)
       setStoredUser(found)

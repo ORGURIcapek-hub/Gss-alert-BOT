@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
 import path from 'path'
 import { Evaluation } from '@/types/database.types'
+import { writeJsonAtomic, readJsonSafe } from '@/lib/atomic-storage'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-evaluations.json')
@@ -27,37 +30,24 @@ let memoryCache: EvaluationsStorageSchema | null = null
 async function ensureDataFile(): Promise<EvaluationsStorageSchema> {
   if (memoryCache) return memoryCache
 
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-
-    if (fs.existsSync(FILE_PATH)) {
-      const content = await fs.promises.readFile(FILE_PATH, 'utf-8')
-      const parsed = JSON.parse(content)
-      if (parsed && Array.isArray(parsed.evaluations)) {
-        memoryCache = { evaluations: parsed.evaluations }
-        return memoryCache
-      }
-    }
-
-    const initialData: EvaluationsStorageSchema = { evaluations: [] }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(initialData, null, 2), 'utf-8')
-    memoryCache = initialData
+  const fallback: EvaluationsStorageSchema = { evaluations: [] }
+  const data = await readJsonSafe<EvaluationsStorageSchema | null>(FILE_PATH, null)
+  if (data && Array.isArray(data.evaluations)) {
+    memoryCache = { evaluations: data.evaluations }
     return memoryCache
-  } catch (err) {
-    console.error('[api/evaluations] Error ensuring data file:', err)
-    return { evaluations: [] }
   }
+
+  if (memoryCache) return memoryCache
+
+  await writeJsonAtomic(FILE_PATH, fallback)
+  memoryCache = fallback
+  return memoryCache
 }
 
 async function saveEvaluationsFile(data: EvaluationsStorageSchema): Promise<void> {
   memoryCache = data
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8')
+    await writeJsonAtomic(FILE_PATH, data)
   } catch (err) {
     console.error('[api/evaluations] Error writing file:', err)
   }
@@ -77,7 +67,6 @@ export async function GET() {
           if (!localMap.has(item.eval_id)) {
             evaluations.push(item)
           } else {
-            // Merge newer values
             const local = localMap.get(item.eval_id)!
             local.head_score = item.head_score ?? local.head_score
             local.team_score = item.team_score ?? local.team_score
@@ -102,14 +91,24 @@ export async function POST(req: NextRequest) {
 
     if (action === 'create_or_update') {
       const existingIdx = storage.evaluations.findIndex(e =>
-        (evalData.report_id && e.report_id === evalData.report_id) ||
-        (evalData.dashboard_id && e.dashboard_id === evalData.dashboard_id) ||
-        (evalData.project_id && e.project_id === evalData.project_id) // For executive scores linked to project
+        e.evaluator_id === evalData.evaluator_id && (
+          (evalData.report_id && e.report_id === evalData.report_id) ||
+          (evalData.dashboard_id && e.dashboard_id === evalData.dashboard_id) ||
+          (evalData.project_id && e.project_id === evalData.project_id)
+        )
       )
 
       let newEv: Evaluation
       if (existingIdx !== -1) {
-        newEv = { ...storage.evaluations[existingIdx], ...evalData, updated_at: new Date().toISOString() }
+        const prev = storage.evaluations[existingIdx]
+        newEv = {
+          ...prev,
+          ...evalData,
+          head_score: evalData.head_score !== undefined ? evalData.head_score : prev.head_score,
+          team_score: evalData.team_score !== undefined ? evalData.team_score : prev.team_score,
+          executive_score: evalData.executive_score !== undefined ? evalData.executive_score : prev.executive_score,
+          updated_at: new Date().toISOString()
+        }
         storage.evaluations[existingIdx] = newEv
       } else {
         newEv = {

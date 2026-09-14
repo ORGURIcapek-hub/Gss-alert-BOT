@@ -1,26 +1,24 @@
 import { mockProjectAssignments } from '@/lib/mock-data'
 import { ProjectAssignment } from '@/types/database.types'
-import { getSafeSupabaseClient, dbCall } from './service-helpers'
+import { getSafeSupabaseClient, dbCall, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 import { getInMemoryUsers } from './user-service'
 import { getInMemoryProjects, setInMemoryProjects, notifyProjectsChannel } from './project-service'
 
 let inMemoryProjectAssignments: ProjectAssignment[] = [...mockProjectAssignments]
 
-/** Fetch project assignments */
 export async function fetchProjectAssignments(projectId?: string): Promise<ProjectAssignment[]> {
-  // Check persistent API first
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/projects')
-      if (res.ok) {
-        const data = await res.json()
-        if (data?.success && Array.isArray(data.assignments)) {
-          inMemoryProjectAssignments = data.assignments
-          if (projectId) {
-            return data.assignments.filter((a: ProjectAssignment) => a.project_id === projectId)
-          }
-          return data.assignments
+      const data = await fetchWithDeduplication<{ success: boolean; assignments: ProjectAssignment[] }>(
+        '/api/projects',
+        { ttl: 2500 }
+      )
+      if (data?.success && Array.isArray(data.assignments)) {
+        inMemoryProjectAssignments = data.assignments
+        if (projectId) {
+          return data.assignments.filter((a: ProjectAssignment) => a.project_id === projectId)
         }
+        return data.assignments
       }
     } catch {}
   }
@@ -44,7 +42,6 @@ export async function fetchProjectAssignments(projectId?: string): Promise<Proje
     : inMemoryProjectAssignments
 }
 
-/** Assign a project role (Head or Member) and persist to server */
 export async function assignProjectRole(data: {
   project_id: string
   user_id: string
@@ -61,7 +58,7 @@ export async function assignProjectRole(data: {
     created_at: new Date().toISOString()
   }
 
-  // Persist to Server API /api/projects
+  invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/projects', {
@@ -80,13 +77,11 @@ export async function assignProjectRole(data: {
     }
   }
 
-  // Remove existing assignment of this user in this project if any
   inMemoryProjectAssignments = inMemoryProjectAssignments.filter(
     a => !(a.project_id === data.project_id && a.user_id === data.user_id)
   )
   inMemoryProjectAssignments.unshift(assignment)
 
-  // Update inMemoryProjects assignees or head
   const projects = getInMemoryProjects()
   const users = getInMemoryUsers()
   const targetUser = users.find(u => u.user_id === data.user_id) || null
@@ -125,8 +120,8 @@ export async function assignProjectRole(data: {
   return assignment
 }
 
-/** Remove a project role assignment */
 export async function removeProjectRole(assignmentId: string): Promise<void> {
+  invalidateApiCache('/api/projects')
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     await dbCall(() => (supabase.from('project_assignments') as any).delete().eq('assignment_id', assignmentId), 'removeProjectRole')

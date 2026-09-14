@@ -30,7 +30,7 @@ import { SDULogo } from '@/components/SDULogo'
 
 export default function HomePage() {
   const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers } = useRole()
-  
+
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('workspace')
   const [selectedYear, setSelectedYear] = useState(2567)
@@ -61,7 +61,7 @@ export default function HomePage() {
       ])
       setOkrs(okrsData)
       setProjects(projectsData)
-      // Sync selectedProject with freshly loaded data to reflect budget/progress updates
+
       setSelectedProject(prev => {
         if (!prev) return null
         const updated = projectsData.find(p => p.project_id === prev.project_id)
@@ -102,7 +102,6 @@ export default function HomePage() {
     }
   }, [selectedYear, isAuthenticated, mounted])
 
-  // Cross-tab and window focus sync for real-time project updates
   useEffect(() => {
     if (!mounted || !isAuthenticated) return
 
@@ -111,7 +110,12 @@ export default function HomePage() {
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         channel = new BroadcastChannel('sdu_okr_sync_channel')
         channel.onmessage = (event) => {
-          if (event.data?.type === 'PROJECTS_UPDATED' || event.data?.type === 'USERS_UPDATED') {
+          if (
+            event.data?.type === 'PROJECTS_UPDATED' ||
+            event.data?.type === 'USERS_UPDATED' ||
+            event.data?.type === 'OKRS_UPDATED' ||
+            event.data?.type === 'EVALUATIONS_UPDATED'
+          ) {
             loadData()
           }
         }
@@ -143,7 +147,6 @@ export default function HomePage() {
     }
   }, [currentRole, mounted])
 
-  // During SSR or while auth session is initializing, render smooth loading screen
   if (!mounted || (isAuthLoading && !currentUser)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
@@ -192,6 +195,7 @@ export default function HomePage() {
                   projects={projects}
                   onSelectProject={(p) => setSelectedProject(p)}
                   onNavigateTab={(tab) => handleTabChange(tab)}
+                  onProjectsRefresh={loadData}
                 />
               )}
 
@@ -249,6 +253,15 @@ export default function HomePage() {
 
           {activeTab === 'executive_scores' && currentRole === 'head_okr' && (
             <ExecutiveEvaluationsView />
+          )}
+
+          {activeTab === 'teacher_evaluations' && currentRole === 'teacher' && (
+            <TeacherWorkspace
+              projects={projects}
+              onSelectProject={(p) => setSelectedProject(p)}
+              onOpenCreateModal={() => setIsCreateModalOpen(true)}
+              initialTab="evaluations"
+            />
           )}
 
           {activeTab === 'normal_reports' && (

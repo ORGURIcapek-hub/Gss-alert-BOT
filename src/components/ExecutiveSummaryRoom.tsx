@@ -96,7 +96,7 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
         !q ||
         r.head_name?.toLowerCase().includes(q) ||
         r.overall_okr_info?.toLowerCase().includes(q) ||
-        r.project_snapshots?.some(ps => ps.project_name.toLowerCase().includes(q) || ps.department.toLowerCase().includes(q))
+        r.project_snapshots?.some(ps => (ps.project_name || '').toLowerCase().includes(q) || (ps.department || '').toLowerCase().includes(q))
       return matchesYear && matchesSearch
     })
   }, [reports, selectedYear, searchQuery])

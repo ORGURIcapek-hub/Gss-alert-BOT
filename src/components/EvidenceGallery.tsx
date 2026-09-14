@@ -36,14 +36,13 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
+
       <div>
         <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
           คลังเอกสารหลักฐานผลสัมฤทธิ์ OKR
         </h2>
       </div>
 
-      {/* Search Bar */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative flex-1 sm:max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -61,7 +60,6 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
         </span>
       </div>
 
-      {/* Grid */}
       {filteredEvidences.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 text-slate-400 shadow-sm">
           <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />

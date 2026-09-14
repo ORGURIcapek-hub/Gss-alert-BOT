@@ -182,7 +182,6 @@ export function AdminUserManagement() {
                     </select>
                   </td>
 
-                  {/* Admin Password Inspection Column */}
                   <td className="py-4 px-4">
                     <PasswordCell
                       userId={u.user_id}
@@ -217,7 +216,6 @@ export function AdminUserManagement() {
         </table>
       </div>
 
-      {/* Confirmation Modal for deleting user */}
       {userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-7 relative space-y-5">

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { ProjectWithHeadAndAssignees, ProjectAssignment, ProjectStatus, UserProfile } from '@/types/database.types'
+import { writeJsonAtomic, readJsonSafe } from '@/lib/atomic-storage'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-projects.json')
@@ -57,69 +61,56 @@ async function getStoredEvidences(): Promise<any[]> {
 async function ensureDataFile(): Promise<ProjectStorageSchema> {
   if (memoryCache) return memoryCache
 
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-
-    if (fs.existsSync(FILE_PATH)) {
-      const content = await fs.promises.readFile(FILE_PATH, 'utf-8')
-      const parsed = JSON.parse(content)
-      if (parsed && Array.isArray(parsed.projects)) {
-        memoryCache = {
-          projects: parsed.projects,
-          assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
-          deletedProjectIds: Array.isArray(parsed.deletedProjectIds) ? parsed.deletedProjectIds : []
-        }
-        return memoryCache
-      }
-    }
-
-    const initialData: ProjectStorageSchema = {
-      projects: [],
-      assignments: [],
-      deletedProjectIds: []
-    }
-
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(initialData, null, 2), 'utf-8')
-    memoryCache = initialData
-    return memoryCache
-  } catch (err) {
-    console.error('[api/projects] Error ensuring data file:', err)
-    return {
-      projects: [],
-      assignments: [],
-      deletedProjectIds: []
-    }
+  const fallback: ProjectStorageSchema = {
+    projects: [],
+    assignments: [],
+    deletedProjectIds: []
   }
+
+  const data = await readJsonSafe<ProjectStorageSchema | null>(FILE_PATH, null)
+  if (data && Array.isArray(data.projects)) {
+    memoryCache = {
+      projects: data.projects,
+      assignments: Array.isArray(data.assignments) ? data.assignments : [],
+      deletedProjectIds: Array.isArray(data.deletedProjectIds) ? data.deletedProjectIds : []
+    }
+    return memoryCache
+  }
+
+  if (memoryCache) {
+    return memoryCache
+  }
+
+  await writeJsonAtomic(FILE_PATH, fallback)
+  memoryCache = fallback
+  return memoryCache
 }
 
 async function saveStorage(data: ProjectStorageSchema): Promise<void> {
   memoryCache = data
+  lastSupabaseProjectsSync = 0
   try {
     if (process.env.VERCEL) return
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true })
-    }
-    await fs.promises.writeFile(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8')
+    await writeJsonAtomic(FILE_PATH, data)
   } catch (err) {
     console.warn('[api/projects] Error saving storage:', err)
   }
 }
 
-// =============================================================================
-// GET: Fetch all active projects and optional assignments
-// =============================================================================
+let lastSupabaseProjectsSync = 0
+const SUPABASE_SYNC_INTERVAL = 10000
+
 export async function GET(req: NextRequest) {
   try {
     const storage = await ensureDataFile()
     const supabase = getSafeSupabaseClient()
     const allUsers = await getStoredUsers()
     const storedEvidences = await getStoredEvidences()
+    const shouldSyncSupabase = supabase && (Date.now() - lastSupabaseProjectsSync > SUPABASE_SYNC_INTERVAL)
 
-    // If Supabase is available, sync with Supabase
-    if (supabase) {
+    if (shouldSyncSupabase) {
       try {
+        lastSupabaseProjectsSync = Date.now()
         const { data, error } = await supabase.from('projects').select(`
           *,
           okr:okrs!projects_okr_id_fkey(*),
@@ -170,17 +161,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Filter out deleted projects and enrich missing user heads / assignees
     const validProjects = storage.projects
       .filter(p => !storage.deletedProjectIds.includes(p.project_id))
       .map(p => {
-        const head = p.head || allUsers.find(u => u.user_id === p.head_of_project) || null
+        const head = (p.head_of_project ? allUsers.find(u => u.user_id === p.head_of_project) : null) || p.head || null
         const assignees = (p.assignees || []).map(a => ({
           ...a,
           user: a.user || allUsers.find(u => u.user_id === a.user_id) || undefined
         }))
 
-        // Merge evidences for this project
         const projectEvidences = p.evidences || []
         const matchedEvs = storedEvidences
           .filter(e => e.project_id === p.project_id)
@@ -220,9 +209,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// =============================================================================
-// POST: Create Project, Assign Role, Update Progress, Upload Evidence
-// =============================================================================
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -231,14 +217,12 @@ export async function POST(req: NextRequest) {
     const allUsers = await getStoredUsers()
     const supabase = getSafeSupabaseClient()
 
-    // 1. CREATE PROJECT
     if (action === 'create_project') {
       const { project } = body
       if (!project || !project.project_id || !project.project_name) {
         return NextResponse.json({ success: false, error: 'Missing required project data' }, { status: 400 })
       }
 
-      // Enrich head and assignees
       const headUser = project.head || allUsers.find(u => u.user_id === project.head_of_project) || null
       const enrichedProject: ProjectWithHeadAndAssignees = {
         ...project,
@@ -277,7 +261,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, project: enrichedProject })
     }
 
-    // 2. ASSIGN ROLE (Head or Member)
     if (action === 'assign_role') {
       const { project_id, user_id, role_type, assigned_by } = body
       if (!project_id || !user_id || !role_type) {
@@ -295,13 +278,11 @@ export async function POST(req: NextRequest) {
         created_at: new Date().toISOString()
       }
 
-      // Remove existing assignment for same user & project
       storage.assignments = [
         newAssignment,
         ...storage.assignments.filter(a => !(a.project_id === project_id && a.user_id === user_id))
       ]
 
-      // Update project in storage
       storage.projects = storage.projects.map(p => {
         if (p.project_id === project_id) {
           if (role_type === 'Head') {
@@ -333,11 +314,15 @@ export async function POST(req: NextRequest) {
         return p
       })
 
+
       await saveStorage(storage)
 
       if (supabase) {
         try {
           await supabase.from('project_assignments').insert(newAssignment)
+          if (role_type === 'Head') {
+            await supabase.from('projects').update({ head_of_project: user_id }).eq('project_id', project_id)
+          }
         } catch (e) {
           console.warn('[api/projects] Supabase assignment error:', e)
         }
@@ -347,7 +332,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, assignment: newAssignment, project: updatedProject })
     }
 
-    // 3. UPDATE PROGRESS
+    if (action === 'update_project_okr') {
+      const { project_id, okr_id } = body
+      if (!project_id || !okr_id) {
+        return NextResponse.json({ success: false, error: 'Missing parameters' }, { status: 400 })
+      }
+
+      storage.projects = storage.projects.map(p => {
+        if (p.project_id === project_id) {
+          return {
+            ...p,
+            okr_id,
+            updated_at: new Date().toISOString()
+          }
+        }
+        return p
+      })
+
+      await saveStorage(storage)
+
+      if (supabase) {
+        try {
+          await supabase.from('projects').update({ okr_id, updated_at: new Date().toISOString() }).eq('project_id', project_id)
+        } catch (e) {
+          console.warn('[api/projects] Supabase update okr_id error:', e)
+        }
+      }
+
+      const updatedProject = storage.projects.find(p => p.project_id === project_id)
+      return NextResponse.json({ success: true, project: updatedProject })
+    }
+
     if (action === 'update_progress') {
       const { project_id, progress, bottleneck, status, spent } = body
       storage.projects = storage.projects.map(p => {
@@ -386,7 +401,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    // 4. SUBMIT EVIDENCE
     if (action === 'submit_evidence') {
       const { submission } = body
       if (submission && submission.project_id) {
@@ -431,7 +445,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    // 5. DELETE EVIDENCE
     if (action === 'delete_evidence') {
       const { evidence_id, project_id } = body
       if (evidence_id) {
@@ -464,9 +477,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// =============================================================================
-// DELETE: Delete project or clear all
-// =============================================================================
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)

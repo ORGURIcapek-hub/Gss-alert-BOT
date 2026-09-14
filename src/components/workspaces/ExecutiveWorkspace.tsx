@@ -33,20 +33,21 @@ interface ExecutiveWorkspaceProps {
   projects: ProjectWithHeadAndAssignees[]
   onSelectProject: (project: ProjectWithHeadAndAssignees) => void
   onNavigateTab?: (tab: string) => void
+  onProjectsRefresh?: () => void
 }
 
 export function ExecutiveWorkspace({
   okrs,
   projects,
   onSelectProject,
-  onNavigateTab
+  onNavigateTab,
+  onProjectsRefresh
 }: ExecutiveWorkspaceProps) {
   const { currentUser, allUsers, refreshUsers } = useRole()
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL')
   const [dashboardReports, setDashboardReports] = useState<DashboardReportWithDetails[]>([])
   const [isLoadingReports, setIsLoadingReports] = useState<boolean>(false)
 
-  // Assign OKR Head modal state
   const [isAssignHeadOpen, setIsAssignHeadOpen] = useState(false)
 
   const loadReports = async () => {
@@ -80,7 +81,7 @@ export function ExecutiveWorkspace({
 
   return (
     <div className="space-y-6">
-      {/* Top Action Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -109,7 +110,6 @@ export function ExecutiveWorkspace({
         </div>
       </div>
 
-      {/* Main Focus Area: Dynamic Active Projects Filter */}
       <div className="bg-white rounded-2xl p-5 border-2 border-slate-900 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
           <div className="flex items-center gap-2">
@@ -158,7 +158,6 @@ export function ExecutiveWorkspace({
         </div>
       </div>
 
-      {/* KPI Stats Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border-2 border-slate-900 shadow-sm">
           <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">ยุทธศาสตร์ OKR คณะ</span>
@@ -193,10 +192,8 @@ export function ExecutiveWorkspace({
         </div>
       </div>
 
-      {/* Analytics Charts & Project Status Breakdown */}
       <ExecutiveAnalytics projects={filteredProjects} onSelectProject={onSelectProject} />
 
-      {/* SECTION: Reports submitted by OKR Head with Visual Infographics & 5-Star Interactive Rating */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-900 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
           <div>
@@ -253,7 +250,7 @@ export function ExecutiveWorkspace({
                   key={report.dashboard_id}
                   className="rounded-3xl bg-slate-50/60 border-2 border-slate-900 hover:border-[#003B71] hover:shadow-lg transition-all p-6 sm:p-7 space-y-6 flex flex-col justify-between"
                 >
-                  {/* Header */}
+
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
                     <div className="flex items-center gap-3.5">
                       <div className="w-11 h-11 rounded-2xl bg-[#003B71] text-white flex items-center justify-center font-bold shadow-sm">
@@ -277,7 +274,6 @@ export function ExecutiveWorkspace({
                     </div>
                   </div>
 
-                  {/* 1. คำเขียนสรุป (Executive Written Summary) */}
                   <div className="rounded-2xl bg-gradient-to-br from-amber-50/80 via-white to-sky-50/50 border-2 border-amber-300 p-5 space-y-2 shadow-xs">
                     <span className="text-xs font-black text-amber-900 flex items-center gap-1.5 uppercase tracking-wider">
                       <Sparkles className="w-4 h-4 text-amber-600" />
@@ -288,7 +284,6 @@ export function ExecutiveWorkspace({
                     </p>
                   </div>
 
-                  {/* 2. กราฟงานนั้นเดี่ยวๆ (Individual Standalone Single-Project Graphs & Metrics) */}
                   {snapshots.length > 0 && (
                     <div className="space-y-3">
                       <h5 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5">
@@ -337,7 +332,6 @@ export function ExecutiveWorkspace({
                                 </h6>
                               </div>
 
-                              {/* Single Project Graph Visuals */}
                               <div className="grid grid-cols-12 gap-3 items-center p-3 rounded-xl bg-slate-50 border border-slate-200">
                                 <div className="col-span-4 flex items-center justify-center">
                                   <div className="relative w-16 h-16 flex items-center justify-center">
@@ -408,7 +402,6 @@ export function ExecutiveWorkspace({
         )}
       </div>
 
-      {/* Delayed Projects Attention Box */}
       {delayedProjects.length > 0 && (
         <div className="bg-rose-50/70 rounded-2xl p-6 border-2 border-rose-400 space-y-4 shadow-sm">
           <h3 className="text-sm sm:text-base font-bold text-rose-800 flex items-center gap-2">
@@ -448,13 +441,18 @@ export function ExecutiveWorkspace({
         </div>
       )}
 
-      {/* MODAL: ASSIGN OKR HEAD TO PROJECT */}
       <AssignHeadModal
         isOpen={isAssignHeadOpen}
         onClose={() => setIsAssignHeadOpen(false)}
         projects={projects}
         allUsers={allUsers}
-        onSuccess={refreshUsers}
+        okrs={okrs}
+        onSuccess={async () => {
+          await refreshUsers()
+          if (onProjectsRefresh) {
+            await onProjectsRefresh()
+          }
+        }}
       />
     </div>
   )

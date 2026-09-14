@@ -37,7 +37,6 @@ body {
   letter-spacing: 0.01em;
 }
 
-/* Light & Clean Modern Theme Styles */
 .glass-panel {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -98,7 +97,6 @@ body {
   }
 }
 
-/* Hide native browser password reveal & clear icons (MS Edge / IE) */
 input::-ms-reveal,
 input::-ms-clear,
 ::-ms-reveal,
@@ -108,4 +106,3 @@ input::-ms-clear,
   height: 0 !important;
   pointer-events: none !important;
 }
-

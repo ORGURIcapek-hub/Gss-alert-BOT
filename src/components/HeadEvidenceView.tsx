@@ -37,8 +37,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL')
-  
-  // Preview Modal state
+
   const [previewFile, setPreviewFile] = useState<EvidenceItem | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -53,11 +52,10 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
     loadEvidences()
   }, [])
 
-  // Filter evidences by project and search term
   const filteredEvidences = evidenceList.filter((item) => {
     const matchesProject =
       selectedProjectId === 'ALL' || item.project_id === selectedProjectId
-    
+
     const senderName = getUserFullName(item.sender)
     const senderId = item.sender_id || ''
     const projectName = item.project?.project_name || ''
@@ -90,7 +88,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -104,7 +102,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
           <div className="relative flex-1 sm:max-w-md">
@@ -139,7 +136,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
         </div>
       </div>
 
-      {/* Data Grid / Table List */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -181,7 +177,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
 
                   return (
                     <tr key={item.evidence_id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Sender Name & Sender ID */}
+
                       <td className="py-4 px-4 font-bold text-slate-900">
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-full bg-[#003B71]/10 text-[#003B71] flex items-center justify-center font-bold flex-shrink-0">
@@ -199,7 +195,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                         </div>
                       </td>
 
-                      {/* Project Title */}
                       <td className="py-4 px-4">
                         <div className="space-y-0.5 max-w-xs">
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-[#003B71] border border-sky-200 inline-block">
@@ -211,7 +206,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                         </div>
                       </td>
 
-                      {/* File Name */}
                       <td className="py-4 px-4 font-medium text-slate-900">
                         <div className="flex items-center gap-2 max-w-xs">
                           {isPdfFile ? (
@@ -225,7 +219,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                         </div>
                       </td>
 
-                      {/* File Type & Timestamp */}
                       <td className="py-4 px-4 text-slate-500">
                         <div className="space-y-0.5">
                           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
@@ -242,7 +235,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                         </div>
                       </td>
 
-                      {/* Action Buttons */}
                       <td className="py-4 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
@@ -286,12 +278,10 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
         )}
       </div>
 
-      {/* FILE PREVIEW MODAL (Inline iframe for PDF / img for JPG & PNG) */}
       {previewFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm">
           <div className="bg-white w-full max-w-4xl rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-            
-            {/* Modal Header */}
+
             <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-2xl bg-[#003B71]/10 text-[#003B71] flex items-center justify-center flex-shrink-0">
@@ -328,7 +318,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
               </div>
             </div>
 
-            {/* Modal Body: Inline Viewer */}
             <div className="p-4 sm:p-6 flex-1 overflow-y-auto bg-slate-100 flex flex-col gap-4">
               <div className="flex-1 flex items-center justify-center">
                 {isPdf(previewFile) ? (
@@ -348,7 +337,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                 )}
               </div>
 
-              {/* Evidence Description Section */}
               <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col gap-1.5">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">รายละเอียดหลักฐาน</span>
                 <p className="text-sm font-medium text-slate-800 break-words whitespace-pre-wrap">
@@ -357,7 +345,6 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="p-3.5 border-t border-slate-200 bg-white flex items-center justify-between text-xs text-slate-500">
               <span>ประเภทไฟล์: <b className="text-slate-800 uppercase">{previewFile.file_type}</b></span>
               <span>ส่งเมื่อ: <b className="text-slate-800">{formatThaiDate(previewFile.submitted_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</b></span>
