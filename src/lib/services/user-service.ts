@@ -19,7 +19,13 @@ export function setInMemoryUsers(users: UserProfile[]): void {
 export async function fetchUsers(): Promise<UserProfile[]> {
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/users')
+      const res = await fetch(`/api/users?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
       if (res.ok) {
         const data = await res.json()
         if (data?.success && Array.isArray(data.users) && data.users.length > 0) {
@@ -155,7 +161,10 @@ export async function registerUserRecord(userData: {
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store'
+        },
         body: JSON.stringify({
           ...userData,
           email: cleanEmail,
@@ -165,20 +174,19 @@ export async function registerUserRecord(userData: {
           last_name: computedLastName,
           status: userStatus,
           password: userPassword,
+          role: userRole,
           avatar_url: userAvatar
         })
       })
       const data = await res.json()
       if (res.ok && data.success && data.user) {
         createdUser = data.user
-      } else if (data.error) {
-        throw new Error(data.error)
+      } else {
+        throw new Error(data?.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูลเข้าสู่ระบบเซิร์ฟเวอร์')
       }
     } catch (e: any) {
-      if (e.message && !e.message.includes('Failed to fetch') && !e.message.includes('NetworkError')) {
-        throw e
-      }
-      console.warn('[user-service] POST /api/users network failed, fallback to local', e)
+      console.error('[user-service] POST /api/users failed:', e)
+      throw e
     }
   }
 

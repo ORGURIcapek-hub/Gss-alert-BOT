@@ -5,6 +5,16 @@ import { mockUsers } from '@/lib/mock-data'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { getManagementOrder } from '@/lib/user-constants'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+  'Surrogate-Control': 'no-store'
+}
+
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-users.json')
 
@@ -154,11 +164,11 @@ export async function GET(req: NextRequest) {
       success: true,
       users: activeUsers,
       source: 'local'
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err?.message || 'Failed to fetch users' },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     )
   }
 }
@@ -175,32 +185,51 @@ export async function POST(req: NextRequest) {
     const username = (body.username || email.split('@')[0] || '').trim().toLowerCase()
 
     if (!email) {
-      return NextResponse.json({ success: false, error: 'กรุณาระบุอีเมล' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'กรุณาระบุอีเมล' }, { status: 400, headers: NO_CACHE_HEADERS })
     }
 
+    const userRole: UserRole = body.role || 'teacher'
+    const computedFirstName = body.first_name || (body.name ? body.name.split(' ')[0] : 'อาจารย์')
+    const computedLastName = body.last_name || (body.name ? body.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
+    const computedName = body.name || `${computedFirstName} ${computedLastName}`
+    const userPassword = body.password || 'password123'
+    const userAvatar = body.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+
     // Check for existing user (active or deleted)
-    const existing = storage.users.find(
+    const existingIndex = storage.users.findIndex(
       u => !storage.deletedUserIds.includes(u.user_id) &&
            (u.email.toLowerCase() === email || (u.username && u.username.toLowerCase() === username))
     )
-    if (existing) {
+
+    if (existingIndex !== -1) {
+      const existing = storage.users[existingIndex]
       if (existing.status === 'pending') {
-        return NextResponse.json({ success: true, user: existing })
+        // Update pending user with newly submitted role/name/password and re-save
+        const updatedPending: UserProfile = {
+          ...existing,
+          name: computedName,
+          first_name: computedFirstName,
+          last_name: computedLastName,
+          role: userRole,
+          password: userPassword,
+          avatar_url: userAvatar,
+          position: body.position || existing.position || 'อาจารย์ประจำภาควิชา',
+          department: body.department || existing.department || 'ภาควิชาวิทยาการคอมพิวเตอร์',
+          management_order: getManagementOrder(userRole),
+          updated_at: new Date().toISOString()
+        }
+        storage.users[existingIndex] = updatedPending
+        await saveStorage(storage)
+        return NextResponse.json({ success: true, user: updatedPending, isPendingUpdated: true }, { headers: NO_CACHE_HEADERS })
       }
       return NextResponse.json(
         { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' },
-        { status: 400 }
+        { status: 400, headers: NO_CACHE_HEADERS }
       )
     }
 
     const newId = body.user_id || crypto.randomUUID()
-    const computedFirstName = body.first_name || (body.name ? body.name.split(' ')[0] : 'อาจารย์')
-    const computedLastName = body.last_name || (body.name ? body.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
-    const computedName = body.name || `${computedFirstName} ${computedLastName}`
-    const userRole: UserRole = body.role || 'teacher'
     const userStatus = body.status || 'pending'
-    const userPassword = body.password || 'password123'
-    const userAvatar = body.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
 
     const newUser: UserProfile = {
       user_id: newId,
@@ -242,12 +271,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       user: newUser
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
     console.error('[api/users] Error creating user:', err)
     return NextResponse.json(
       { success: false, error: err?.message || 'Failed to create user' },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     )
   }
 }

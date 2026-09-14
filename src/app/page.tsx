@@ -179,6 +179,7 @@ export default function HomePage() {
           setSelectedQuarter={setSelectedQuarter}
           onRefresh={loadData}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onNavigateTab={handleTabChange}
           isRefreshing={isRefreshing}
         />
 

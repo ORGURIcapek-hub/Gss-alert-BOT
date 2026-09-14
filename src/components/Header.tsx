@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calendar, Filter, Menu } from 'lucide-react'
+import { Calendar, Filter, Menu, UserCheck, Bell } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 
@@ -12,6 +12,7 @@ interface HeaderProps {
   setSelectedQuarter: (quarter: string) => void
   onRefresh?: () => void
   onToggleMobileMenu: () => void
+  onNavigateTab?: (tab: string) => void
   isRefreshing?: boolean
 }
 
@@ -22,9 +23,10 @@ export function Header({
   setSelectedQuarter,
   onRefresh,
   onToggleMobileMenu,
+  onNavigateTab,
   isRefreshing
 }: HeaderProps) {
-  const { currentRole } = useRole()
+  const { currentRole, pendingCount } = useRole()
   const isAdmin = currentRole === 'admin'
 
   return (
@@ -51,6 +53,18 @@ export function Header({
       </div>
 
       <div className="flex items-center flex-wrap gap-2.5">
+        {/* Admin Permission Request Notification Badge */}
+        {isAdmin && pendingCount > 0 && (
+          <button
+            onClick={() => onNavigateTab?.('pending_users')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:opacity-95 text-white font-extrabold text-xs shadow-md shadow-amber-500/25 transition-all animate-pulse cursor-pointer border border-amber-300/40"
+            title="มีคำขอสิทธิ์การเข้าใช้งานใหม่จากผู้สมัครสมาชิก คลิกเพื่อตรวจสอบและอนุมัติ"
+          >
+            <Bell className="w-3.5 h-3.5 fill-white animate-bounce" />
+            <span>คำขอสิทธิ์ใหม่ ({pendingCount})</span>
+          </button>
+        )}
+
         {/* Fiscal Year Selector */}
         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs flex-1 sm:flex-none justify-between sm:justify-start">
           <div className="flex items-center gap-1.5 text-slate-600 font-semibold">

@@ -196,7 +196,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   {(item as any).badge !== undefined && (
                     <span className={`px-2 py-0.5 rounded-full text-xs font-black leading-none ${
-                      isActive ? 'bg-white text-[#003B71]' : 'bg-rose-500 text-white shadow-sm shadow-rose-500/30'
+                      isActive ? 'bg-white text-[#003B71]' : 'bg-rose-500 text-white shadow-sm shadow-rose-500/30 animate-pulse'
                     }`}>
                       {(item as any).badge}
                     </span>

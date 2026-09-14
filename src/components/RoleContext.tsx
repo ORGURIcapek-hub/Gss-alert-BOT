@@ -170,7 +170,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       refreshUsers(false)
-    }, 10000)
+    }, 4000)
     return () => clearInterval(timer)
   }, [currentUser?.role])
 
@@ -281,6 +281,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         u => u.email.trim().toLowerCase() === cleanEmail || (u.username && u.username.trim().toLowerCase() === cleanUsername)
       )
       if (existing) {
+        if (existing.status === 'pending') {
+          return {
+            success: false,
+            error: 'บัญชีนี้ (อีเมลหรือชื่อผู้ใช้งานนี้) ได้ทำการส่งคำขอลงทะเบียนแล้ว และอยู่ระหว่างรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ (Admin)'
+          }
+        }
         return { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' }
       }
 
@@ -303,7 +309,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
       setAllUsers(prev => [...prev.filter(u => u.user_id !== createdUser.user_id && u.email.toLowerCase() !== createdUser.email.toLowerCase()), createdUser])
       broadcastSync()
-      await refreshUsers()
+      await refreshUsers(true)
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการลงทะเบียน' }

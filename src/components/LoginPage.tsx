@@ -7,7 +7,7 @@ import { UserRole } from '@/types/database.types'
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal'
 import { SignInForm } from '@/components/auth/SignInForm'
 import { SignUpForm } from '@/components/auth/SignUpForm'
-import { DEFAULT_ROLE_POSITIONS } from '@/lib/user-constants'
+import { DEFAULT_ROLE_POSITIONS, ROLE_CONFIG } from '@/lib/user-constants'
 import { AlertCircle, CheckCircle2, UserPlus, LogIn } from 'lucide-react'
 
 export function LoginPage() {
@@ -54,15 +54,16 @@ export function LoginPage() {
       setErrorMsg(result.error || 'ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง')
       setLoading(false)
     } else {
+      const roleLabel = ROLE_CONFIG[data.role]?.label || data.role
       setSuccessMsg(
-        'สมัครสมาชิกสำเร็จ! บัญชีของคุณถูกส่งให้ผู้ดูแลระบบ (Admin) ตรวจสอบและอนุมัติสิทธิ์เรียบร้อยแล้ว กรุณารอการอนุมัติก่อนเข้าสู่ระบบ'
+        `ส่งคำขอลงทะเบียนสำเร็จ! ระบบได้ส่งคำขอสิทธิ์ในบทบาท "${roleLabel}" ไปยังผู้ดูแลระบบ (Admin) เพื่อรอการอนุมัติสิทธิ์เรียบร้อยแล้ว กรุณารอการตรวจสอบก่อนเข้าสู่ระบบ`
       )
       setIdentifier('')
       setLoading(false)
       setTimeout(() => {
         setAuthMode('signin')
         setSuccessMsg('')
-      }, 2500)
+      }, 3500)
     }
   }
 
@@ -152,6 +153,7 @@ export function LoginPage() {
             onSignUp={handleSignUp}
             loading={loading}
             onError={(msg) => setErrorMsg(msg)}
+            errorMsg={errorMsg}
           />
         )}
       </div>

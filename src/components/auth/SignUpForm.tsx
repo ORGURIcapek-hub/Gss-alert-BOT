@@ -38,9 +38,10 @@ interface SignUpFormProps {
   }) => Promise<void>
   loading: boolean
   onError: (msg: string) => void
+  errorMsg?: string
 }
 
-export function SignUpForm({ onSignUp, loading, onError }: SignUpFormProps) {
+export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormProps) {
   const [regUsername, setRegUsername] = useState('')
   const [regFullName, setRegFullName] = useState('')
   const [regEmail, setRegEmail] = useState('')
@@ -50,6 +51,7 @@ export function SignUpForm({ onSignUp, loading, onError }: SignUpFormProps) {
   const [regRole, setRegRole] = useState<UserRole>('teacher')
   const [regDepartment, setRegDepartment] = useState(DEFAULT_DEPARTMENT)
   const [regAvatarUrl, setRegAvatarUrl] = useState(DEFAULT_AVATAR)
+  const [localError, setLocalError] = useState<string | null>(null)
 
   const regFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -58,6 +60,7 @@ export function SignUpForm({ onSignUp, loading, onError }: SignUpFormProps) {
     if (!file) return
 
     if (file.size > 2 * 1024 * 1024) {
+      setLocalError('ขนาดรูปภาพต้องไม่เกิน 2MB')
       onError('ขนาดรูปภาพต้องไม่เกิน 2MB')
       return
     }
@@ -66,6 +69,7 @@ export function SignUpForm({ onSignUp, loading, onError }: SignUpFormProps) {
     reader.onload = (event) => {
       const base64 = event.target?.result as string
       setRegAvatarUrl(base64)
+      setLocalError(null)
       onError('')
     }
     reader.readAsDataURL(file)
@@ -76,28 +80,39 @@ export function SignUpForm({ onSignUp, loading, onError }: SignUpFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setLocalError(null)
 
-    if (!regUsername.trim() || !regEmail.trim() || !regFullName.trim() || !regPassword) {
-      onError('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง')
+    const cleanUsername = regUsername.trim().toLowerCase().replace(/\s+/g, '')
+    const cleanEmail = regEmail.trim().toLowerCase()
+    const cleanName = regFullName.trim()
+
+    if (!cleanUsername || !cleanEmail || !cleanName || !regPassword) {
+      const msg = 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง'
+      setLocalError(msg)
+      onError(msg)
       return
     }
 
-    const emailCheck = validateEmail(regEmail)
+    const emailCheck = validateEmail(cleanEmail)
     if (!emailCheck.isValid) {
       setRegEmailError(emailCheck.error)
-      onError(emailCheck.error || 'รูปแบบอีเมลไม่ถูกต้อง')
+      const msg = emailCheck.error || 'รูปแบบอีเมลไม่ถูกต้อง'
+      setLocalError(msg)
+      onError(msg)
       return
     }
 
     if (!isPasswordAllValid) {
-      onError('รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ')
+      const msg = 'รหัสผ่านต้องมีความยาว 8-15 ตัวอักษร และประกอบด้วยตัวอักษรภาษาอังกฤษ, ตัวเลข และอักขระพิเศษ'
+      setLocalError(msg)
+      onError(msg)
       return
     }
 
     onSignUp({
-      username: regUsername.trim(),
-      name: regFullName.trim(),
-      email: regEmail.trim(),
+      username: cleanUsername,
+      name: cleanName,
+      email: cleanEmail,
       password: regPassword,
       role: regRole,
       department: regDepartment,
@@ -258,6 +273,9 @@ export function SignUpForm({ onSignUp, loading, onError }: SignUpFormProps) {
               </option>
             ))}
           </select>
+          <p className="text-[11px] text-slate-500 font-medium">
+            * ระบบจะส่งคำขอสิทธิ์ในบทบาทนี้ให้ผู้ดูแลระบบ (Admin) ตรวจสอบและอนุมัติก่อนเข้าใช้งาน
+          </p>
         </div>
       </div>
 
@@ -318,6 +336,14 @@ export function SignUpForm({ onSignUp, loading, onError }: SignUpFormProps) {
           ))}
         </select>
       </div>
+
+      {/* Inline Form Error Notification */}
+      {(localError || errorMsg) && (
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-in fade-in">
+          <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+          <span className="flex-1 leading-relaxed">{localError || errorMsg}</span>
+        </div>
+      )}
 
       <button
         type="submit"
