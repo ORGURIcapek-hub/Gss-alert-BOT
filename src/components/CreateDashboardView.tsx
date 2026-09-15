@@ -6,6 +6,7 @@ import { useRole } from '@/components/RoleContext'
 import { createDashboardReport } from '@/lib/services/okr-service'
 import { Sparkles, CheckCircle2, Send, Layers, BarChart3, AlertCircle, TrendingUp, DollarSign } from 'lucide-react'
 import { formatDepartmentShort, getUserFullName, removeTitlesAndRoles } from '@/lib/user-constants'
+import { isProjectDelayed } from '@/lib/project-status'
 
 interface CreateDashboardViewProps {
   okrs: OKR[]
@@ -41,7 +42,7 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
     const totalChosenBudget = chosen.reduce((acc, p) => acc + Number(p.budget || 0), 0)
     const totalChosenSpent = chosen.reduce((acc, p) => acc + Number(p.spent_amount || 0), 0)
     const avgProgress = Math.round(chosen.reduce((acc, p) => acc + Number(p.progress_percentage || 0), 0) / chosen.length)
-    const delayed = chosen.filter(p => p.status === 'Delayed' || (p.bottleneck && p.bottleneck.trim().length > 0))
+    const delayed = chosen.filter(p => isProjectDelayed(p))
 
     const projectLines = chosen.map((p, idx) => {
       const budgetK = (Number(p.budget || 0) / 1000).toLocaleString()

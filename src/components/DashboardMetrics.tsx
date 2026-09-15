@@ -3,6 +3,7 @@
 import React from 'react'
 import { Target, TrendingUp, DollarSign, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { ProjectWithHeadAndAssignees, OKR } from '@/types/database.types'
+import { isProjectCompleted, isProjectDelayed } from '@/lib/project-status'
 
 interface DashboardMetricsProps {
   okrs: OKR[]
@@ -11,8 +12,8 @@ interface DashboardMetricsProps {
 
 export function DashboardMetrics({ okrs, projects }: DashboardMetricsProps) {
   const totalProjects = projects.length
-  const completedProjects = projects.filter(p => p.progress_percentage === 100 || p.status === 'Completed').length
-  const delayedProjects = projects.filter(p => p.status === 'Delayed' || (p.bottleneck && p.bottleneck.length > 0)).length
+  const completedProjects = projects.filter(p => isProjectCompleted(p)).length
+  const delayedProjects = projects.filter(p => isProjectDelayed(p)).length
 
   const avgProgress = totalProjects > 0
     ? (projects.reduce((acc, p) => acc + Number(p.progress_percentage), 0) / totalProjects).toFixed(1)

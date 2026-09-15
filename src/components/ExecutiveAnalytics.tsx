@@ -17,6 +17,7 @@ import {
 import { Doughnut, Bar, Line } from 'react-chartjs-2'
 import { ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
+import { isProjectCompleted, isProjectDelayed, isProjectInProgress, isProjectOnHold } from '@/lib/project-status'
 import {
   CheckCircle2,
   Clock,
@@ -61,26 +62,22 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
   const [searchQuery, setSearchQuery] = useState('')
 
   const completedProjects = useMemo(
-    () => projects.filter(p => p.progress_percentage === 100 || p.status === 'Completed'),
+    () => projects.filter(p => isProjectCompleted(p)),
     [projects]
   )
 
   const delayedProjects = useMemo(
-    () => projects.filter(p => p.status === 'Delayed' || (p.bottleneck && p.bottleneck.trim().length > 0)),
+    () => projects.filter(p => isProjectDelayed(p)),
     [projects]
   )
 
   const inProgressProjects = useMemo(
-    () => projects.filter(p =>
-      p.status === 'In Progress' &&
-      p.progress_percentage < 100 &&
-      (!p.bottleneck || p.bottleneck.trim() === '')
-    ),
+    () => projects.filter(p => isProjectInProgress(p)),
     [projects]
   )
 
   const onHoldProjects = useMemo(
-    () => projects.filter(p => p.status === 'On Hold' || p.status === 'Draft'),
+    () => projects.filter(p => isProjectOnHold(p)),
     [projects]
   )
 
@@ -571,8 +568,8 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {displayedProjects.map((p) => {
-              const isCompleted = p.progress_percentage === 100 || p.status === 'Completed'
-              const isDelayed = p.status === 'Delayed' || (p.bottleneck && p.bottleneck.trim().length > 0)
+              const isCompleted = isProjectCompleted(p)
+              const isDelayed = isProjectDelayed(p)
               const spentRatio = Number(p.budget) > 0 ? ((Number(p.spent_amount) / Number(p.budget)) * 100).toFixed(1) : 0
 
               let statusBadge = {
@@ -596,7 +593,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                   barColor: 'bg-amber-500',
                   icon: AlertTriangle
                 }
-              } else if (p.status === 'On Hold' || p.status === 'Draft') {
+              } else if (isProjectOnHold(p)) {
                 statusBadge = {
                   text: 'พักชะลอ',
                   bg: 'bg-slate-100 text-slate-700 border-slate-200',
