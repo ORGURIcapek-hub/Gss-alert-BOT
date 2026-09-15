@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { action, ...reportData } = body
     const storage = await ensureDataFile()
+    const supabase = getSafeSupabaseClient()
 
     if (action === 'create') {
       if (!reportData.project_name || !String(reportData.project_name).trim()) {
@@ -119,7 +120,6 @@ export async function POST(req: NextRequest) {
       storage.reports.unshift(newReport)
       await saveReportsFile(storage)
 
-      const supabase = getSafeSupabaseClient()
       if (supabase) {
         try {
           await supabase.from('normal_reports').insert(newReport)
@@ -136,7 +136,16 @@ export async function POST(req: NextRequest) {
       if (!report_id) {
         return NextResponse.json({ success: false, error: 'Missing report_id' }, { status: 400 })
       }
-      const target = storage.reports.find(r => r.report_id === report_id)
+      let target = storage.reports.find(r => r.report_id === report_id)
+      if (!target && supabase) {
+        try {
+          const { data: dbItem } = await supabase.from('normal_reports').select('*').eq('report_id', report_id).maybeSingle()
+          if (dbItem) {
+            target = dbItem
+            storage.reports.push(dbItem)
+          }
+        } catch {}
+      }
       if (!target) {
         return NextResponse.json({ success: false, error: 'ไม่พบรายงานที่ระบุ' }, { status: 404 })
       }
@@ -149,7 +158,6 @@ export async function POST(req: NextRequest) {
       target.updated_at = new Date().toISOString()
       await saveReportsFile(storage)
 
-      const supabase = getSafeSupabaseClient()
       if (supabase) {
         try {
           await supabase.from('normal_reports').update({
@@ -182,7 +190,6 @@ export async function POST(req: NextRequest) {
         }
       } catch {}
 
-      const supabase = getSafeSupabaseClient()
       if (supabase) {
         try {
           await supabase.from('normal_reports').delete().eq('report_id', report_id)
