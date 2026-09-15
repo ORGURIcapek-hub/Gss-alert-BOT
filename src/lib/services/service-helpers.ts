@@ -120,7 +120,7 @@ export async function fetchWithDeduplication<T = any>(
 
   const normalizedKey = normalizeUrlKey(url)
 
-  if (inFlightRequests.has(normalizedKey)) {
+  if (!forceRefresh && inFlightRequests.has(normalizedKey)) {
     return inFlightRequests.get(normalizedKey)! as Promise<T>
   }
 
