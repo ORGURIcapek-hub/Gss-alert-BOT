@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function POST(req: Request) {
   try {
     const { email, otp, userName } = await req.json()
@@ -11,13 +23,27 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      return NextResponse.json(
+        { success: false, error: 'รูปแบบอีเมลไม่ถูกต้อง' },
+        { status: 400 }
+      )
+    }
+    if (!/^\d{4,8}$/.test(String(otp))) {
+      return NextResponse.json(
+        { success: false, error: 'รูปแบบ OTP ไม่ถูกต้อง' },
+        { status: 400 }
+      )
+    }
 
-    const recipientName = userName || 'ผู้ใช้งาน'
+    const safeEmail = escapeHtml(String(email))
+    const safeOtp = escapeHtml(String(otp))
+    const recipientName = escapeHtml(String(userName || 'ผู้ใช้งาน'))
     const smtpUser = process.env.SMTP_USER
     const smtpPass = process.env.SMTP_PASS
     const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
     const smtpPort = Number(process.env.SMTP_PORT) || 465
-    const smtpSecure = process.env.SMTP_SECURE === 'false' ? false : true
+    const smtpSecure = process.env.SMTP_SECURE === 'false' ? false : smtpPort === 465
     const smtpFrom = process.env.SMTP_FROM || `"ระบบติดตาม OKR มหาวิทยาลัยสวนดุสิต" <${smtpUser || 'noreply@dusit.ac.th'}>`
 
     const htmlContent = `
@@ -53,13 +79,13 @@ export async function POST(req: Request) {
         <div class="content">
           <div class="greeting">เรียน คุณ${recipientName},</div>
           <div class="message">
-            ระบบได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชี <strong>${email}</strong> ของคุณ<br>
+            ระบบได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชี <strong>${safeEmail}</strong> ของคุณ<br>
             กรุณาใช้รหัสยืนยัน OTP ด้านล่างนี้เพื่อดำเนินการกำหนดรหัสผ่านใหม่:
           </div>
 
           <div class="otp-box">
             <div class="otp-label">รหัสยืนยันตัวตน (OTP Code)</div>
-            <div class="otp-code">${otp}</div>
+            <div class="otp-code">${safeOtp}</div>
             <div class="otp-expiry">⏱️ รหัสนี้มีอายุการใช้งาน 5 นาที</div>
           </div>
 
@@ -85,17 +111,15 @@ export async function POST(req: Request) {
         auth: {
           user: smtpUser,
           pass: smtpPass
-        },
-        tls: {
-          rejectUnauthorized: false
         }
       })
 
+      const subjectOtp = String(otp).replace(/[\r\n]+/g, '')
       const info = await transporter.sendMail({
         from: smtpFrom,
-        to: email,
-        subject: `[SDU OKR] รหัส OTP สำหรับรีเซ็ตรหัสผ่านของคุณคือ ${otp}`,
-        text: `เรียน คุณ${recipientName},\n\nรหัส OTP สำหรับรีเซ็ตรหัสผ่านของคุณคือ: ${otp}\n(รหัสมีอายุการใช้งาน 5 นาที)\n\nหากคุณไม่ได้ส่งคำขอนี้ กรุณาเพิกเฉยต่ออีเมลนี้`,
+        to: String(email),
+        subject: `[SDU OKR] รหัส OTP สำหรับรีเซ็ตรหัสผ่านของคุณคือ ${subjectOtp}`,
+        text: `เรียน คุณ${recipientName},\n\nรหัส OTP สำหรับรีเซ็ตรหัสผ่านของคุณคือ: ${subjectOtp}\n(รหัสมีอายุการใช้งาน 5 นาที)\n\nหากคุณไม่ได้ส่งคำขอนี้ กรุณาเพิกเฉยต่ออีเมลนี้`,
         html: htmlContent
       })
 
