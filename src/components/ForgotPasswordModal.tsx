@@ -277,8 +277,8 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '' }: Forg
   const STEPS = ['1. ระบุอีเมล', '2. ยืนยัน OTP', '3. ตั้งรหัสใหม่'] as const
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden relative my-8">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 relative my-8 mobile-modal-sheet animate-slide-up max-h-[92dvh] overflow-y-auto custom-scrollbar">
 
         <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] p-7 sm:p-9 text-white relative">
           <button onClick={handleClose} type="button" aria-label="ปิด"
