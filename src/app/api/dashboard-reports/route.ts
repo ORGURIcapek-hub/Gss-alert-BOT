@@ -134,22 +134,30 @@ export async function POST(req: NextRequest) {
 
     if (action === 'rate') {
       const { dashboard_id, score } = body
+      if (!dashboard_id) {
+        return NextResponse.json({ success: false, error: 'Missing dashboard_id' }, { status: 400 })
+      }
+      const numericScore = Number(score)
+      if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 100) {
+        return NextResponse.json({ success: false, error: 'คะแนนต้องอยู่ระหว่าง 0-100' }, { status: 400 })
+      }
       const found = storage.reports.find(r => r.dashboard_id === dashboard_id)
-      if (found) {
-        found.okr_head_evaluation_score = score
-        found.updated_at = new Date().toISOString()
-        await saveReportsFile(storage)
+      if (!found) {
+        return NextResponse.json({ success: false, error: 'ไม่พบรายงานที่ระบุ' }, { status: 404 })
+      }
+      found.okr_head_evaluation_score = numericScore
+      found.updated_at = new Date().toISOString()
+      await saveReportsFile(storage)
 
-        const supabase = getSafeSupabaseClient()
-        if (supabase) {
-          try {
-            await supabase
-              .from('dashboard')
-              .update({ okr_head_evaluation_score: score, updated_at: found.updated_at })
-              .eq('dashboard_id', dashboard_id)
-          } catch (e) {
-            console.warn('[api/dashboard-reports] Supabase rate update failed', e)
-          }
+      const supabase = getSafeSupabaseClient()
+      if (supabase) {
+        try {
+          await supabase
+            .from('dashboard')
+            .update({ okr_head_evaluation_score: numericScore, updated_at: found.updated_at })
+            .eq('dashboard_id', dashboard_id)
+        } catch (e) {
+          console.warn('[api/dashboard-reports] Supabase rate update failed', e)
         }
       }
 
@@ -158,8 +166,20 @@ export async function POST(req: NextRequest) {
 
     if (action === 'delete') {
       const { dashboard_id } = body
+      if (!dashboard_id) {
+        return NextResponse.json({ success: false, error: 'Missing dashboard_id' }, { status: 400 })
+      }
       storage.reports = storage.reports.filter(r => r.dashboard_id !== dashboard_id)
       await saveReportsFile(storage)
+
+      try {
+        const evalPath = path.join(DATA_DIR, 'persisted-evaluations.json')
+        const evalData = await readJsonSafe<{ evaluations: any[] } | null>(evalPath, null)
+        if (evalData && Array.isArray(evalData.evaluations)) {
+          evalData.evaluations = evalData.evaluations.filter(e => e.dashboard_id !== dashboard_id)
+          await writeJsonAtomic(evalPath, evalData)
+        }
+      } catch {}
 
       const supabase = getSafeSupabaseClient()
       if (supabase) {
@@ -173,9 +193,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 })
   } catch (err: any) {
     console.error('[api/dashboard-reports] POST error:', err)
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 })
+    return NextResponse.json({ success: false, error: err.message || 'Internal error' }, { status: 500 })
   }
 }
