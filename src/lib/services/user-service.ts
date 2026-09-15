@@ -20,7 +20,7 @@ export async function fetchUsers(force: boolean = false): Promise<UserProfile[]>
         forceRefresh: force,
         ttl: 2500
       })
-      if (data?.success && Array.isArray(data.users) && data.users.length > 0) {
+      if (data?.success && Array.isArray(data.users)) {
         inMemoryUsers = data.users
         setCachedUsers(data.users)
         return data.users
