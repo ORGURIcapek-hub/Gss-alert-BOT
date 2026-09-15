@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react'
 import { UserRole } from '@/types/database.types'
 import { validateEmail, validatePassword, getPasswordStrengthMeta } from '@/lib/password-utils'
+import { uploadFileToStorage } from '@/lib/services/okr-service'
 import { PasswordChecklist } from '@/components/ui/PasswordChecklist'
 import {
   PRESET_AVATARS,
@@ -55,24 +56,35 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
 
   const regFileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleRegAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRegAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 2 * 1024 * 1024) {
-      setLocalError('ขนาดรูปภาพต้องไม่เกิน 2MB')
-      onError('ขนาดรูปภาพต้องไม่เกิน 2MB')
+    if (file.size > 5 * 1024 * 1024) {
+      setLocalError('ขนาดรูปภาพต้องไม่เกิน 5MB')
+      onError('ขนาดรูปภาพต้องไม่เกิน 5MB')
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      setRegAvatarUrl(base64)
-      setLocalError(null)
-      onError('')
+    try {
+      const uploadRes = await uploadFileToStorage(file, {
+        folder: 'avatars',
+        subfolder: regUsername.trim() || 'registration',
+        fileName: file.name
+      })
+
+      if (uploadRes.success && uploadRes.url) {
+        setRegAvatarUrl(uploadRes.url)
+        setLocalError(null)
+        onError('')
+      } else {
+        throw new Error(uploadRes.error || 'ไม่สามารถอัปโหลดรูปภาพได้')
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ'
+      setLocalError(msg)
+      onError(msg)
     }
-    reader.readAsDataURL(file)
   }
 
   const isPasswordAllValid = validatePassword(regPassword).isValid
