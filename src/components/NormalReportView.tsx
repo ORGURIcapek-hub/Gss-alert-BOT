@@ -99,9 +99,8 @@ export function NormalReportView() {
       return
     }
 
-    const myExistingEval = evaluations.find(e => e.report_id === reportId && e.evaluator_id === currentUser.user_id)
-    if (type === 'team' && myExistingEval && myExistingEval.team_score !== null && myExistingEval.team_score !== undefined) {
-      alert('คุณได้ให้คะแนนการประเมินโครงการนี้ไปแล้ว')
+    if (type === 'head' && isResponsible) {
+      alert('คุณเป็นผู้รับผิดชอบโครงการนี้ จึงไม่สามารถให้คะแนนหัวหน้าโครงการได้')
       return
     }
 
@@ -339,44 +338,33 @@ export function NormalReportView() {
                           <ShieldAlert className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                           <span>ไม่สามารถประเมินโครงการที่ตนเองรับผิดชอบได้</span>
                         </div>
-                      ) : hasRatedTeam ? (
+                      ) : (
                         <div className="space-y-1">
                           <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
+                              <button
                                 key={star}
-                                className={`w-4 h-4 ${
-                                  star <= (myExistingEval?.team_score || 0)
-                                    ? 'text-emerald-500 fill-emerald-400'
-                                    : 'text-slate-200 fill-transparent'
-                                }`}
-                              />
+                                type="button"
+                                onClick={() => handleRateReport(report, 'team', star)}
+                                className="p-0.5 hover:scale-125 transition-transform cursor-pointer"
+                                title={`ให้คะแนนทีมงาน ${star} ดาว`}
+                              >
+                                <Star
+                                  className={`w-4 h-4 ${
+                                    star <= currentScore.team_score
+                                      ? 'text-emerald-500 fill-emerald-400'
+                                      : 'text-slate-300 fill-transparent'
+                                  }`}
+                                />
+                              </button>
                             ))}
                           </div>
-                          <span className="text-[10px] text-emerald-700 font-extrabold flex items-center gap-1">
-                            <Check className="w-3 h-3 text-emerald-600" />
-                            ให้คะแนนไปแล้ว ({myExistingEval?.team_score}/5 ดาว)
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => handleRateReport(report, 'team', star)}
-                              className="p-0.5 hover:scale-125 transition-transform cursor-pointer"
-                              title={`ให้คะแนนทีมงาน ${star} ดาว`}
-                            >
-                              <Star
-                                className={`w-4 h-4 ${
-                                  star <= currentScore.team_score
-                                    ? 'text-emerald-500 fill-emerald-400'
-                                    : 'text-slate-300 fill-transparent'
-                                }`}
-                              />
-                            </button>
-                          ))}
+                          {hasRatedTeam && (
+                            <span className="text-[10px] text-emerald-700 font-extrabold flex items-center gap-1">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              ให้คะแนนไปแล้ว ({myExistingEval?.team_score}/5 ดาว) กดดาวเพื่อเปลี่ยนคะแนนได้
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
