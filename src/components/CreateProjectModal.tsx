@@ -100,11 +100,11 @@ export function CreateProjectModal({ okrs = [], users, onClose, onCreated }: Cre
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto font-sans"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto font-sans animate-in fade-in"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full sm:max-w-xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar relative"
+        className="bg-white w-full sm:max-w-xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92dvh] overflow-y-auto custom-scrollbar relative mobile-modal-sheet animate-slide-up"
       >
         <button
           onClick={onClose}
