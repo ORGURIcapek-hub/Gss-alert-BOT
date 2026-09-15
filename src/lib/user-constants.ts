@@ -177,6 +177,19 @@ export function formatThaiDate(dateStr?: string | null, options?: Intl.DateTimeF
   }
 }
 
+export function formatThaiDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '-'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return '-'
+    const datePart = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })
+    const timePart = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    return `${datePart} เวลา ${timePart} น.`
+  } catch {
+    return '-'
+  }
+}
+
 export function removeTitlesAndRoles(name: string): string {
   if (!name) return ''
   return name

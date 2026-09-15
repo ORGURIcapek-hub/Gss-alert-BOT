@@ -2,10 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { ProjectWithHeadAndAssignees, ProjectStatus, ProjectAssignment, Evidence } from '@/types/database.types'
-import { X, Upload, UserCheck, Trash2, Download, FileUp, AlertCircle, Calendar, DollarSign, FileText, CheckCircle, FileImage } from 'lucide-react'
+import { X, Upload, UserCheck, Trash2, Download, FileUp, AlertCircle, Calendar, DollarSign, FileText, CheckCircle, FileImage, User, Clock } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments, deleteProjectRecord } from '@/lib/services/okr-service'
-import { getUserFullName, formatDepartmentShort } from '@/lib/user-constants'
+import { getUserFullName, formatDepartmentShort, formatThaiDate, formatThaiDateTime } from '@/lib/user-constants'
 import confetti from 'canvas-confetti'
 
 interface ProjectDetailModalProps {
@@ -15,7 +15,7 @@ interface ProjectDetailModalProps {
 }
 
 export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetailModalProps) {
-  const { currentUser, currentRole } = useRole()
+  const { currentUser, currentRole, allUsers } = useRole()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [assignments, setAssignments] = useState<ProjectAssignment[]>([])
@@ -59,7 +59,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
 
   const canEdit = canEditProgress || canEditSpending
   const canUploadEvidence = (isAssigned || isHead || isAdmin || isTeacherOrStaff) && !isExecutive
-  const canDeleteProject = isExecutive || isAdmin
+  const canDeleteProject = isExecutive || isAdmin || isHead || currentRole === 'head_okr'
 
   const handleDeleteProject = async () => {
     const confirmMessage = `ยืนยันการลบโครงการ "${project.project_name}" หรือไม่?\n\nคำเตือน: ข้อมูลความก้าวหน้า รายละเอียดการใช้เงิน และหลักฐานทั้งหมดจะถูกลบออกจากระบบอย่างถาวร`
@@ -204,8 +204,14 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   const headName = getUserFullName(project.head)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar relative">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar relative"
+      >
 
         <div className="absolute top-5 right-5 flex items-center gap-2">
           {canDeleteProject && (
@@ -417,54 +423,73 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
               {evidences.length === 0 ? (
                 <p className="text-slate-400 text-xs py-2">ยังไม่มีเอกสารหลักฐานแนบ</p>
               ) : (
-                evidences.map((ev) => (
-                  <div
-                    key={ev.evidence_id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      {(ev.file_name || '').toLowerCase().endsWith('.pdf') ? (
-                        <FileText className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                      ) : (
-                        <FileImage className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <span className="text-slate-900 text-xs font-semibold truncate block max-w-[180px] sm:max-w-xs">
-                          {ev.file_name}
-                        </span>
-                        {ev.description && (
-                          <span className="text-[10px] text-slate-400 block truncate">
-                            {ev.description}
+                evidences.map((ev) => {
+                  const uploaderId = ev.uploaded_by || (ev as any).sender_id
+                  const uploader = allUsers.find((u) => u.user_id === uploaderId)
+                  const rawName = uploader ? getUserFullName(uploader) : (uploaderId === currentUser?.user_id ? getUserFullName(currentUser) : '')
+                  const senderName = rawName || (uploaderId ? 'ผู้ใช้ในระบบ' : 'ไม่ระบุผู้ส่ง')
+
+                  return (
+                    <div
+                      key={ev.evidence_id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm gap-2.5"
+                    >
+                      <div className="flex items-start sm:items-center gap-2.5 min-w-0 pr-2">
+                        {(ev.file_name || '').toLowerCase().endsWith('.pdf') ? (
+                          <FileText className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5 sm:mt-0" />
+                        ) : (
+                          <FileImage className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5 sm:mt-0" />
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-slate-900 text-xs font-semibold truncate block max-w-[200px] sm:max-w-xs">
+                            {ev.file_name}
                           </span>
+                          {ev.description && (
+                            <span className="text-[10px] text-slate-400 block truncate">
+                              {ev.description}
+                            </span>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#003B71] bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
+                              <User className="w-3 h-3 text-[#003B71]" />
+                              <span>ผู้ส่ง: {senderName}</span>
+                            </span>
+                            {ev.upload_date && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                <span>ส่งเมื่อ: {formatThaiDateTime(ev.upload_date)}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-shrink-0 self-end sm:self-center">
+                        <a
+                          href={ev.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#003B71] text-[11px] font-bold border border-sky-200 transition-colors flex items-center gap-1"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>เปิดดู/ดาวน์โหลด</span>
+                        </a>
+
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvidence(ev.evidence_id)}
+                            disabled={deletingId === ev.evidence_id}
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-all cursor-pointer"
+                            title="ลบไฟล์แนบนี้ (Delete file)"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <a
-                        href={ev.file_path}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#003B71] text-[11px] font-bold border border-sky-200 transition-colors flex items-center gap-1"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span>เปิดดู/ดาวน์โหลด</span>
-                      </a>
-
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteEvidence(ev.evidence_id)}
-                          disabled={deletingId === ev.evidence_id}
-                          className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-all cursor-pointer"
-                          title="ลบไฟล์แนบนี้ (Delete file)"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
 

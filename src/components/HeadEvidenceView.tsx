@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react'
 import { EvidenceSubmission, ProjectWithHeadAndAssignees, UserProfile } from '@/types/database.types'
 import { fetchEvidenceSubmissions, deleteEvidenceSubmission } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
-import { getUserFullName, formatDepartmentShort, formatThaiDate } from '@/lib/user-constants'
+import { getUserFullName, formatDepartmentShort, formatThaiDate, formatThaiDateTime } from '@/lib/user-constants'
 import {
   FileCheck2,
   Search,
   Eye,
   Download,
   Calendar,
+  Clock,
   User,
   FolderGit2,
   FileType,
@@ -224,13 +225,9 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
                           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
                             {item.file_type ? item.file_type.split('/')[1] || item.file_type : 'FILE'}
                           </span>
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatThaiDate(item.submitted_at, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                          <span className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            <span>{formatThaiDateTime(item.submitted_at)}</span>
                           </span>
                         </div>
                       </td>
@@ -279,8 +276,14 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
       </div>
 
       {previewFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-4xl rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <div
+          onClick={() => setPreviewFile(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full max-w-4xl rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+          >
 
             <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
@@ -347,7 +350,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
 
             <div className="p-3.5 border-t border-slate-200 bg-white flex items-center justify-between text-xs text-slate-500">
               <span>ประเภทไฟล์: <b className="text-slate-800 uppercase">{previewFile.file_type}</b></span>
-              <span>ส่งเมื่อ: <b className="text-slate-800">{formatThaiDate(previewFile.submitted_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</b></span>
+              <span>ส่งเมื่อ: <b className="text-slate-800">{formatThaiDateTime(previewFile.submitted_at)}</b></span>
             </div>
           </div>
         </div>

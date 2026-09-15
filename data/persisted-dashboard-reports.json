@@ -36,25 +36,8 @@
       "head_id": "df89070e-23fb-4211-a391-0fce520acf23",
       "head_name": "นาย เปรมศักดิ์ บรรจงชาติ",
       "academic_year": 2567,
-      "project_ids": [
-        "79d2483a-7166-4821-adec-43e6a99dce51"
-      ],
-      "project_snapshots": [
-        {
-          "project_id": "79d2483a-7166-4821-adec-43e6a99dce51",
-          "project_name": "ระเบิดตูดบาส",
-          "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
-          "progress_percentage": 100,
-          "budget": 1500,
-          "spent_amount": 1500,
-          "status": "Completed",
-          "bottleneck": null,
-          "main_objective": "ระเบิดตูดคนชื่อบาส",
-          "head_name": "เปรมศักดิ์ บรรจงชาติ",
-          "start_date": "2026-09-11",
-          "end_date": "2026-09-12"
-        }
-      ],
+      "project_ids": [],
+      "project_snapshots": [],
       "created_at": "2026-09-11T13:52:00.000Z",
       "updated_at": "2026-09-13T17:39:34.854Z"
     }

@@ -321,3 +321,28 @@ export async function saveEvaluationRecord(data: {
   notifyEvaluationsChannel()
   return evaluation
 }
+
+export function removeProjectReportsInMemory(projectId: string) {
+  const deletedReportIds = new Set(
+    inMemoryNormalReports.filter(r => r.project_id === projectId).map(r => r.report_id)
+  )
+  inMemoryNormalReports = inMemoryNormalReports.filter(r => r.project_id !== projectId)
+  inMemoryEvaluations = inMemoryEvaluations.filter(e =>
+    e.project_id !== projectId && (!e.report_id || !deletedReportIds.has(e.report_id))
+  )
+  inMemoryDashboardReports = inMemoryDashboardReports.map(d => ({
+    ...d,
+    project_ids: (d.project_ids || []).filter(id => id !== projectId),
+    project_snapshots: (d.project_snapshots || []).filter(s => s.project_id !== projectId)
+  }))
+}
+
+export function clearAllReportsInMemory() {
+  inMemoryNormalReports = []
+  inMemoryEvaluations = []
+  inMemoryDashboardReports = inMemoryDashboardReports.map(d => ({
+    ...d,
+    project_ids: [],
+    project_snapshots: []
+  }))
+}

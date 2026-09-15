@@ -8,6 +8,8 @@ export const revalidate = 0
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-evaluations.json')
+const PROJECTS_FILE_PATH = path.join(DATA_DIR, 'persisted-projects.json')
+const NORMAL_REPORTS_FILE_PATH = path.join(DATA_DIR, 'persisted-normal-reports.json')
 
 function getSafeSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -28,9 +30,6 @@ interface EvaluationsStorageSchema {
 let memoryCache: EvaluationsStorageSchema | null = null
 
 async function ensureDataFile(): Promise<EvaluationsStorageSchema> {
-  if (memoryCache) return memoryCache
-
-  const fallback: EvaluationsStorageSchema = { evaluations: [] }
   const data = await readJsonSafe<EvaluationsStorageSchema | null>(FILE_PATH, null)
   if (data && Array.isArray(data.evaluations)) {
     memoryCache = { evaluations: data.evaluations }
@@ -39,6 +38,7 @@ async function ensureDataFile(): Promise<EvaluationsStorageSchema> {
 
   if (memoryCache) return memoryCache
 
+  const fallback: EvaluationsStorageSchema = { evaluations: [] }
   await writeJsonAtomic(FILE_PATH, fallback)
   memoryCache = fallback
   return memoryCache
@@ -56,6 +56,16 @@ async function saveEvaluationsFile(data: EvaluationsStorageSchema): Promise<void
 export async function GET() {
   const storage = await ensureDataFile()
   let evaluations = [...storage.evaluations]
+
+  const projectsData = await readJsonSafe<any>(PROJECTS_FILE_PATH, null)
+  const deletedProjectIds = new Set<string>(Array.isArray(projectsData?.deletedProjectIds) ? projectsData.deletedProjectIds : [])
+
+  const reportsData = await readJsonSafe<any>(NORMAL_REPORTS_FILE_PATH, null)
+  const validReportIds = new Set<string>(
+    Array.isArray(reportsData?.reports)
+      ? reportsData.reports.filter((r: any) => !r.project_id || !deletedProjectIds.has(r.project_id)).map((r: any) => r.report_id)
+      : []
+  )
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
@@ -78,6 +88,12 @@ export async function GET() {
       console.warn('[api/evaluations] Supabase GET failed', e)
     }
   }
+
+  evaluations = evaluations.filter(e => {
+    if (e.project_id && deletedProjectIds.has(e.project_id)) return false
+    if (e.report_id && reportsData?.reports && !validReportIds.has(e.report_id)) return false
+    return true
+  })
 
   evaluations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   return NextResponse.json({ success: true, evaluations })

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { OKR, ProjectWithHeadAndAssignees, Evaluation, NormalReport } from '@/types/database.types'
 import { GraduationCap, FileCheck2, Clock, Upload, ArrowRight, Sparkles, CheckCircle2, Plus, Award, Star, Inbox, TrendingUp } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
-import { getUserFullName, formatDepartmentShort, removeTitlesAndRoles, formatThaiDate } from '@/lib/user-constants'
+import { getUserFullName, formatDepartmentShort, removeTitlesAndRoles, formatThaiDate, formatThaiDateTime } from '@/lib/user-constants'
 import { fetchEvaluations, fetchNormalReports } from '@/lib/services'
 
 interface TeacherWorkspaceProps {
@@ -12,13 +12,15 @@ interface TeacherWorkspaceProps {
   onSelectProject: (project: ProjectWithHeadAndAssignees) => void
   onOpenCreateModal?: () => void
   initialTab?: 'projects' | 'evaluations'
+  onProjectsRefresh?: () => void
 }
 
 export function TeacherWorkspace({
   projects,
   onSelectProject,
   onOpenCreateModal,
-  initialTab = 'projects'
+  initialTab = 'projects',
+  onProjectsRefresh
 }: TeacherWorkspaceProps) {
   const { currentUser, allUsers } = useRole()
   const [currentTab, setCurrentTab] = useState<'projects' | 'evaluations'>(initialTab)
@@ -54,7 +56,10 @@ export function TeacherWorkspace({
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         channel = new BroadcastChannel('sdu_okr_sync_channel')
         channel.onmessage = (event) => {
-          if (event.data?.type === 'EVALUATIONS_UPDATED' || event.data?.type === 'PROJECTS_UPDATED') {
+          if (event.data?.type === 'PROJECTS_UPDATED') {
+            loadEvaluationData()
+            onProjectsRefresh?.()
+          } else if (event.data?.type === 'EVALUATIONS_UPDATED') {
             loadEvaluationData()
           }
         }
@@ -64,7 +69,7 @@ export function TeacherWorkspace({
     return () => {
       channel?.close()
     }
-  }, [])
+  }, [onProjectsRefresh])
 
   const myAssignedProjects = projects.filter(p =>
     p.head_of_project === currentUser?.user_id ||
@@ -75,16 +80,19 @@ export function TeacherWorkspace({
   const myTotalEvidences = myAssignedProjects.reduce((acc, p) => acc + (p.evidences?.length || 0), 0)
 
   const myProjectIds = new Set(myAssignedProjects.map(p => p.project_id))
-  const myReports = normalReports.filter(r =>
-    (r.project_id && myProjectIds.has(r.project_id)) ||
-    (r.responsible_person_name && currentUser?.name && r.responsible_person_name.includes(currentUser.name))
-  )
+  const myReports = normalReports.filter(r => {
+    if (r.project_id) {
+      return myProjectIds.has(r.project_id)
+    }
+    return Boolean(r.responsible_person_name && currentUser?.name && r.responsible_person_name.includes(currentUser.name))
+  })
   const myReportIds = new Set(myReports.map(r => r.report_id))
 
-  const teamEvaluations = evaluations.filter(e =>
-    (e.report_id && myReportIds.has(e.report_id)) ||
-    (e.project_id && myProjectIds.has(e.project_id))
-  ).filter(e => e.team_score !== null && e.team_score !== undefined && e.team_score > 0)
+  const teamEvaluations = evaluations.filter(e => {
+    if (e.project_id && !myProjectIds.has(e.project_id)) return false
+    if (e.report_id && !myReportIds.has(e.report_id)) return false
+    return Boolean((e.report_id && myReportIds.has(e.report_id)) || (e.project_id && myProjectIds.has(e.project_id)))
+  }).filter(e => e.team_score !== null && e.team_score !== undefined && e.team_score > 0)
 
   const totalTeamEvaluationsCount = teamEvaluations.length
   const averageTeamScore = totalTeamEvaluationsCount > 0
@@ -345,7 +353,7 @@ export function TeacherWorkspace({
                                 <div key={ev.eval_id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs flex items-center justify-between">
                                   <div>
                                     <span className="font-bold text-slate-900 block truncate max-w-[150px]">{evaluatorName}</span>
-                                    <span className="text-[10px] text-slate-400 block">{formatThaiDate(ev.created_at)}</span>
+                                    <span className="text-[10px] text-slate-400 block">{formatThaiDateTime(ev.created_at)}</span>
                                   </div>
                                   <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
                                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />

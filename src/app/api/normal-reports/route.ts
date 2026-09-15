@@ -9,6 +9,7 @@ export const revalidate = 0
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-normal-reports.json')
+const PROJECTS_FILE_PATH = path.join(DATA_DIR, 'persisted-projects.json')
 
 function getSafeSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -29,9 +30,6 @@ interface NormalReportsStorageSchema {
 let memoryCache: NormalReportsStorageSchema | null = null
 
 async function ensureDataFile(): Promise<NormalReportsStorageSchema> {
-  if (memoryCache) return memoryCache
-
-  const fallback: NormalReportsStorageSchema = { reports: [] }
   const data = await readJsonSafe<NormalReportsStorageSchema | null>(FILE_PATH, null)
   if (data && Array.isArray(data.reports)) {
     memoryCache = { reports: data.reports }
@@ -40,6 +38,7 @@ async function ensureDataFile(): Promise<NormalReportsStorageSchema> {
 
   if (memoryCache) return memoryCache
 
+  const fallback: NormalReportsStorageSchema = { reports: [] }
   await writeJsonAtomic(FILE_PATH, fallback)
   memoryCache = fallback
   return memoryCache
@@ -57,6 +56,9 @@ async function saveReportsFile(data: NormalReportsStorageSchema): Promise<void> 
 export async function GET() {
   const storage = await ensureDataFile()
   let reports = [...storage.reports]
+
+  const projectsData = await readJsonSafe<any>(PROJECTS_FILE_PATH, null)
+  const deletedProjectIds = new Set<string>(Array.isArray(projectsData?.deletedProjectIds) ? projectsData.deletedProjectIds : [])
 
   const supabase = getSafeSupabaseClient()
   if (supabase) {
@@ -77,6 +79,10 @@ export async function GET() {
     } catch (e) {
       console.warn('[api/normal-reports] Supabase GET fallback to file', e)
     }
+  }
+
+  if (deletedProjectIds.size > 0) {
+    reports = reports.filter(r => !r.project_id || !deletedProjectIds.has(r.project_id))
   }
 
   reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

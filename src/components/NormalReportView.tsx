@@ -130,12 +130,16 @@ export function NormalReportView() {
     }
   }
 
-  const filteredReports = reports.filter(r =>
-    (r.project_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (r.responsible_person_name && r.responsible_person_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (r.head_name && r.head_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (r.project_outcome && r.project_outcome.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+  const projectMap = new Map(projects.map(p => [p.project_id, p]))
+  const filteredReports = reports.filter(r => {
+    if (r.project_id && !projectMap.has(r.project_id)) return false
+    return (
+      (r.project_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.responsible_person_name && r.responsible_person_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (r.head_name && r.head_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (r.project_outcome && r.project_outcome.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+  })
 
   const handlePrint = () => {
     window.print()

@@ -2,21 +2,29 @@
 
 import React, { useState } from 'react'
 import { ProjectWithHeadAndAssignees, Evidence } from '@/types/database.types'
-import { FileCheck2, Download, Search, FolderGit2, Calendar, FileText } from 'lucide-react'
-import { formatDepartmentShort, formatThaiDate } from '@/lib/user-constants'
+import { FileCheck2, Download, Search, FolderGit2, Calendar, FileText, User, Clock } from 'lucide-react'
+import { formatDepartmentShort, formatThaiDate, formatThaiDateTime, getUserFullName } from '@/lib/user-constants'
+import { useRole } from '@/components/RoleContext'
 
 interface EvidenceGalleryProps {
   projects: ProjectWithHeadAndAssignees[]
 }
 
 export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
+  const { allUsers } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
 
   const allEvidences = projects.flatMap((p) =>
-    (p.evidences || []).map((e) => ({
-      evidence: e,
-      project: p,
-    }))
+    (p.evidences || []).map((e) => {
+      const uploaderId = e.uploaded_by || (e as any).sender_id
+      const uploader = allUsers.find(u => u.user_id === uploaderId)
+      const senderName = uploader ? getUserFullName(uploader) : 'ไม่ระบุผู้ส่ง'
+      return {
+        evidence: e,
+        project: p,
+        senderName
+      }
+    })
   )
 
   const filteredEvidences = allEvidences.filter((item) => {
@@ -26,11 +34,13 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
     const desc = (item.evidence.description || '').toLowerCase()
     const projName = (item.project.project_name || '').toLowerCase()
     const dept = (item.project.department || '').toLowerCase()
+    const sender = (item.senderName || '').toLowerCase()
     return (
       fileName.includes(term) ||
       desc.includes(term) ||
       projName.includes(term) ||
-      dept.includes(term)
+      dept.includes(term) ||
+      sender.includes(term)
     )
   })
 
@@ -78,9 +88,9 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-[#003B71] border border-sky-200">
                     {formatDepartmentShort(item.project.department)}
                   </span>
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
-                    <Calendar className="w-3 h-3" />
-                    {formatThaiDate(item.evidence.upload_date)}
+                  <span className="text-[10px] text-slate-500 flex items-center gap-1 font-medium bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                    <Clock className="w-3 h-3 text-slate-400" />
+                    <span>{formatThaiDateTime(item.evidence.upload_date)}</span>
                   </span>
                 </div>
 
@@ -91,6 +101,13 @@ export function EvidenceGallery({ projects }: EvidenceGalleryProps) {
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                   {item.evidence.description || 'ไม่มีคำอธิบายระบุ'}
                 </p>
+
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#003B71] bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100 max-w-full">
+                    <User className="w-3 h-3 text-[#003B71] flex-shrink-0" />
+                    <span className="truncate">ส่งโดย: {item.senderName}</span>
+                  </span>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">

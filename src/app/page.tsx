@@ -25,6 +25,7 @@ import { ExecutiveSummaryRoom } from '@/components/ExecutiveSummaryRoom'
 import { ExecutiveEvaluationsView } from '@/components/ExecutiveEvaluationsView'
 import { useRole } from '@/components/RoleContext'
 import { fetchOKRs, fetchProjects } from '@/lib/services/okr-service'
+import { invalidateApiCache } from '@/lib/services/service-helpers'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { SDULogo } from '@/components/SDULogo'
 
@@ -52,12 +53,16 @@ export default function HomePage() {
     }
   }
 
-  const loadData = async () => {
+  const loadData = async (force: boolean = false) => {
     setIsRefreshing(true)
+    if (force) {
+      invalidateApiCache('/api/projects')
+      invalidateApiCache('/api/okrs')
+    }
     try {
       const [okrsData, projectsData] = await Promise.all([
         fetchOKRs(selectedYear),
-        fetchProjects({ year: selectedYear })
+        fetchProjects({ year: selectedYear }, force)
       ])
       setOkrs(okrsData)
       setProjects(projectsData)
@@ -65,7 +70,7 @@ export default function HomePage() {
       setSelectedProject(prev => {
         if (!prev) return null
         const updated = projectsData.find(p => p.project_id === prev.project_id)
-        return updated || prev
+        return updated || null
       })
     } catch (err) {
       console.error('Failed to load data:', err)
@@ -98,9 +103,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (mounted && isAuthenticated) {
-      loadData()
+      loadData(true)
     }
-  }, [selectedYear, isAuthenticated, mounted])
+  }, [selectedYear, isAuthenticated, mounted, currentUser?.user_id])
 
   useEffect(() => {
     if (!mounted || !isAuthenticated) return
@@ -116,7 +121,7 @@ export default function HomePage() {
             event.data?.type === 'OKRS_UPDATED' ||
             event.data?.type === 'EVALUATIONS_UPDATED'
           ) {
-            loadData()
+            loadData(true)
           }
         }
       }
@@ -124,7 +129,7 @@ export default function HomePage() {
 
     const handleSync = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        loadData()
+        loadData(true)
       }
     }
 
@@ -214,6 +219,7 @@ export default function HomePage() {
                   projects={projects}
                   onSelectProject={(p) => setSelectedProject(p)}
                   onOpenCreateModal={() => setIsCreateModalOpen(true)}
+                  onProjectsRefresh={() => loadData(true)}
                 />
               )}
             </>
@@ -261,6 +267,7 @@ export default function HomePage() {
               onSelectProject={(p) => setSelectedProject(p)}
               onOpenCreateModal={() => setIsCreateModalOpen(true)}
               initialTab="evaluations"
+              onProjectsRefresh={() => loadData(true)}
             />
           )}
 

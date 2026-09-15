@@ -42,21 +42,22 @@ export async function fetchProjectAssignments(projectId?: string): Promise<Proje
     : inMemoryProjectAssignments
 }
 
-export async function assignProjectRole(data: {
+export async function assignProjectRoles(data: {
   project_id: string
-  user_id: string
+  user_ids: string[]
   role_type: 'Head' | 'Member'
   assigned_by?: string
-}): Promise<ProjectAssignment> {
-  const newId = crypto.randomUUID()
-  const assignment: ProjectAssignment = {
-    assignment_id: newId,
+}): Promise<ProjectAssignment[]> {
+  if (!data.user_ids || data.user_ids.length === 0) return []
+
+  const newAssignments: ProjectAssignment[] = data.user_ids.map(uId => ({
+    assignment_id: crypto.randomUUID(),
     project_id: data.project_id,
-    user_id: data.user_id,
+    user_id: uId,
     role_type: data.role_type,
     assigned_by: data.assigned_by || null,
     created_at: new Date().toISOString()
-  }
+  }))
 
   invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
@@ -67,7 +68,7 @@ export async function assignProjectRole(data: {
         body: JSON.stringify({
           action: 'assign_role',
           project_id: data.project_id,
-          user_id: data.user_id,
+          user_ids: data.user_ids,
           role_type: data.role_type,
           assigned_by: data.assigned_by
         })
@@ -77,34 +78,38 @@ export async function assignProjectRole(data: {
     }
   }
 
+  const assignedIdSet = new Set(data.user_ids)
   inMemoryProjectAssignments = inMemoryProjectAssignments.filter(
-    a => !(a.project_id === data.project_id && a.user_id === data.user_id)
+    a => !(a.project_id === data.project_id && assignedIdSet.has(a.user_id))
   )
-  inMemoryProjectAssignments.unshift(assignment)
+  inMemoryProjectAssignments = [...newAssignments, ...inMemoryProjectAssignments]
 
   const projects = getInMemoryProjects()
   const users = getInMemoryUsers()
-  const targetUser = users.find(u => u.user_id === data.user_id) || null
 
   const updatedProjects = projects.map(p => {
     if (p.project_id === data.project_id) {
       if (data.role_type === 'Head') {
+        const firstHead = users.find(u => u.user_id === data.user_ids[0]) || null
         return {
           ...p,
-          head_of_project: data.user_id,
-          head: targetUser || p.head
+          head_of_project: data.user_ids[0],
+          head: firstHead || p.head
         }
       } else {
         const assignees = p.assignees ? [...p.assignees] : []
-        const exists = assignees.some(a => a.user_id === data.user_id)
-        if (!exists) {
-          assignees.push({
-            project_id: data.project_id,
-            user_id: data.user_id,
-            assigned_role: 'ผู้ร่วมรับผิดชอบโครงการ (Member)',
-            assigned_date: new Date().toISOString(),
-            user: targetUser || undefined
-          })
+        for (const uId of data.user_ids) {
+          const exists = assignees.some(a => a.user_id === uId)
+          if (!exists) {
+            const targetUser = users.find(u => u.user_id === uId) || null
+            assignees.push({
+              project_id: data.project_id,
+              user_id: uId,
+              assigned_role: 'ผู้ร่วมรับผิดชอบโครงการ (Member)',
+              assigned_date: new Date().toISOString(),
+              user: targetUser || undefined
+            })
+          }
         }
         return {
           ...p,
@@ -117,7 +122,22 @@ export async function assignProjectRole(data: {
 
   setInMemoryProjects(updatedProjects)
   notifyProjectsChannel()
-  return assignment
+  return newAssignments
+}
+
+export async function assignProjectRole(data: {
+  project_id: string
+  user_id: string
+  role_type: 'Head' | 'Member'
+  assigned_by?: string
+}): Promise<ProjectAssignment> {
+  const res = await assignProjectRoles({
+    project_id: data.project_id,
+    user_ids: [data.user_id],
+    role_type: data.role_type,
+    assigned_by: data.assigned_by
+  })
+  return res[0]
 }
 
 export async function removeProjectRole(assignmentId: string): Promise<void> {
@@ -143,4 +163,8 @@ export async function removeProjectRole(assignmentId: string): Promise<void> {
     setInMemoryProjects(updatedProjects)
     notifyProjectsChannel()
   }
+}
+
+export function clearProjectAssignmentsFromMemory(projectId: string): void {
+  inMemoryProjectAssignments = inMemoryProjectAssignments.filter(a => a.project_id !== projectId)
 }

@@ -1,18 +1,6 @@
 {
   "evaluations": [
     {
-      "eval_id": "a63daefa-af28-492d-8532-975708ed728e",
-      "report_id": "598a6e4d-fb03-435f-95d5-87abd1e0c050",
-      "dashboard_id": null,
-      "project_id": null,
-      "evaluator_id": "df89070e-23fb-4211-a391-0fce520acf23",
-      "head_score": 4,
-      "team_score": 5,
-      "executive_score": null,
-      "created_at": "2026-09-14T16:41:35.265Z",
-      "updated_at": "2026-09-14T16:41:35.277Z"
-    },
-    {
       "eval_id": "98e26e65-aa47-4887-9ffb-753bd4a2dbf6",
       "report_id": null,
       "dashboard_id": "e0ecdf47-650e-45c2-8689-82f733c8029d",

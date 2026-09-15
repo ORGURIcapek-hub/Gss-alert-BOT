@@ -2,6 +2,7 @@ import { mockOKRs, mockProjects } from '@/lib/mock-data'
 import { OKR, ProjectWithHeadAndAssignees, ProjectStatus } from '@/types/database.types'
 import { getSafeSupabaseClient, dbCall, getCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 import { getInMemoryUsers } from './user-service'
+import { removeProjectReportsInMemory, clearAllReportsInMemory, notifyEvaluationsChannel } from './report-service'
 
 const PROJECTS_CACHE_KEY = 'sdu_okr_projects_cache'
 
@@ -201,18 +202,24 @@ export async function updateProjectOKR(projectId: string, okrId: string): Promis
   notifyProjectsChannel()
 }
 
-export async function fetchProjects(filters?: {
-  year?: number
-  quarter?: string
-  department?: string
-  status?: string
-}): Promise<ProjectWithHeadAndAssignees[]> {
+export async function fetchProjects(
+  filters?: {
+    year?: number
+    quarter?: string
+    department?: string
+    status?: string
+  },
+  forceRefresh: boolean = false
+): Promise<ProjectWithHeadAndAssignees[]> {
+  if (forceRefresh) {
+    invalidateApiCache('/api/projects')
+  }
 
   if (typeof window !== 'undefined') {
     try {
       const data = await fetchWithDeduplication<{ success: boolean; projects: ProjectWithHeadAndAssignees[] }>(
         '/api/projects',
-        { ttl: 2500 }
+        { ttl: 2500, forceRefresh }
       )
       if (data?.success && Array.isArray(data.projects)) {
         inMemoryProjects = data.projects
@@ -335,7 +342,13 @@ export async function createProjectRecord(projectData: {
 }
 
 export async function deleteProjectRecord(projectId: string): Promise<void> {
+  inMemoryProjects = inMemoryProjects.filter(p => p.project_id !== projectId)
+  setCachedProjects(inMemoryProjects)
+  removeProjectReportsInMemory(projectId)
   invalidateApiCache('/api/projects')
+  invalidateApiCache('/api/normal-reports')
+  invalidateApiCache('/api/evaluations')
+  invalidateApiCache('/api/dashboard-reports')
   if (typeof window !== 'undefined') {
     try {
       await fetch(`/api/projects?projectId=${encodeURIComponent(projectId)}`, {
@@ -343,14 +356,15 @@ export async function deleteProjectRecord(projectId: string): Promise<void> {
       })
     } catch {}
   }
-
-  inMemoryProjects = inMemoryProjects.filter(p => p.project_id !== projectId)
-  setCachedProjects(inMemoryProjects)
   notifyProjectsChannel()
+  notifyEvaluationsChannel()
 }
 
 export async function clearAllProjectsRecord(): Promise<void> {
   invalidateApiCache('/api/projects')
+  invalidateApiCache('/api/normal-reports')
+  invalidateApiCache('/api/evaluations')
+  invalidateApiCache('/api/dashboard-reports')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/projects?clearAll=true', { method: 'DELETE' })
@@ -359,7 +373,9 @@ export async function clearAllProjectsRecord(): Promise<void> {
 
   inMemoryProjects = []
   setCachedProjects(inMemoryProjects)
+  clearAllReportsInMemory()
   notifyProjectsChannel()
+  notifyEvaluationsChannel()
 }
 
 export async function updateProjectProgressRecord(

@@ -11,6 +11,9 @@ const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-projects.json')
 const USERS_FILE_PATH = path.join(DATA_DIR, 'persisted-users.json')
 const EVIDENCES_FILE_PATH = path.join(DATA_DIR, 'persisted-evidences.json')
+const NORMAL_REPORTS_FILE_PATH = path.join(DATA_DIR, 'persisted-normal-reports.json')
+const EVALUATIONS_FILE_PATH = path.join(DATA_DIR, 'persisted-evaluations.json')
+const DASHBOARD_REPORTS_FILE_PATH = path.join(DATA_DIR, 'persisted-dashboard-reports.json')
 
 function getSafeSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -196,10 +199,12 @@ export async function GET(req: NextRequest) {
         }
       })
 
+    const validAssignments = (storage.assignments || []).filter(a => !storage.deletedProjectIds.includes(a.project_id))
+
     return NextResponse.json({
       success: true,
       projects: validProjects,
-      assignments: storage.assignments
+      assignments: validAssignments
     })
   } catch (err: any) {
     return NextResponse.json(
@@ -261,48 +266,57 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, project: enrichedProject })
     }
 
-    if (action === 'assign_role') {
-      const { project_id, user_id, role_type, assigned_by } = body
-      if (!project_id || !user_id || !role_type) {
+    if (action === 'assign_role' || action === 'assign_roles') {
+      const { project_id, user_id, user_ids, role_type, assigned_by } = body
+      const targetUserIds: string[] = Array.isArray(user_ids) && user_ids.length > 0
+        ? user_ids
+        : (user_id ? [user_id] : [])
+
+      if (!project_id || targetUserIds.length === 0 || !role_type) {
         return NextResponse.json({ success: false, error: 'Missing assignment parameters' }, { status: 400 })
       }
 
-      const targetUser = allUsers.find(u => u.user_id === user_id) || null
-      const assignmentId = crypto.randomUUID()
-      const newAssignment: ProjectAssignment = {
-        assignment_id: assignmentId,
+      const newAssignments: ProjectAssignment[] = targetUserIds.map((uId: string) => ({
+        assignment_id: crypto.randomUUID(),
         project_id,
-        user_id,
+        user_id: uId,
         role_type,
         assigned_by: assigned_by || null,
         created_at: new Date().toISOString()
-      }
+      }))
+
+      const assignedIdSet = new Set(targetUserIds)
 
       storage.assignments = [
-        newAssignment,
-        ...storage.assignments.filter(a => !(a.project_id === project_id && a.user_id === user_id))
+        ...newAssignments,
+        ...storage.assignments.filter(a => !(a.project_id === project_id && assignedIdSet.has(a.user_id)))
       ]
 
       storage.projects = storage.projects.map(p => {
         if (p.project_id === project_id) {
           if (role_type === 'Head') {
+            const firstHeadId = targetUserIds[0]
+            const targetUser = allUsers.find(u => u.user_id === firstHeadId) || null
             return {
               ...p,
-              head_of_project: user_id,
+              head_of_project: firstHeadId,
               head: targetUser || p.head,
               updated_at: new Date().toISOString()
             }
           } else {
             const assignees = p.assignees ? [...p.assignees] : []
-            const exists = assignees.some(a => a.user_id === user_id)
-            if (!exists) {
-              assignees.push({
-                project_id,
-                user_id,
-                assigned_role: 'ผู้ร่วมรับผิดชอบโครงการ (Member)',
-                assigned_date: new Date().toISOString(),
-                user: targetUser || undefined
-              })
+            for (const uId of targetUserIds) {
+              const exists = assignees.some(a => a.user_id === uId)
+              if (!exists) {
+                const targetUser = allUsers.find(u => u.user_id === uId) || null
+                assignees.push({
+                  project_id,
+                  user_id: uId,
+                  assigned_role: 'ผู้ร่วมรับผิดชอบโครงการ (Member)',
+                  assigned_date: new Date().toISOString(),
+                  user: targetUser || undefined
+                })
+              }
             }
             return {
               ...p,
@@ -314,14 +328,13 @@ export async function POST(req: NextRequest) {
         return p
       })
 
-
       await saveStorage(storage)
 
       if (supabase) {
         try {
-          await supabase.from('project_assignments').insert(newAssignment)
+          await supabase.from('project_assignments').insert(newAssignments)
           if (role_type === 'Head') {
-            await supabase.from('projects').update({ head_of_project: user_id }).eq('project_id', project_id)
+            await supabase.from('projects').update({ head_of_project: targetUserIds[0] }).eq('project_id', project_id)
           }
         } catch (e) {
           console.warn('[api/projects] Supabase assignment error:', e)
@@ -329,7 +342,12 @@ export async function POST(req: NextRequest) {
       }
 
       const updatedProject = storage.projects.find(p => p.project_id === project_id)
-      return NextResponse.json({ success: true, assignment: newAssignment, project: updatedProject })
+      return NextResponse.json({
+        success: true,
+        assignment: newAssignments[0],
+        assignments: newAssignments,
+        project: updatedProject
+      })
     }
 
     if (action === 'update_project_okr') {
@@ -491,7 +509,55 @@ export async function DELETE(req: NextRequest) {
       storage.deletedProjectIds = []
       await saveStorage(storage)
 
+      try {
+        if (fs.existsSync(NORMAL_REPORTS_FILE_PATH)) {
+          await writeJsonAtomic(NORMAL_REPORTS_FILE_PATH, { reports: [] })
+        }
+      } catch {}
+
+      try {
+        if (fs.existsSync(EVALUATIONS_FILE_PATH)) {
+          await writeJsonAtomic(EVALUATIONS_FILE_PATH, { evaluations: [] })
+        }
+      } catch {}
+
+      try {
+        if (fs.existsSync(EVIDENCES_FILE_PATH)) {
+          await writeJsonAtomic(EVIDENCES_FILE_PATH, { evidences: [] })
+        }
+      } catch {}
+
+      try {
+        if (fs.existsSync(DASHBOARD_REPORTS_FILE_PATH)) {
+          const dashContent = await fs.promises.readFile(DASHBOARD_REPORTS_FILE_PATH, 'utf-8')
+          const dashParsed = JSON.parse(dashContent)
+          if (dashParsed && Array.isArray(dashParsed.reports)) {
+            dashParsed.reports = dashParsed.reports.map((r: any) => ({
+              ...r,
+              project_ids: [],
+              project_snapshots: []
+            }))
+            await writeJsonAtomic(DASHBOARD_REPORTS_FILE_PATH, dashParsed)
+          }
+        }
+      } catch {}
+
       if (supabase) {
+        try {
+          await supabase.from('evaluations').delete().neq('eval_id', '00000000-0000-0000-0000-000000000000')
+        } catch {}
+        try {
+          await supabase.from('normal_reports').delete().neq('report_id', '00000000-0000-0000-0000-000000000000')
+        } catch {}
+        try {
+          await supabase.from('evidences').delete().neq('evidence_id', '00000000-0000-0000-0000-000000000000')
+        } catch {}
+        try {
+          await supabase.from('evidence_submissions').delete().neq('submission_id', '00000000-0000-0000-0000-000000000000')
+        } catch {}
+        try {
+          await supabase.from('project_assignments').delete().neq('assignment_id', '00000000-0000-0000-0000-000000000000')
+        } catch {}
         try {
           await supabase.from('projects').delete().neq('project_id', '00000000-0000-0000-0000-000000000000')
         } catch {}
@@ -504,6 +570,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'projectId is required' }, { status: 400 })
     }
 
+    const targetProject = storage.projects.find(p => p.project_id === projectId)
+    const targetProjectName = targetProject?.project_name?.trim()
+
     storage.projects = storage.projects.filter(p => p.project_id !== projectId)
     storage.assignments = storage.assignments.filter(a => a.project_id !== projectId)
     if (!storage.deletedProjectIds.includes(projectId)) {
@@ -511,13 +580,103 @@ export async function DELETE(req: NextRequest) {
     }
     await saveStorage(storage)
 
+    const deletedReportIds: string[] = []
+
+    try {
+      if (fs.existsSync(NORMAL_REPORTS_FILE_PATH)) {
+        const nrContent = await fs.promises.readFile(NORMAL_REPORTS_FILE_PATH, 'utf-8')
+        const nrParsed = JSON.parse(nrContent)
+        if (nrParsed && Array.isArray(nrParsed.reports)) {
+          for (const r of nrParsed.reports) {
+            const matchesId = r.project_id === projectId
+            const matchesName = Boolean(targetProjectName && r.project_name && r.project_name.trim() === targetProjectName)
+            if (matchesId || matchesName) {
+              deletedReportIds.push(r.report_id)
+            }
+          }
+          nrParsed.reports = nrParsed.reports.filter((r: any) => {
+            const matchesId = r.project_id === projectId
+            const matchesName = Boolean(targetProjectName && r.project_name && r.project_name.trim() === targetProjectName)
+            return !matchesId && !matchesName
+          })
+          await writeJsonAtomic(NORMAL_REPORTS_FILE_PATH, nrParsed)
+        }
+      }
+    } catch {}
+
+    try {
+      if (fs.existsSync(EVALUATIONS_FILE_PATH)) {
+        const evalContent = await fs.promises.readFile(EVALUATIONS_FILE_PATH, 'utf-8')
+        const evalParsed = JSON.parse(evalContent)
+        if (evalParsed && Array.isArray(evalParsed.evaluations)) {
+          evalParsed.evaluations = evalParsed.evaluations.filter((e: any) => {
+            if (e.project_id === projectId) return false
+            if (e.report_id && deletedReportIds.includes(e.report_id)) return false
+            return true
+          })
+          await writeJsonAtomic(EVALUATIONS_FILE_PATH, evalParsed)
+        }
+      }
+    } catch {}
+
+    try {
+      if (fs.existsSync(EVIDENCES_FILE_PATH)) {
+        const evContent = await fs.promises.readFile(EVIDENCES_FILE_PATH, 'utf-8')
+        const evParsed = JSON.parse(evContent)
+        if (evParsed && Array.isArray(evParsed.evidences)) {
+          evParsed.evidences = evParsed.evidences.filter((e: any) => e.project_id !== projectId)
+          await writeJsonAtomic(EVIDENCES_FILE_PATH, evParsed)
+        }
+      }
+    } catch {}
+
+    try {
+      if (fs.existsSync(DASHBOARD_REPORTS_FILE_PATH)) {
+        const dashContent = await fs.promises.readFile(DASHBOARD_REPORTS_FILE_PATH, 'utf-8')
+        const dashParsed = JSON.parse(dashContent)
+        if (dashParsed && Array.isArray(dashParsed.reports)) {
+          dashParsed.reports = dashParsed.reports.map((r: any) => ({
+            ...r,
+            project_ids: (r.project_ids || []).filter((id: string) => id !== projectId),
+            project_snapshots: (r.project_snapshots || []).filter((s: any) => s.project_id !== projectId)
+          }))
+          await writeJsonAtomic(DASHBOARD_REPORTS_FILE_PATH, dashParsed)
+        }
+      }
+    } catch {}
+
     if (supabase) {
+      for (const repId of deletedReportIds) {
+        try {
+          await supabase.from('evaluations').delete().eq('report_id', repId)
+        } catch {}
+      }
+      try {
+        await supabase.from('evaluations').delete().eq('project_id', projectId)
+      } catch {}
+      try {
+        await supabase.from('normal_reports').delete().eq('project_id', projectId)
+      } catch {}
+      if (targetProjectName) {
+        try {
+          await supabase.from('normal_reports').delete().eq('project_name', targetProjectName)
+        } catch {}
+      }
+      try {
+        await supabase.from('evidences').delete().eq('project_id', projectId)
+      } catch {}
+      try {
+        await supabase.from('evidence_submissions').delete().eq('project_id', projectId)
+      } catch {}
+      try {
+        await supabase.from('project_assignments').delete().eq('project_id', projectId)
+      } catch {}
       try {
         await supabase.from('projects').delete().eq('project_id', projectId)
       } catch {}
     }
 
-    return NextResponse.json({ success: true, message: 'Project deleted' })
+    return NextResponse.json({ success: true, message: 'Project and associated reports deleted' })
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err?.message || 'Delete error' }, { status: 500 })
   }

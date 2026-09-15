@@ -274,3 +274,7 @@ export async function deleteEvidenceSubmission(evidenceId: string, projectId?: s
   setCachedProjects(updatedProjects)
   notifyProjectsChannel()
 }
+
+export function clearEvidenceSubmissionsFromMemory(projectId: string): void {
+  inMemoryEvidenceSubmissions = inMemoryEvidenceSubmissions.filter(e => e.project_id !== projectId)
+}

@@ -124,8 +124,14 @@ export function UserProfileModal() {
   const roleInfo = getRoleBadge(currentUser.role)
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden relative my-8">
+    <div
+      onClick={closeProfileModal}
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden relative my-8"
+      >
 
         <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] p-6 sm:p-7 text-white relative">
           <button
