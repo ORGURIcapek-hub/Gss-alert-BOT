@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
           *,
           okr:okrs!projects_okr_id_fkey(*),
           head:users!projects_head_of_project_fkey(*),
-          assignees:project_assignees(*, user:users(*)),
+          assignments:project_assignments(*, user:users!project_assignments_user_id_fkey(*)),
           evidences(*)
         `)
 
@@ -144,6 +144,26 @@ export async function GET(req: NextRequest) {
           const merged = [
             ...validSupabaseProjects.map((sp: any) => {
               const localProj = storage.projects.find(lp => lp.project_id === sp.project_id)
+              const remoteAssignments: any[] = Array.isArray(sp.assignments) ? sp.assignments : []
+              const headAssignment = remoteAssignments.find(a => a.role_type === 'Head')
+              const remoteHead = sp.head || (headAssignment
+                ? (headAssignment.user || allUsers.find(u => u.user_id === headAssignment.user_id) || null)
+                : null)
+              const remoteAssignees = remoteAssignments
+                .filter(a => a.role_type === 'Member')
+                .map(a => ({
+                  project_id: sp.project_id,
+                  user_id: a.user_id,
+                  assigned_role: 'ผู้ร่วมรับผิดชอบโครงการ (Member)',
+                  assigned_date: a.created_at,
+                  user: a.user || allUsers.find(u => u.user_id === a.user_id) || undefined
+                }))
+              const localAssignees = localProj?.assignees || []
+              const assigneeMap = new Map()
+              for (const la of localAssignees) assigneeMap.set(la.user_id, la)
+              for (const ra of remoteAssignees) {
+                if (!assigneeMap.has(ra.user_id)) assigneeMap.set(ra.user_id, ra)
+              }
               const localEvs = localProj?.evidences || []
               const spEvs = sp.evidences || []
               const fileEvs = storedEvidences
@@ -165,9 +185,13 @@ export async function GET(req: NextRequest) {
 
               const projectYear = sp.okr?.year || sp.year || 2567
 
+              const { assignments: _remoteAssignments, ...spRest } = sp
               return {
-                ...sp,
+                ...spRest,
                 year: projectYear,
+                head: remoteHead,
+                head_of_project: headAssignment ? headAssignment.user_id : sp.head_of_project,
+                assignees: Array.from(assigneeMap.values()),
                 evidences: Array.from(evMap.values())
               }
             }),
@@ -298,6 +322,12 @@ export async function POST(req: NextRequest) {
       if (!project_id || targetUserIds.length === 0 || !role_type) {
         return NextResponse.json({ success: false, error: 'Missing assignment parameters' }, { status: 400 })
       }
+      if (role_type !== 'Head' && role_type !== 'Member') {
+        return NextResponse.json({ success: false, error: 'ประเภทบทบาทไม่ถูกต้อง' }, { status: 400 })
+      }
+      if (role_type === 'Head' && targetUserIds.length > 1) {
+        return NextResponse.json({ success: false, error: 'หัวหน้าโครงการระบุได้ครั้งละ 1 คน' }, { status: 400 })
+      }
 
       const newAssignments: ProjectAssignment[] = targetUserIds.map((uId: string) => ({
         assignment_id: crypto.randomUUID(),
@@ -312,7 +342,12 @@ export async function POST(req: NextRequest) {
 
       storage.assignments = [
         ...newAssignments,
-        ...storage.assignments.filter(a => !(a.project_id === project_id && assignedIdSet.has(a.user_id)))
+        ...storage.assignments.filter(a => {
+          if (a.project_id !== project_id) return true
+          if (assignedIdSet.has(a.user_id)) return false
+          if (role_type === 'Head' && a.role_type === 'Head') return false
+          return true
+        })
       ]
 
       storage.projects = storage.projects.map(p => {
@@ -355,6 +390,10 @@ export async function POST(req: NextRequest) {
 
       if (supabase) {
         try {
+          await supabase.from('project_assignments').delete().eq('project_id', project_id).in('user_id', targetUserIds)
+          if (role_type === 'Head') {
+            await supabase.from('project_assignments').delete().eq('project_id', project_id).eq('role_type', 'Head')
+          }
           await supabase.from('project_assignments').insert(newAssignments)
           if (role_type === 'Head') {
             await supabase.from('projects').update({ head_of_project: targetUserIds[0] }).eq('project_id', project_id)
@@ -377,6 +416,21 @@ export async function POST(req: NextRequest) {
       const { project_id, okr_id } = body
       if (!project_id || !okr_id) {
         return NextResponse.json({ success: false, error: 'Missing parameters' }, { status: 400 })
+      }
+
+      if (supabase) {
+        try {
+          const { data: okrExists } = await supabase.from('okrs').select('okr_id').eq('okr_id', okr_id).maybeSingle()
+          if (!okrExists) {
+            return NextResponse.json({ success: false, error: 'ไม่พบ OKR ที่ระบุ' }, { status: 400 })
+          }
+        } catch (e) {
+          console.warn('[api/projects] Supabase okr check error:', e)
+        }
+      }
+
+      if (!storage.projects.some(p => p.project_id === project_id)) {
+        return NextResponse.json({ success: false, error: 'ไม่พบโครงการที่ระบุ' }, { status: 404 })
       }
 
       storage.projects = storage.projects.map(p => {
@@ -405,7 +459,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'update_progress') {
-      const { project_id, progress, bottleneck, status, spent } = body
+      const { project_id, bottleneck, status, spent } = body
+      const progress = Math.min(100, Math.max(0, Math.round(Number(body.progress) || 0)))
+      if (!project_id) {
+        return NextResponse.json({ success: false, error: 'Missing project_id' }, { status: 400 })
+      }
+      const validStatuses = ['Draft', 'In Progress', 'Delayed', 'Completed', 'On Hold']
+      if (status !== undefined && status !== null && !validStatuses.includes(status)) {
+        return NextResponse.json({ success: false, error: 'สถานะโครงการไม่ถูกต้อง' }, { status: 400 })
+      }
+      if (!storage.projects.some(p => p.project_id === project_id)) {
+        return NextResponse.json({ success: false, error: 'ไม่พบโครงการที่ระบุ' }, { status: 404 })
+      }
       storage.projects = storage.projects.map(p => {
         if (p.project_id === project_id) {
           return {
@@ -424,15 +489,16 @@ export async function POST(req: NextRequest) {
 
       if (supabase) {
         try {
+          const remoteUpdate: Record<string, unknown> = {
+            progress_percentage: progress,
+            updated_at: new Date().toISOString()
+          }
+          if (bottleneck !== undefined) remoteUpdate.bottleneck = bottleneck
+          if (status) remoteUpdate.status = status
+          if (spent !== undefined) remoteUpdate.spent_amount = spent
           await supabase
             .from('projects')
-            .update({
-              progress_percentage: progress,
-              bottleneck,
-              status,
-              spent_amount: spent,
-              updated_at: new Date().toISOString()
-            })
+            .update(remoteUpdate)
             .eq('project_id', project_id)
         } catch (e) {
           console.warn('[api/projects] Supabase update progress error:', e)
@@ -475,6 +541,7 @@ export async function POST(req: NextRequest) {
               file_name: submission.file_name,
               file_path: submission.file_path,
               file_type: submission.file_type || 'application/pdf',
+              description: submission.description || null,
               submitted_at: new Date().toISOString()
             })
             await supabase.from('evidences').insert(newEv)
@@ -576,7 +643,7 @@ export async function DELETE(req: NextRequest) {
           await supabase.from('evidences').delete().neq('evidence_id', '00000000-0000-0000-0000-000000000000')
         } catch {}
         try {
-          await supabase.from('evidence_submissions').delete().neq('submission_id', '00000000-0000-0000-0000-000000000000')
+          await supabase.from('evidence_submissions').delete().neq('evidence_id', '00000000-0000-0000-0000-000000000000')
         } catch {}
         try {
           await supabase.from('project_assignments').delete().neq('assignment_id', '00000000-0000-0000-0000-000000000000')
