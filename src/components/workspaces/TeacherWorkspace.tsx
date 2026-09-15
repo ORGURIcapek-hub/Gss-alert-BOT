@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { OKR, ProjectWithHeadAndAssignees, Evaluation, NormalReport } from '@/types/database.types'
 import { GraduationCap, FileCheck2, Clock, Upload, ArrowRight, Sparkles, CheckCircle2, Plus, Award, Star, Inbox, TrendingUp } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
@@ -27,6 +27,8 @@ export function TeacherWorkspace({
   const [evaluations, setEvaluations] = useState<Evaluation[]>([])
   const [normalReports, setNormalReports] = useState<NormalReport[]>([])
   const [isLoadingEvals, setIsLoadingEvals] = useState(false)
+  const onProjectsRefreshRef = useRef(onProjectsRefresh)
+  onProjectsRefreshRef.current = onProjectsRefresh
 
   useEffect(() => {
     setCurrentTab(initialTab)
@@ -58,7 +60,7 @@ export function TeacherWorkspace({
         channel.onmessage = (event) => {
           if (event.data?.type === 'PROJECTS_UPDATED') {
             loadEvaluationData()
-            onProjectsRefresh?.()
+            onProjectsRefreshRef.current?.()
           } else if (event.data?.type === 'EVALUATIONS_UPDATED') {
             loadEvaluationData()
           }
@@ -69,7 +71,7 @@ export function TeacherWorkspace({
     return () => {
       channel?.close()
     }
-  }, [onProjectsRefresh])
+  }, [])
 
   const myAssignedProjects = projects.filter(p =>
     p.head_of_project === currentUser?.user_id ||
