@@ -27,6 +27,8 @@ import { AssignHeadModal } from './AssignHeadModal'
 import { fetchDashboardReports } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { formatDepartmentShort, formatThaiDate, getUserFullName, removeTitlesAndRoles } from '@/lib/user-constants'
+import { DashboardSkeleton, ReportCardSkeleton } from '@/components/ui/Skeleton'
+import { getProjectProgress, isProjectCompleted, isProjectDelayed } from '@/lib/project-status'
 
 interface ExecutiveWorkspaceProps {
   okrs: OKR[]
@@ -46,7 +48,7 @@ export function ExecutiveWorkspace({
   const { currentUser, allUsers, refreshUsers } = useRole()
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL')
   const [dashboardReports, setDashboardReports] = useState<DashboardReportWithDetails[]>([])
-  const [isLoadingReports, setIsLoadingReports] = useState<boolean>(false)
+  const [isLoadingReports, setIsLoadingReports] = useState<boolean>(true)
 
   const [isAssignHeadOpen, setIsAssignHeadOpen] = useState(false)
 
@@ -77,7 +79,7 @@ export function ExecutiveWorkspace({
     ? (projects.reduce((acc, p) => acc + (Number(p.progress_percentage) || 0), 0) / totalProjects).toFixed(1)
     : '0.0'
 
-  const delayedProjects = projects.filter(p => p.status === 'Delayed' || (p.bottleneck && p.bottleneck.length > 0))
+  const delayedProjects = projects.filter(p => isProjectDelayed(p))
 
   return (
     <div className="space-y-6">
@@ -147,7 +149,7 @@ export function ExecutiveWorkspace({
                     : 'bg-white text-slate-700 hover:bg-slate-50 border-2 border-slate-800'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${p.progress_percentage === 100 ? 'bg-emerald-500' : 'bg-sky-500'}`} />
+                <span className={`w-2 h-2 rounded-full ${isProjectCompleted(p) ? 'bg-emerald-500' : 'bg-sky-500'}`} />
                 <span className="max-w-[200px] truncate">{p.project_name}</span>
                 <span className={`px-1.5 py-0.5 rounded text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
                   {p.progress_percentage}%
@@ -221,7 +223,12 @@ export function ExecutiveWorkspace({
           </div>
         </div>
 
-        {dashboardReports.length === 0 ? (
+        {isLoadingReports ? (
+          <div className="space-y-6">
+            <ReportCardSkeleton />
+            <ReportCardSkeleton />
+          </div>
+        ) : dashboardReports.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-sm sm:text-base">
             ยังไม่มีรายงานสรุปเชิงยุทธศาสตร์ที่ส่งเข้ามาในระบบ
           </div>
@@ -293,8 +300,8 @@ export function ExecutiveWorkspace({
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {snapshots.map((ps) => {
-                          const isComplete = ps.progress_percentage === 100
-                          const isDelayed = ps.status === 'Delayed' || (ps.bottleneck && ps.bottleneck.trim().length > 0)
+                          const isComplete = isProjectCompleted(ps)
+                          const isDelayed = isProjectDelayed(ps)
                           const budgetNum = Number(ps.budget) || 0
                           const spentNum = Number(ps.spent_amount) || 0
                           const spentRate = budgetNum > 0 ? ((spentNum / budgetNum) * 100).toFixed(1) : '0'
@@ -302,7 +309,7 @@ export function ExecutiveWorkspace({
 
                           const radius = 34
                           const circumference = 2 * Math.PI * radius
-                          const strokeDashoffset = circumference - (ps.progress_percentage / 100) * circumference
+                          const strokeDashoffset = circumference - (getProjectProgress(ps) / 100) * circumference
                           const gaugeColor = isComplete ? '#10B981' : isDelayed ? '#E11D48' : '#003B71'
 
                           return (

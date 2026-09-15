@@ -6,6 +6,8 @@ import { GraduationCap, FileCheck2, Clock, Upload, ArrowRight, Sparkles, CheckCi
 import { useRole } from '@/components/RoleContext'
 import { getUserFullName, formatDepartmentShort, removeTitlesAndRoles, formatThaiDate, formatThaiDateTime } from '@/lib/user-constants'
 import { fetchEvaluations, fetchNormalReports } from '@/lib/services'
+import { WorkspaceSkeleton, EvaluationCardSkeleton } from '@/components/ui/Skeleton'
+import { isProjectCompleted } from '@/lib/project-status'
 
 interface TeacherWorkspaceProps {
   projects: ProjectWithHeadAndAssignees[]
@@ -26,7 +28,7 @@ export function TeacherWorkspace({
   const [currentTab, setCurrentTab] = useState<'projects' | 'evaluations'>(initialTab)
   const [evaluations, setEvaluations] = useState<Evaluation[]>([])
   const [normalReports, setNormalReports] = useState<NormalReport[]>([])
-  const [isLoadingEvals, setIsLoadingEvals] = useState(false)
+  const [isLoadingEvals, setIsLoadingEvals] = useState(true)
   const onProjectsRefreshRef = useRef(onProjectsRefresh)
   onProjectsRefreshRef.current = onProjectsRefresh
 
@@ -78,7 +80,7 @@ export function TeacherWorkspace({
     p.assignees?.some(a => a.user_id === currentUser?.user_id)
   )
 
-  const myCompleted = myAssignedProjects.filter(p => p.progress_percentage === 100).length
+  const myCompleted = myAssignedProjects.filter(p => isProjectCompleted(p)).length
   const myTotalEvidences = myAssignedProjects.reduce((acc, p) => acc + (p.evidences?.length || 0), 0)
 
   const myProjectIds = new Set(myAssignedProjects.map(p => p.project_id))
@@ -145,102 +147,108 @@ export function TeacherWorkspace({
 
       {currentTab === 'projects' ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700 flex-shrink-0">
-                <GraduationCap className="w-6 h-6" />
+          {isLoadingEvals ? (
+            <WorkspaceSkeleton />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700 flex-shrink-0">
+                    <GraduationCap className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500 font-semibold block">งานที่ได้รับมอบหมาย</span>
+                    <span className="text-2xl font-black text-slate-900">{myAssignedProjects.length} โครงการ</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                    <FileCheck2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500 font-semibold block">แนบหลักฐานแล้ว</span>
+                    <span className="text-2xl font-black text-emerald-700">{myTotalEvidences} รายการ</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-xs text-slate-500 font-semibold block">งานที่ได้รับมอบหมาย</span>
-                <span className="text-2xl font-black text-slate-900">{myAssignedProjects.length} โครงการ</span>
-              </div>
-            </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                <FileCheck2 className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xs text-slate-500 font-semibold block">แนบหลักฐานแล้ว</span>
-                <span className="text-2xl font-black text-emerald-700">{myTotalEvidences} รายการ</span>
-              </div>
-            </div>
-          </div>
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100">
+                  <Sparkles className="w-5 h-5 text-emerald-600" />
+                  <span>รายการโครงการที่คุณร่วมรับผิดชอบ ({myAssignedProjects.length})</span>
+                </h3>
 
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Sparkles className="w-5 h-5 text-emerald-600" />
-              <span>รายการโครงการที่คุณร่วมรับผิดชอบ ({myAssignedProjects.length})</span>
-            </h3>
+                {myAssignedProjects.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400">
+                    <p className="text-sm sm:text-base font-medium">คุณยังไม่มีโครงการที่ได้รับมอบหมายในขณะนี้</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                    {myAssignedProjects.map((p) => {
+                      const rawHeadName = getUserFullName(p.head) || 'หัวหน้าโครงการ'
+                      const headName = removeTitlesAndRoles(rawHeadName) || 'หัวหน้าโครงการ'
+                      const isCompleted = isProjectCompleted(p)
+                      return (
+                        <div
+                          key={p.project_id}
+                          onClick={() => onSelectProject(p)}
+                          className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group space-y-4"
+                        >
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {formatDepartmentShort(p.department)}
+                              </span>
+                              <span className="text-xs sm:text-sm text-slate-600">
+                                หัวหน้า: <b className="text-slate-900">{headName}</b>
+                              </span>
+                            </div>
 
-            {myAssignedProjects.length === 0 ? (
-              <div className="py-12 text-center text-slate-400">
-                <p className="text-sm sm:text-base font-medium">คุณยังไม่มีโครงการที่ได้รับมอบหมายในขณะนี้</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-                {myAssignedProjects.map((p) => {
-                  const rawHeadName = getUserFullName(p.head) || 'หัวหน้าโครงการ'
-                  const headName = removeTitlesAndRoles(rawHeadName) || 'หัวหน้าโครงการ'
-                  const isCompleted = p.progress_percentage === 100
-                  return (
-                    <div
-                      key={p.project_id}
-                      onClick={() => onSelectProject(p)}
-                      className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group space-y-4"
-                    >
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {formatDepartmentShort(p.department)}
-                          </span>
-                          <span className="text-xs sm:text-sm text-slate-600">
-                            หัวหน้า: <b className="text-slate-900">{headName}</b>
-                          </span>
-                        </div>
+                            <h4 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
+                              {p.project_name}
+                            </h4>
 
-                        <h4 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
-                          {p.project_name}
-                        </h4>
-
-                        <p className="text-xs sm:text-sm text-slate-700 line-clamp-2 leading-relaxed font-medium">
-                          {p.main_objective || p.description || 'ไม่มีข้อมูลเป้าหมายระบุ'}
-                        </p>
-                      </div>
-
-                      <div className="pt-3.5 border-t border-slate-100 space-y-3.5">
-                        <div>
-                          <div className="flex items-center justify-between text-xs sm:text-sm font-bold mb-1.5">
-                            <span className="text-slate-600">ความก้าวหน้าโครงการ</span>
-                            <span className="text-emerald-700">{p.progress_percentage}%</span>
+                            <p className="text-xs sm:text-sm text-slate-700 line-clamp-2 leading-relaxed font-medium">
+                              {p.main_objective || p.description || 'ไม่มีข้อมูลเป้าหมายระบุ'}
+                            </p>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                            <div
-                              className={`h-2.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-[#003B71]'}`}
-                              style={{ width: `${p.progress_percentage}%` }}
-                            />
+
+                          <div className="pt-3.5 border-t border-slate-100 space-y-3.5">
+                            <div>
+                              <div className="flex items-center justify-between text-xs sm:text-sm font-bold mb-1.5">
+                                <span className="text-slate-600">ความก้าวหน้าโครงการ</span>
+                                <span className="text-emerald-700">{p.progress_percentage}%</span>
+                              </div>
+                              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                <div
+                                  className={`h-2.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-[#003B71]'}`}
+                                  style={{ width: `${p.progress_percentage}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs sm:text-sm text-slate-600 font-medium">
+                                หลักฐาน: <b className="text-slate-900">{p.evidences?.length || 0} ไฟล์</b>
+                              </span>
+                              <button
+                                type="button"
+                                className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all border border-emerald-200 cursor-pointer active:scale-95"
+                              >
+                                <span>อัปเดตงาน & จัดการไฟล์</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-xs sm:text-sm text-slate-600 font-medium">
-                            หลักฐาน: <b className="text-slate-900">{p.evidences?.length || 0} ไฟล์</b>
-                          </span>
-                          <button
-                            type="button"
-                            className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all border border-emerald-200 cursor-pointer active:scale-95"
-                          >
-                            <span>อัปเดตงาน & จัดการไฟล์</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </>
       ) : (
         <div className="space-y-6">
@@ -284,9 +292,9 @@ export function TeacherWorkspace({
             </h3>
 
             {isLoadingEvals ? (
-              <div className="py-12 text-center text-slate-400">
-                <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-sm font-semibold">กำลังโหลดคะแนนการประเมิน...</p>
+              <div className="space-y-6">
+                <EvaluationCardSkeleton />
+                <EvaluationCardSkeleton />
               </div>
             ) : myAssignedProjects.length === 0 ? (
               <div className="py-12 text-center text-slate-400">

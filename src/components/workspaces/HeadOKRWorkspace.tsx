@@ -21,6 +21,7 @@ import {
 import { useRole } from '@/components/RoleContext'
 import { assignProjectRoles, fetchProjectAssignments } from '@/lib/services/okr-service'
 import { formatDepartmentShort, getUserFullName, removeTitlesAndRoles } from '@/lib/user-constants'
+import { isProjectCompleted, isProjectDelayed, isProjectInProgress, getProjectProgress } from '@/lib/project-status'
 
 interface HeadOKRWorkspaceProps {
   okrs: OKR[]
@@ -54,9 +55,9 @@ export function HeadOKRWorkspace({
       (p.department && currentUser?.department && p.department === currentUser?.department)
   )
 
-  const myCompleted = myDeptProjects.filter(p => p.progress_percentage === 100).length
-  const myInProgress = myDeptProjects.filter(p => p.progress_percentage < 100 && (!p.bottleneck || p.bottleneck.length === 0)).length
-  const myDelayed = myDeptProjects.filter(p => p.bottleneck && p.bottleneck.length > 0).length
+  const myCompleted = myDeptProjects.filter(p => isProjectCompleted(p)).length
+  const myDelayed = myDeptProjects.filter(p => isProjectDelayed(p)).length
+  const myInProgress = myDeptProjects.filter(p => isProjectInProgress(p)).length
 
   useEffect(() => {
     if (selectedProjectId && isAssignMemberOpen) {
@@ -246,6 +247,9 @@ export function HeadOKRWorkspace({
         <div className="space-y-3.5">
           {myDeptProjects.map((p) => {
             const assigneesCount = p.assignees?.length || 0
+            const progressNum = getProjectProgress(p)
+            const completed = isProjectCompleted(p)
+            const delayed = isProjectDelayed(p)
             return (
               <div
                 key={p.project_id}
@@ -256,6 +260,9 @@ export function HeadOKRWorkspace({
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/15">
                       {p.project_type}
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${completed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : delayed ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-sky-50 text-[#003B71] border-sky-200'}`}>
+                      {completed ? 'สำเร็จ' : delayed ? 'ล่าช้า / ติดปัญหา' : 'กำลังดำเนินการ'}
                     </span>
                     <span className="text-xs sm:text-sm text-slate-600 font-semibold">
                       งบประมาณ: <b className="text-slate-900">{(Number(p.budget) / 1000).toLocaleString()}k ฿</b>
@@ -270,11 +277,11 @@ export function HeadOKRWorkspace({
 
                 <div className="flex items-center gap-4 self-end md:self-auto flex-shrink-0">
                   <div className="text-right">
-                    <span className="text-xs sm:text-sm font-bold text-[#003B71]">{p.progress_percentage}%</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#003B71]">{progressNum}%</span>
                     <div className="w-32 bg-slate-200 rounded-full h-2.5 mt-1.5 overflow-hidden">
                       <div
                         className="bg-[#003B71] h-2.5 rounded-full"
-                        style={{ width: `${p.progress_percentage}%` }}
+                        style={{ width: `${Math.min(100, Math.max(0, progressNum))}%` }}
                       />
                     </div>
                   </div>
