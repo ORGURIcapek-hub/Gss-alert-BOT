@@ -1,67 +1,11 @@
 import { mockEvidenceSubmissions } from '@/lib/mock-data'
 import { EvidenceSubmission, ProjectWithHeadAndAssignees, UserProfile, Evidence } from '@/types/database.types'
-import { getSafeSupabaseClient, dbCall, getCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
+import { getCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 import { getInMemoryUsers } from './user-service'
 import { getInMemoryProjects, setInMemoryProjects, setCachedProjects, notifyProjectsChannel } from './project-service'
+import { deleteFileFromStorage } from './storage-service'
 
 let inMemoryEvidenceSubmissions: EvidenceSubmission[] = [...mockEvidenceSubmissions]
-
-export async function uploadEvidenceRecord(
-  projectId: string,
-  userId: string,
-  fileName: string,
-  description: string
-): Promise<void> {
-  const evidenceId = crypto.randomUUID()
-  const newEvidence = {
-    evidence_id: evidenceId,
-    project_id: projectId,
-    uploaded_by: userId,
-    file_name: fileName,
-    file_path: `https://example.com/storage/evidences/${fileName}`,
-    file_size: 1024 * 1024 * 2,
-    description: description,
-    upload_date: new Date().toISOString()
-  }
-
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('evidences') as any).insert(newEvidence), 'uploadEvidenceRecord')
-  }
-
-  const projects = getInMemoryProjects()
-  const updatedProjects = projects.map(p => {
-    if (p.project_id === projectId) {
-      const evidences = p.evidences ? [newEvidence, ...p.evidences.filter(e => e.evidence_id !== evidenceId)] : [newEvidence]
-      return { ...p, evidences }
-    }
-    return p
-  })
-  setInMemoryProjects(updatedProjects)
-  setCachedProjects(updatedProjects)
-  notifyProjectsChannel()
-}
-
-export async function deleteEvidenceRecord(evidenceId: string, projectId: string): Promise<void> {
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceRecord')
-  }
-
-  const projects = getInMemoryProjects()
-  const updatedProjects = projects.map(p => {
-    if (p.project_id === projectId && p.evidences) {
-      return {
-        ...p,
-        evidences: p.evidences.filter(e => e.evidence_id !== evidenceId)
-      }
-    }
-    return p
-  })
-  setInMemoryProjects(updatedProjects)
-  setCachedProjects(updatedProjects)
-  notifyProjectsChannel()
-}
 
 export async function fetchEvidenceSubmissions(
   projectId?: string
@@ -129,6 +73,7 @@ export async function submitEvidenceSubmission(data: {
   file_name: string
   file_path: string
   file_type: string
+  file_size?: number | null
   description?: string
 }): Promise<EvidenceSubmission> {
   const newId = crypto.randomUUID()
@@ -187,11 +132,6 @@ export async function submitEvidenceSubmission(data: {
     }
   }
 
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('evidence_submissions') as any).insert(newSubmission), 'submitEvidenceSubmission')
-  }
-
   inMemoryEvidenceSubmissions.unshift(newSubmission)
 
   const newEvidence: Evidence = {
@@ -200,7 +140,7 @@ export async function submitEvidenceSubmission(data: {
     uploaded_by: data.sender_id,
     file_name: data.file_name,
     file_path: data.file_path,
-    file_size: 1024 * 1024 * 2,
+    file_size: data.file_size || 1024 * 1024 * 2,
     description: data.description || `แนบหลักฐานไฟล์ ${data.file_name}`,
     upload_date: new Date().toISOString()
   }
@@ -224,6 +164,20 @@ export async function deleteEvidenceSubmission(evidenceId: string, projectId?: s
 
   invalidateApiCache('/api/evidences')
   invalidateApiCache('/api/projects')
+  const doomed = inMemoryEvidenceSubmissions.find(e => e.evidence_id === evidenceId)
+  const doomedPath = doomed?.file_path
+  if (!doomedPath) {
+    const projects = getInMemoryProjects()
+    for (const p of projects) {
+      const hit = p.evidences?.find(e => e.evidence_id === evidenceId)
+      if (hit?.file_path) {
+        await deleteFileFromStorage(hit.file_path)
+        break
+      }
+    }
+  } else {
+    await deleteFileFromStorage(doomedPath)
+  }
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/evidences', {
@@ -251,12 +205,6 @@ export async function deleteEvidenceSubmission(evidenceId: string, projectId?: s
     } catch (e) {
       console.warn('[evidence-service] POST /api/projects delete_evidence failed', e)
     }
-  }
-
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('evidence_submissions') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceSubmission:submissions')
-    await dbCall(() => (supabase.from('evidences') as any).delete().eq('evidence_id', evidenceId), 'deleteEvidenceSubmission:evidences')
   }
 
   inMemoryEvidenceSubmissions = inMemoryEvidenceSubmissions.filter(e => e.evidence_id !== evidenceId)
