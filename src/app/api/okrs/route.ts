@@ -27,14 +27,17 @@ interface OKRStorageSchema {
 }
 
 let memoryCache: OKRStorageSchema | null = null
+let memoryCacheAt = 0
+const MEMORY_CACHE_TTL = 5000
 
 async function ensureDataFile(): Promise<OKRStorageSchema> {
-  if (memoryCache) return memoryCache
+  if (memoryCache && Date.now() - memoryCacheAt < MEMORY_CACHE_TTL) return memoryCache
 
   const fallback: OKRStorageSchema = { okrs: [...mockOKRs] }
   const data = await readJsonSafe<OKRStorageSchema | null>(FILE_PATH, null)
   if (data && Array.isArray(data.okrs)) {
     memoryCache = { okrs: data.okrs }
+    memoryCacheAt = Date.now()
     return memoryCache
   }
 
@@ -42,11 +45,14 @@ async function ensureDataFile(): Promise<OKRStorageSchema> {
 
   await writeJsonAtomic(FILE_PATH, fallback)
   memoryCache = fallback
+  memoryCacheAt = Date.now()
   return memoryCache
 }
 
 async function saveStorage(data: OKRStorageSchema): Promise<void> {
   memoryCache = data
+  memoryCacheAt = Date.now()
+  if (process.env.VERCEL) return
   try {
     await writeJsonAtomic(FILE_PATH, data)
   } catch (err) {
@@ -102,12 +108,14 @@ export async function POST(req: NextRequest) {
       }
 
       const now = new Date().toISOString()
+      const validQuarters = ['Q1', 'Q2', 'Q3', 'Q4']
+      const normalizedQuarter = validQuarters.includes(okrData.quarter) ? okrData.quarter : null
       const newOKR: OKR = {
         okr_id: okrData.okr_id || crypto.randomUUID(),
         okr_title: okrData.okr_title,
         okr_type: okrData.okr_type || 'ยุทธศาสตร์คณะ',
         year: Number(okrData.year) || 2567,
-        quarter: okrData.quarter || 'ALL',
+        quarter: normalizedQuarter,
         status: okrData.status || 'In Progress',
         created_by: okrData.created_by || null,
         created_at: okrData.created_at || now,
