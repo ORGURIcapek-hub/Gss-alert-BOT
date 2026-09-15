@@ -10,6 +10,8 @@ export type UserRole = 'admin' | 'executive' | 'head_okr' | 'teacher' | 'staff'
 
 export type OKRStatus = 'Draft' | 'In Progress' | 'Completed' | 'On Hold'
 
+export type OKRQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4'
+
 export type ProjectStatus = 'Draft' | 'In Progress' | 'Delayed' | 'Completed' | 'On Hold'
 
 export interface Database {
@@ -182,6 +184,7 @@ export interface Database {
           team_score: number | null
           executive_score: number | null
           created_at: string
+          updated_at: string | null
         }
         Insert: {
           eval_id?: string
@@ -193,6 +196,7 @@ export interface Database {
           team_score?: number | null
           executive_score?: number | null
           created_at?: string
+          updated_at?: string | null
         }
         Update: {
           eval_id?: string
@@ -204,6 +208,7 @@ export interface Database {
           team_score?: number | null
           executive_score?: number | null
           created_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -212,6 +217,20 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "normal_reports"
             referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "evaluations_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard"
+            referencedColumns: ["dashboard_id"]
+          },
+          {
+            foreignKeyName: "evaluations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
           }
         ]
       }
@@ -302,7 +321,7 @@ export interface Database {
           okr_title: string
           okr_type: string
           year: number
-          quarter: string | null
+          quarter: OKRQuarter | null
           status: OKRStatus
           created_by: string | null
           created_at: string
@@ -313,7 +332,7 @@ export interface Database {
           okr_title: string
           okr_type: string
           year: number
-          quarter?: string | null
+          quarter?: OKRQuarter | null
           status?: OKRStatus
           created_by?: string | null
           created_at?: string
@@ -324,7 +343,7 @@ export interface Database {
           okr_title?: string
           okr_type?: string
           year?: number
-          quarter?: string | null
+          quarter?: OKRQuarter | null
           status?: OKRStatus
           created_by?: string | null
           created_at?: string
@@ -418,42 +437,6 @@ export interface Database {
           }
         ]
       }
-      project_assignees: {
-        Row: {
-          project_id: string
-          user_id: string
-          assigned_role: string | null
-          assigned_date: string
-        }
-        Insert: {
-          project_id: string
-          user_id: string
-          assigned_role?: string | null
-          assigned_date?: string
-        }
-        Update: {
-          project_id?: string
-          user_id?: string
-          assigned_role?: string | null
-          assigned_date?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_assignees_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_assignees_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          }
-        ]
-      }
       evidences: {
         Row: {
           evidence_id: string
@@ -502,88 +485,6 @@ export interface Database {
           }
         ]
       }
-      reports: {
-        Row: {
-          report_id: string
-          report_type: string
-          title: string
-          year: number
-          quarter: string | null
-          department: string | null
-          generated_for: string
-          report_data: Json | null
-          generated_at: string
-        }
-        Insert: {
-          report_id?: string
-          report_type: string
-          title: string
-          year: number
-          quarter?: string | null
-          department?: string | null
-          generated_for: string
-          report_data?: Json | null
-          generated_at?: string
-        }
-        Update: {
-          report_id?: string
-          report_type?: string
-          title?: string
-          year?: number
-          quarter?: string | null
-          department?: string | null
-          generated_for?: string
-          report_data?: Json | null
-          generated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reports_generated_for_fkey"
-            columns: ["generated_for"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          }
-        ]
-      }
-      audit_logs: {
-        Row: {
-          log_id: string
-          actor_id: string | null
-          action: string
-          entity_type: string
-          entity_id: string | null
-          metadata: Json | null
-          created_at: string
-        }
-        Insert: {
-          log_id?: string
-          actor_id?: string | null
-          action: string
-          entity_type: string
-          entity_id?: string | null
-          metadata?: Json | null
-          created_at?: string
-        }
-        Update: {
-          log_id?: string
-          actor_id?: string | null
-          action?: string
-          entity_type?: string
-          entity_id?: string | null
-          metadata?: Json | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          }
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -619,10 +520,13 @@ export type DashboardReport = Tables<'dashboard'>
 export type NormalReport = Tables<'normal_reports'>
 export type OKR = Tables<'okrs'>
 export type Project = Tables<'projects'>
-export type ProjectAssignee = Tables<'project_assignees'>
+export interface ProjectAssignee {
+  project_id: string
+  user_id: string
+  assigned_role: string | null
+  assigned_date: string
+}
 export type Evidence = Tables<'evidences'>
-export type Report = Tables<'reports'>
-export type AuditLog = Tables<'audit_logs'>
 
 export interface ProjectWithHeadAndAssignees extends Project {
   head?: UserProfile | null
