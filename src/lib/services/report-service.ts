@@ -72,20 +72,6 @@ export async function createDashboardReport(reportData: {
     }
   }
 
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('dashboard') as any).insert({
-      dashboard_id: newReport.dashboard_id,
-      overall_okr_info: newReport.overall_okr_info,
-      okr_head_evaluation_score: newReport.okr_head_evaluation_score,
-      head_id: newReport.head_id,
-      head_name: newReport.head_name,
-      academic_year: newReport.academic_year,
-      created_at: newReport.created_at,
-      updated_at: newReport.updated_at
-    }), 'createDashboardReport')
-  }
-
   inMemoryDashboardReports.unshift(newReport)
   return newReport
 }
@@ -159,11 +145,6 @@ export async function createNormalReport(reportData: {
     }
   }
 
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('normal_reports') as any).insert(newReport), 'createNormalReport')
-  }
-
   inMemoryNormalReports.unshift(newReport)
   return newReport
 }
@@ -234,17 +215,32 @@ export async function saveEvaluationRecord(data: {
   team_score?: number | null
   executive_score?: number | null
 }): Promise<Evaluation> {
+  const clampScore = (s: number | null | undefined): number | null => {
+    if (s === undefined || s === null) return null
+    if (!Number.isFinite(s)) return null
+    const n = Math.round(s)
+    return n >= 1 && n <= 5 ? n : null
+  }
   const newId = crypto.randomUUID()
+  const targetKeys = (['report_id', 'dashboard_id', 'project_id'] as const).filter(k => data[k])
+  const matchesTarget = (e: Evaluation) =>
+    e.evaluator_id === data.evaluator_id &&
+    targetKeys.length > 0 &&
+    targetKeys.every(k => e[k] === data[k])
+  const existingMatch = inMemoryEvaluations.find(matchesTarget)
+  const incomingHead = clampScore(data.head_score)
+  const inheritedHead = existingMatch ? clampScore(existingMatch.head_score) : null
   const evaluation: Evaluation = {
     eval_id: newId,
     report_id: data.report_id || null,
     dashboard_id: data.dashboard_id || null,
     project_id: data.project_id || null,
     evaluator_id: data.evaluator_id,
-    head_score: data.head_score,
-    team_score: data.team_score !== undefined ? data.team_score : null,
-    executive_score: data.executive_score !== undefined ? data.executive_score : null,
-    created_at: new Date().toISOString()
+    head_score: incomingHead ?? inheritedHead ?? Math.min(5, Math.max(1, Math.round(data.head_score || 1))),
+    team_score: clampScore(data.team_score),
+    executive_score: clampScore(data.executive_score),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 
   invalidateApiCache('/api/evaluations')
@@ -263,17 +259,10 @@ export async function saveEvaluationRecord(data: {
     }
   }
 
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('evaluations') as any).insert(evaluation), 'saveEvaluationRecord')
-  }
-
   const existingIdx = inMemoryEvaluations.findIndex(e =>
-    e.evaluator_id === evaluation.evaluator_id && (
-      (data.report_id && e.report_id === data.report_id) ||
-      (data.dashboard_id && e.dashboard_id === data.dashboard_id) ||
-      (data.project_id && e.project_id === data.project_id)
-    )
+    e.evaluator_id === evaluation.evaluator_id &&
+    targetKeys.length > 0 &&
+    targetKeys.every(k => e[k] === evaluation[k])
   )
 
   if (existingIdx !== -1) {
@@ -291,6 +280,22 @@ export async function saveEvaluationRecord(data: {
         normalRep.team_evaluation_score = data.team_score * 20
       }
     }
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/normal-reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_scores',
+            report_id: data.report_id,
+            head_evaluation_score: evaluation.head_score * 20,
+            team_evaluation_score: evaluation.team_score !== null ? evaluation.team_score * 20 : undefined
+          })
+        })
+      } catch (e) {
+        console.warn('[report-service] POST /api/normal-reports update_scores failed', e)
+      }
+    }
   }
 
   if (data.dashboard_id) {
@@ -303,7 +308,7 @@ export async function saveEvaluationRecord(data: {
     }
     if (typeof window !== 'undefined') {
       try {
-        fetch('/api/dashboard-reports', {
+        await fetch('/api/dashboard-reports', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -311,7 +316,8 @@ export async function saveEvaluationRecord(data: {
             dashboard_id: data.dashboard_id,
             score: effectiveScore
           })
-        }).catch(e => console.warn('[report-service] rate sync error', e))
+        })
+        invalidateApiCache('/api/dashboard-reports')
       } catch (e) {
         console.warn('[report-service] rate call failed', e)
       }
