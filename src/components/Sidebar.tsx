@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
 import {
@@ -37,6 +37,20 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
   const { currentUser, currentRole, selectedYear, logout, pendingCount, openChangePasswordModal, openProfileModal } = useRole()
+
+  // Lock background scroll + close on Escape while the mobile drawer is open
+  useEffect(() => {
+    if (!isOpen) return
+    document.body.classList.add('sheet-open')
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => {
+      document.body.classList.remove('sheet-open')
+      window.removeEventListener('keydown', handleKey)
+    }
+  }, [isOpen, onClose])
 
   if (!currentUser) return null
 
@@ -116,7 +130,7 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
       )}
 
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen w-76 sm:w-80 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 ease-in-out shadow-sm ${
+        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[86vw] max-w-[320px] sm:w-80 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 ease-in-out shadow-sm ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
