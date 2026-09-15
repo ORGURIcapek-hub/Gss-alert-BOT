@@ -7,7 +7,7 @@ export async function writeJsonAtomic<T>(filePath: string, data: T): Promise<voi
     fs.mkdirSync(dir, { recursive: true })
   }
 
-  const randomSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+  const randomSuffix = `${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`
   const tmpPath = `${filePath}.${randomSuffix}.tmp`
   const payload = JSON.stringify(data, null, 2)
 
@@ -20,7 +20,7 @@ export async function writeJsonAtomic<T>(filePath: string, data: T): Promise<voi
       await fs.promises.rename(tmpPath, filePath)
       return
     } catch (err: any) {
-      attempts
+      attempts++
       if (attempts >= maxAttempts) {
         try {
           await fs.promises.copyFile(tmpPath, filePath)
