@@ -234,7 +234,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
         position: 'top' as const,
         labels: {
           color: '#334155',
-          font: { family: "'Prompt', 'Sarabun', sans-serif", size: 11, weight: 'bold' as const },
+          font: { family: "'Google Sans', 'Noto Sans Thai', sans-serif", size: 11, weight: 'bold' as const },
           boxWidth: 12,
           usePointStyle: true
         }
@@ -242,18 +242,18 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
       tooltip: {
         padding: 10,
         cornerRadius: 10,
-        titleFont: { family: "'Prompt', 'Sarabun', sans-serif", size: 12, weight: 'bold' as const },
-        bodyFont: { family: "'Prompt', 'Sarabun', sans-serif", size: 11 }
+        titleFont: { family: "'Google Sans', 'Noto Sans Thai', sans-serif", size: 12, weight: 'bold' as const },
+        bodyFont: { family: "'Google Sans', 'Noto Sans Thai', sans-serif", size: 11 }
       }
     },
     scales: {
       x: {
-        ticks: { color: '#64748b', font: { family: "'Prompt', 'Sarabun', sans-serif", size: 10, weight: 'bold' as const } },
+        ticks: { color: '#64748b', font: { family: "'Google Sans', 'Noto Sans Thai', sans-serif", size: 10, weight: 'bold' as const } },
         grid: { color: 'rgba(0, 0, 0, 0.03)' }
       },
       y: {
         beginAtZero: true,
-        ticks: { color: '#64748b', font: { family: "'Prompt', 'Sarabun', sans-serif", size: 10 } },
+        ticks: { color: '#64748b', font: { family: "'Google Sans', 'Noto Sans Thai', sans-serif", size: 10 } },
         grid: { color: 'rgba(0, 0, 0, 0.04)' }
       }
     }
@@ -435,7 +435,7 @@ export function ExecutiveAnalytics({ projects, onSelectProject }: ExecutiveAnaly
                     position: 'bottom',
                     labels: {
                       color: '#334155',
-                      font: { family: "'Prompt', 'Sarabun', sans-serif", size: 11, weight: 'bold' as const },
+                      font: { family: "'Google Sans', 'Noto Sans Thai', sans-serif", size: 11, weight: 'bold' as const },
                       boxWidth: 12,
                       usePointStyle: true
                     }
