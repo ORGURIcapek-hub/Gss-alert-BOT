@@ -1,0 +1,4 @@
+DROP VIEW IF EXISTS public."Reports" CASCADE;
+DROP VIEW IF EXISTS public."Audit_Logs" CASCADE;
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.audit_logs CASCADE;
