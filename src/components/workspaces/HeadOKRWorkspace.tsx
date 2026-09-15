@@ -125,34 +125,40 @@ export function HeadOKRWorkspace({
     if (!selectedProjectId || selectedUserIds.length === 0 || !currentUser) return
     setIsAssigning(true)
 
-    await assignProjectRoles({
-      project_id: selectedProjectId,
-      user_ids: selectedUserIds,
-      role_type: 'Member',
-      assigned_by: currentUser.user_id
-    })
+    try {
+      await assignProjectRoles({
+        project_id: selectedProjectId,
+        user_ids: selectedUserIds,
+        role_type: 'Member',
+        assigned_by: currentUser.user_id
+      })
 
-    const currentProj = myDeptProjects.find(p => p.project_id === selectedProjectId)
-    const projectYear = currentProj?.okr?.year || currentProj?.year || selectedYear || 2567
-    for (const uId of selectedUserIds) {
-      const u = allUsers.find(user => user.user_id === uId)
-      if (u && (!u.yearly_roles || !u.yearly_roles[String(projectYear)])) {
-        await updateUserYearlyRole(uId, projectYear, 'teacher')
+      const currentProj = myDeptProjects.find(p => p.project_id === selectedProjectId)
+      const projectYear = currentProj?.okr?.year || currentProj?.year || selectedYear || 2567
+      for (const uId of selectedUserIds) {
+        const u = allUsers.find(user => user.user_id === uId)
+        if (u && (!u.yearly_roles || !u.yearly_roles[String(projectYear)])) {
+          await updateUserYearlyRole(uId, projectYear, 'teacher')
+        }
       }
-    }
 
-    await refreshUsers()
-    if (onProjectsRefresh) onProjectsRefresh()
-    if (selectedProjectId) {
-      fetchProjectAssignments(selectedProjectId).then(setProjectAssignments).catch(() => {})
+      await refreshUsers()
+      if (onProjectsRefresh) onProjectsRefresh()
+      if (selectedProjectId) {
+        fetchProjectAssignments(selectedProjectId).then(setProjectAssignments).catch(() => {})
+      }
+      setSelectedUserIds([])
+      setAssignSuccess(true)
+      setTimeout(() => {
+        setAssignSuccess(false)
+        setIsAssignMemberOpen(false)
+      }, 1800)
+    } catch (err) {
+      console.warn('[HeadOKRWorkspace] assign member failed', err)
+      alert('บันทึกการมอบหมายไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setIsAssigning(false)
     }
-    setSelectedUserIds([])
-    setIsAssigning(false)
-    setAssignSuccess(true)
-    setTimeout(() => {
-      setAssignSuccess(false)
-      setIsAssignMemberOpen(false)
-    }, 1800)
   }
 
   return (
