@@ -10,7 +10,7 @@ export async function fetchProjectAssignments(projectId?: string): Promise<Proje
   if (typeof window !== 'undefined') {
     try {
       const data = await fetchWithDeduplication<{ success: boolean; assignments: ProjectAssignment[] }>(
-        '/api/projects',
+        '/api/projects?include=assignments',
         { ttl: 2500 }
       )
       if (data?.success && Array.isArray(data.assignments)) {
@@ -80,7 +80,12 @@ export async function assignProjectRoles(data: {
 
   const assignedIdSet = new Set(data.user_ids)
   inMemoryProjectAssignments = inMemoryProjectAssignments.filter(
-    a => !(a.project_id === data.project_id && assignedIdSet.has(a.user_id))
+    a => {
+      if (a.project_id !== data.project_id) return true
+      if (assignedIdSet.has(a.user_id)) return false
+      if (data.role_type === 'Head' && a.role_type === 'Head') return false
+      return true
+    }
   )
   inMemoryProjectAssignments = [...newAssignments, ...inMemoryProjectAssignments]
 
@@ -142,10 +147,6 @@ export async function assignProjectRole(data: {
 
 export async function removeProjectRole(assignmentId: string): Promise<void> {
   invalidateApiCache('/api/projects')
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    await dbCall(() => (supabase.from('project_assignments') as any).delete().eq('assignment_id', assignmentId), 'removeProjectRole')
-  }
 
   const target = inMemoryProjectAssignments.find(a => a.assignment_id === assignmentId)
   if (target) {
