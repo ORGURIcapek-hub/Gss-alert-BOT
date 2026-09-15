@@ -70,6 +70,18 @@ export async function GET() {
   const supabase = getSafeSupabaseClient()
   if (supabase) {
     try {
+      const { data: remoteReports } = await supabase.from('normal_reports').select('report_id, project_id')
+      if (remoteReports && Array.isArray(remoteReports)) {
+        for (const r of remoteReports) {
+          if (!r.project_id || !deletedProjectIds.has(r.project_id)) {
+            validReportIds.add(r.report_id)
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[api/evaluations] Supabase reports lookup failed', e)
+    }
+    try {
       const { data } = await supabase.from('evaluations').select('*').order('created_at', { ascending: false })
       if (data && Array.isArray(data)) {
         const localMap = new Map(evaluations.map(e => [e.eval_id, e]))
@@ -81,6 +93,8 @@ export async function GET() {
             local.head_score = item.head_score ?? local.head_score
             local.team_score = item.team_score ?? local.team_score
             local.executive_score = item.executive_score ?? local.executive_score
+            local.project_id = item.project_id ?? local.project_id
+            local.updated_at = item.updated_at ?? local.updated_at
           }
         }
       }
@@ -95,6 +109,20 @@ export async function GET() {
     return true
   })
 
+  const newestByTarget = new Map<string, Evaluation>()
+  for (const e of evaluations) {
+    const key = `${e.evaluator_id || ''}|${e.report_id || ''}|${e.dashboard_id || ''}|${e.project_id || ''}`
+    const prev = newestByTarget.get(key)
+    if (!prev) {
+      newestByTarget.set(key, e)
+    } else {
+      const prevTime = new Date(prev.updated_at || prev.created_at).getTime()
+      const curTime = new Date(e.updated_at || e.created_at).getTime()
+      if (curTime >= prevTime) newestByTarget.set(key, e)
+    }
+  }
+  evaluations = Array.from(newestByTarget.values())
+
   evaluations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   return NextResponse.json({ success: true, evaluations })
 }
@@ -106,23 +134,42 @@ export async function POST(req: NextRequest) {
     const storage = await ensureDataFile()
 
     if (action === 'create_or_update') {
-      const existingIdx = storage.evaluations.findIndex(e =>
-        e.evaluator_id === evalData.evaluator_id && (
-          (evalData.report_id && e.report_id === evalData.report_id) ||
-          (evalData.dashboard_id && e.dashboard_id === evalData.dashboard_id) ||
-          (evalData.project_id && e.project_id === evalData.project_id)
-        )
-      )
+      if (!evalData.report_id && !evalData.dashboard_id && !evalData.project_id) {
+        return NextResponse.json({ error: 'ต้องระบุรายงานหรือโครงการที่ประเมิน' }, { status: 400 })
+      }
+      const clampScore = (s: unknown): number | null => {
+        if (s === undefined || s === null) return null
+        const n = Math.round(Number(s))
+        if (!Number.isFinite(n)) return null
+        return Math.min(5, Math.max(1, n))
+      }
+      const headScore = clampScore(evalData.head_score)
+      if (headScore === null) {
+        return NextResponse.json({ error: 'ต้องระบุคะแนนหัวข้อหลัก 1-5' }, { status: 400 })
+      }
+      const teamScore = clampScore(evalData.team_score)
+      const executiveScore = clampScore(evalData.executive_score)
+      const targetKeys = (['report_id', 'dashboard_id', 'project_id'] as const).filter(k => evalData[k])
+      const matchesTarget = (e: Evaluation) =>
+        e.evaluator_id === evalData.evaluator_id &&
+        targetKeys.length > 0 &&
+        targetKeys.every(k => e[k] === evalData[k])
+      const existingIdx = storage.evaluations.findIndex(matchesTarget)
 
       let newEv: Evaluation
       if (existingIdx !== -1) {
         const prev = storage.evaluations[existingIdx]
         newEv = {
           ...prev,
-          ...evalData,
-          head_score: evalData.head_score !== undefined ? evalData.head_score : prev.head_score,
-          team_score: evalData.team_score !== undefined ? evalData.team_score : prev.team_score,
-          executive_score: evalData.executive_score !== undefined ? evalData.executive_score : prev.executive_score,
+          eval_id: prev.eval_id,
+          report_id: prev.report_id,
+          dashboard_id: prev.dashboard_id,
+          project_id: prev.project_id,
+          evaluator_id: prev.evaluator_id,
+          created_at: prev.created_at,
+          head_score: headScore,
+          team_score: evalData.team_score !== undefined ? teamScore : prev.team_score,
+          executive_score: evalData.executive_score !== undefined ? executiveScore : prev.executive_score,
           updated_at: new Date().toISOString()
         }
         storage.evaluations[existingIdx] = newEv
@@ -133,10 +180,11 @@ export async function POST(req: NextRequest) {
           dashboard_id: evalData.dashboard_id || null,
           project_id: evalData.project_id || null,
           evaluator_id: evalData.evaluator_id || null,
-          head_score: evalData.head_score ?? 0,
-          team_score: evalData.team_score ?? null,
-          executive_score: evalData.executive_score ?? null,
-          created_at: evalData.created_at || new Date().toISOString()
+          head_score: headScore,
+          team_score: teamScore,
+          executive_score: executiveScore,
+          created_at: evalData.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }
         storage.evaluations.unshift(newEv)
       }
@@ -146,10 +194,21 @@ export async function POST(req: NextRequest) {
       const supabase = getSafeSupabaseClient()
       if (supabase) {
         try {
+          const evaluationRow = {
+            eval_id: newEv.eval_id,
+            report_id: newEv.report_id,
+            dashboard_id: newEv.dashboard_id,
+            project_id: newEv.project_id,
+            evaluator_id: newEv.evaluator_id,
+            head_score: newEv.head_score,
+            team_score: newEv.team_score,
+            executive_score: newEv.executive_score,
+            updated_at: newEv.updated_at || new Date().toISOString()
+          }
           if (existingIdx !== -1) {
-            await supabase.from('evaluations').update(newEv).eq('eval_id', newEv.eval_id)
+            await supabase.from('evaluations').upsert(evaluationRow, { onConflict: 'eval_id' })
           } else {
-            await supabase.from('evaluations').insert(newEv)
+            await supabase.from('evaluations').insert(evaluationRow)
           }
         } catch (e) {
           console.warn('[api/evaluations] Supabase ops failed', e)
