@@ -272,6 +272,23 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing userId' }, { status: 400 })
     }
 
+    const validRoles: UserRole[] = ['admin', 'executive', 'head_okr', 'teacher', 'staff']
+    for (const r of [body.role, body.assignedRole]) {
+      if (r !== undefined && r !== null && !validRoles.includes(r)) {
+        return NextResponse.json({ success: false, error: 'บทบาทผู้ใช้งานไม่ถูกต้อง' }, { status: 400 })
+      }
+    }
+    if (body.year !== undefined && body.year !== null && !/^\d{4}$/.test(String(body.year))) {
+      return NextResponse.json({ success: false, error: 'ปีงบประมาณไม่ถูกต้อง' }, { status: 400 })
+    }
+    if (body.yearly_roles && typeof body.yearly_roles === 'object') {
+      for (const v of Object.values(body.yearly_roles)) {
+        if (!validRoles.includes(v as UserRole)) {
+          return NextResponse.json({ success: false, error: 'บทบาทรายปีไม่ถูกต้อง' }, { status: 400 })
+        }
+      }
+    }
+
     const storage = await ensureDataFile()
     let userIndex = storage.users.findIndex(u => u.user_id === userId)
     let user = userIndex !== -1 ? { ...storage.users[userIndex] } : null
@@ -294,22 +311,6 @@ export async function PUT(req: NextRequest) {
       } catch (e) {
         console.warn('[api/users] Failed to fetch user from Supabase in PUT:', e)
       }
-    }
-
-    if (!user && body.user) {
-      const fallbackRole: UserRole = body.assignedRole || body.user.role || 'teacher'
-      const fallbackUser: UserProfile = {
-        ...body.user,
-        user_id: userId,
-        status: action === 'approve' ? 'approved' : (body.user.status || 'approved'),
-        role: fallbackRole,
-        management_order: getManagementOrder(fallbackRole),
-        updated_at: new Date().toISOString()
-      }
-      user = fallbackUser
-      storage.users.push(user)
-      userIndex = storage.users.length - 1
-      storage.deletedUserIds = storage.deletedUserIds.filter(id => id !== userId)
     }
 
     if (!user) {
@@ -407,7 +408,6 @@ export async function PUT(req: NextRequest) {
         if (user.department) updatePayload.department = user.department
         if (user.position) updatePayload.position = user.position
         if (user.avatar_url) updatePayload.avatar_url = user.avatar_url
-        if (user.yearly_roles) updatePayload.yearly_roles = user.yearly_roles
 
         const { error: sbError } = await supabase
           .from('users')
@@ -416,6 +416,14 @@ export async function PUT(req: NextRequest) {
 
         if (sbError) {
           console.error('[api/users] Supabase update error:', sbError)
+        } else if (user.yearly_roles) {
+          const { error: rolesError } = await supabase
+            .from('users')
+            .update({ yearly_roles: user.yearly_roles } as any)
+            .eq('user_id', userId)
+          if (rolesError) {
+            console.warn('[api/users] Supabase yearly_roles update skipped:', rolesError.message)
+          }
         }
       } catch (dbErr) {
         console.warn('[api/users] Supabase update warning:', dbErr)
