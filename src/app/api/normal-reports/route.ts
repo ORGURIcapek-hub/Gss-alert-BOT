@@ -97,6 +97,9 @@ export async function POST(req: NextRequest) {
     const storage = await ensureDataFile()
 
     if (action === 'create') {
+      if (!reportData.project_name || !String(reportData.project_name).trim()) {
+        return NextResponse.json({ success: false, error: 'กรุณาระบุชื่อโครงการ' }, { status: 400 })
+      }
       const newReport: NormalReport = {
         report_id: reportData.report_id || crypto.randomUUID(),
         project_id: reportData.project_id || null,
@@ -128,10 +131,56 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, report: newReport })
     }
 
+    if (action === 'update_scores') {
+      const { report_id, head_evaluation_score, team_evaluation_score } = body
+      if (!report_id) {
+        return NextResponse.json({ success: false, error: 'Missing report_id' }, { status: 400 })
+      }
+      const target = storage.reports.find(r => r.report_id === report_id)
+      if (!target) {
+        return NextResponse.json({ success: false, error: 'ไม่พบรายงานที่ระบุ' }, { status: 404 })
+      }
+      if (head_evaluation_score !== undefined && head_evaluation_score !== null) {
+        target.head_evaluation_score = head_evaluation_score
+      }
+      if (team_evaluation_score !== undefined && team_evaluation_score !== null) {
+        target.team_evaluation_score = team_evaluation_score
+      }
+      target.updated_at = new Date().toISOString()
+      await saveReportsFile(storage)
+
+      const supabase = getSafeSupabaseClient()
+      if (supabase) {
+        try {
+          await supabase.from('normal_reports').update({
+            head_evaluation_score: target.head_evaluation_score,
+            team_evaluation_score: target.team_evaluation_score,
+            updated_at: target.updated_at
+          }).eq('report_id', report_id)
+        } catch (e) {
+          console.warn('[api/normal-reports] Supabase update scores failed', e)
+        }
+      }
+
+      return NextResponse.json({ success: true, report: target })
+    }
+
     if (action === 'delete') {
       const { report_id } = body
+      if (!report_id) {
+        return NextResponse.json({ success: false, error: 'Missing report_id' }, { status: 400 })
+      }
       storage.reports = storage.reports.filter(r => r.report_id !== report_id)
       await saveReportsFile(storage)
+
+      try {
+        const evalPath = path.join(DATA_DIR, 'persisted-evaluations.json')
+        const evalData = await readJsonSafe<{ evaluations: any[] } | null>(evalPath, null)
+        if (evalData && Array.isArray(evalData.evaluations)) {
+          evalData.evaluations = evalData.evaluations.filter(e => e.report_id !== report_id)
+          await writeJsonAtomic(evalPath, evalData)
+        }
+      } catch {}
 
       const supabase = getSafeSupabaseClient()
       if (supabase) {
@@ -145,9 +194,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 })
   } catch (err: any) {
     console.error('[api/normal-reports] POST error:', err)
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 })
+    return NextResponse.json({ success: false, error: err.message || 'Internal error' }, { status: 500 })
   }
 }
