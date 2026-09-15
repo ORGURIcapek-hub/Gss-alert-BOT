@@ -285,6 +285,27 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
           </div>
         </div>
 
+        {project.okr && (
+          <div className="bg-sky-50/70 border border-sky-200/80 rounded-2xl p-4 mb-4 space-y-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#003B71] text-white">
+                {project.okr.okr_type || 'เป้าหมาย OKR คณะ'}
+              </span>
+              <span className="text-[11px] text-slate-500 font-semibold">
+                ปีงบประมาณ {project.okr.year} {project.okr.quarter ? `(${project.okr.quarter})` : ''}
+              </span>
+            </div>
+            {project.okr.object && (
+              <div className="text-xs text-slate-700">
+                <span className="font-bold text-[#003B71]">เป้าหมายยุทธศาสตร์ (Objective):</span> {project.okr.object}
+              </div>
+            )}
+            <div className="text-xs text-slate-900 font-medium">
+              <span className="font-bold text-sky-800">ผลลัพธ์หลักที่ตอบสนอง (Key Result):</span> {project.okr.key_result || project.okr.okr_title}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4 text-xs">
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
             <h3 className="font-bold text-slate-900 text-xs mb-1">เป้าหมายหลักและตัวชี้วัด (Objectives)</h3>

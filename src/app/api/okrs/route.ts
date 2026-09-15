@@ -103,7 +103,10 @@ export async function POST(req: NextRequest) {
 
     if (action === 'create' || !action) {
       const okrData = body.okr || body
-      if (!okrData.okr_title) {
+      const objectVal = okrData.object || null
+      const keyResultVal = okrData.key_result || null
+      const title = okrData.okr_title || (keyResultVal ? (objectVal ? `${objectVal}: ${keyResultVal}` : keyResultVal) : '')
+      if (!title) {
         return NextResponse.json({ success: false, error: 'Missing okr_title' }, { status: 400 })
       }
 
@@ -112,7 +115,9 @@ export async function POST(req: NextRequest) {
       const normalizedQuarter = validQuarters.includes(okrData.quarter) ? okrData.quarter : null
       const newOKR: OKR = {
         okr_id: okrData.okr_id || crypto.randomUUID(),
-        okr_title: okrData.okr_title,
+        okr_title: title,
+        object: objectVal,
+        key_result: keyResultVal,
         okr_type: okrData.okr_type || 'ยุทธศาสตร์คณะ',
         year: Number(okrData.year) || 2568,
         quarter: normalizedQuarter,

@@ -124,6 +124,8 @@ export async function fetchOKRs(year?: number): Promise<OKR[]> {
 
 export async function createOKR(data: {
   okr_title: string
+  object?: string | null
+  key_result?: string | null
   okr_type: string
   year: number
   quarter?: string | null
@@ -138,6 +140,8 @@ export async function createOKR(data: {
   const newOKR: OKR = {
     okr_id: newId,
     okr_title: data.okr_title,
+    object: data.object || null,
+    key_result: data.key_result || null,
     okr_type: data.okr_type || 'ยุทธศาสตร์คณะ',
     year: data.year || 2568,
     quarter: normalizedQuarter,

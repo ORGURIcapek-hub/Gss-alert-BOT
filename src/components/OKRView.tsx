@@ -20,29 +20,38 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
   const [expandedOkr, setExpandedOkr] = useState<string | null>(okrs[0]?.okr_id || null)
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [newObject, setNewObject] = useState('')
+  const [newKeyResult, setNewKeyResult] = useState('')
   const [newTitle, setNewTitle] = useState('')
-  const [newType, setNewType] = useState('ยุทธศาสตร์ที่ 1: การพัฒนาคุณภาพบัณฑิต')
+  const [newType, setNewType] = useState('R - Recognition: พลังแห่งผู้เรียนและศิษย์เก่า')
   const [newYear, setNewYear] = useState(2568)
   const [newQuarter, setNewQuarter] = useState('ALL')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleCreateOKR = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTitle.trim()) {
-      alert('กรุณาระบุชื่อเป้าหมาย OKR')
+    const finalKeyResult = newKeyResult.trim()
+    const finalObject = newObject.trim()
+    const title = newTitle.trim() || (finalKeyResult ? (finalObject ? `${finalObject}: ${finalKeyResult}` : finalKeyResult) : '')
+    if (!title && !finalKeyResult) {
+      alert('กรุณาระบุวัตถุประสงค์ (Objective) หรือผลลัพธ์หลัก (Key Result)')
       return
     }
 
     setIsSubmitting(true)
     try {
       await createOKR({
-        okr_title: newTitle.trim(),
+        okr_title: title,
+        object: finalObject || null,
+        key_result: finalKeyResult || null,
         okr_type: newType,
         year: Number(newYear),
         quarter: newQuarter,
         created_by: currentUser?.user_id
       })
       setIsAddModalOpen(false)
+      setNewObject('')
+      setNewKeyResult('')
       setNewTitle('')
       if (onRefresh) {
         onRefresh()
@@ -106,33 +115,48 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
             <form onSubmit={handleCreateOKR} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  ชื่อเป้าหมาย OKR / ตัวชี้วัดหลัก <span className="text-rose-500">*</span>
+                  เสาหลักยุทธศาสตร์ (SDU Flagship Pillar)
+                </label>
+                <select
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#003B71]/20 focus:border-[#003B71] bg-white font-medium"
+                >
+                  <option value="R - Recognition: พลังแห่งผู้เรียนและศิษย์เก่า">R - Recognition: พลังแห่งผู้เรียนและศิษย์เก่า</option>
+                  <option value="A - Achievement: ความเป็นเลิศทางวิชาการสู่สากล">A - Achievement: ความเป็นเลิศทางวิชาการสู่สากล</option>
+                  <option value="I - Innovation: การใช้ประโยชน์งานวิจัยและนวัตกรรม">I - Innovation: การใช้ประโยชน์งานวิจัยและนวัตกรรม</option>
+                  <option value="S - Sustainability: เศรษฐกิจแบบองค์รวมและความผูกพันชุมชน">S - Sustainability: เศรษฐกิจแบบองค์รวมและความผูกพันชุมชน</option>
+                  <option value="E - Ecosystem: ระบบนิเวศการเรียนรู้ One World Library (OWL)">E - Ecosystem: ระบบนิเวศการเรียนรู้ One World Library (OWL)</option>
+                  <option value="ยุทธศาสตร์คณะทั่วไป">ยุทธศาสตร์คณะทั่วไป</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  วัตถุประสงค์หลัก (Objective) *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="เช่น เพิ่มอัตราการได้งานทำของบัณฑิตไม่น้อยกว่า 90%"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="เช่น พัฒนาผู้เรียนให้มีทักษะที่จำเป็นแห่งโลกอนาคต"
+                  value={newObject}
+                  onChange={(e) => setNewObject(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#003B71]/20 focus:border-[#003B71]"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  ประเภทยุทธศาสตร์ / หมวดหมู่
+                  ผลลัพธ์หลัก (Key Result) *
                 </label>
-                <select
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#003B71]/20 focus:border-[#003B71] bg-white"
-                >
-                  <option value="ยุทธศาสตร์ที่ 1: การพัฒนาคุณภาพบัณฑิต">ยุทธศาสตร์ที่ 1: การพัฒนาคุณภาพบัณฑิต</option>
-                  <option value="ยุทธศาสตร์ที่ 2: การวิจัยและนวัตกรรม">ยุทธศาสตร์ที่ 2: การวิจัยและนวัตกรรม</option>
-                  <option value="ยุทธศาสตร์ที่ 3: การบริการวิชาการสู่สังคม">ยุทธศาสตร์ที่ 3: การบริการวิชาการสู่สังคม</option>
-                  <option value="ยุทธศาสตร์ที่ 4: การบริหารจัดการที่มีประสิทธิภาพ">ยุทธศาสตร์ที่ 4: การบริหารจัดการที่มีประสิทธิภาพ</option>
-                  <option value="ยุทธศาสตร์คณะ">ยุทธศาสตร์คณะทั่วไป</option>
-                </select>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="เช่น ร้อยละของนักศึกษาที่ผ่านการทดสอบสมรรถนะด้านเทคโนโลยีและภาษาต่างประเทศตามเกณฑ์มาตรฐาน"
+                  value={newKeyResult}
+                  onChange={(e) => setNewKeyResult(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#003B71]/20 focus:border-[#003B71] resize-none"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -228,8 +252,13 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
                         ปี {okr.year} {okr.quarter ? `(${okr.quarter})` : '(ทั้งปี)'}
                       </span>
                     </div>
+                    {okr.object && (
+                      <div className="text-xs font-semibold text-[#003B71]">
+                        เป้าหมาย (Objective): {okr.object}
+                      </div>
+                    )}
                     <h3 className="text-base font-bold text-slate-900 leading-snug">
-                      {okr.okr_title}
+                      {okr.key_result ? `KR: ${okr.key_result}` : okr.okr_title}
                     </h3>
                   </div>
                 </div>

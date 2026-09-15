@@ -319,6 +319,8 @@ export interface Database {
         Row: {
           okr_id: string
           okr_title: string
+          object?: string | null
+          key_result?: string | null
           okr_type: string
           year: number
           quarter: OKRQuarter | null
@@ -330,6 +332,8 @@ export interface Database {
         Insert: {
           okr_id?: string
           okr_title: string
+          object?: string | null
+          key_result?: string | null
           okr_type: string
           year: number
           quarter?: OKRQuarter | null
@@ -341,6 +345,8 @@ export interface Database {
         Update: {
           okr_id?: string
           okr_title?: string
+          object?: string | null
+          key_result?: string | null
           okr_type?: string
           year?: number
           quarter?: OKRQuarter | null

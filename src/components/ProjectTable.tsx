@@ -90,7 +90,17 @@ const ProjectTableRow = React.memo(function ProjectTableRow({
         <div className="font-bold text-slate-900 text-sm sm:text-base line-clamp-1 max-w-sm">
           {project.project_name}
         </div>
-        <span className="text-xs text-slate-500 font-medium">{project.project_type}</span>
+        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+          <span className="text-xs text-slate-500 font-medium">{project.project_type}</span>
+          {project.okr && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/60 max-w-[260px] truncate"
+              title={project.okr.key_result ? `${project.okr.object ? project.okr.object + ' -> ' : ''}${project.okr.key_result}` : project.okr.okr_title}
+            >
+              {project.okr.key_result ? `KR: ${project.okr.key_result}` : project.okr.okr_title}
+            </span>
+          )}
+        </div>
       </td>
       <td className="py-4 px-4 text-slate-800 font-semibold text-sm">
         {formatDepartmentShort(project.department)}

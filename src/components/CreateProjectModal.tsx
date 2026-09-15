@@ -139,7 +139,7 @@ export function CreateProjectModal({ okrs = [], users, onClose, onCreated }: Cre
 
           <div>
             <label className="block text-slate-700 font-bold mb-1 text-xs">
-              เป้าหมาย OKR คณะที่รองรับ (OKR Goal) *
+              เป้าหมาย OKR / ผลลัพธ์หลัก (Key Result) ที่โครงการตอบสนอง *
             </label>
             <select
               value={okrId}
@@ -150,13 +150,43 @@ export function CreateProjectModal({ okrs = [], users, onClose, onCreated }: Cre
               {allOkrs.length === 0 ? (
                 <option value="">-- ไม่พบเป้าหมาย OKR ในระบบ --</option>
               ) : (
-                allOkrs.map((o) => (
-                  <option key={o.okr_id} value={o.okr_id}>
-                    [{o.okr_type}] {o.okr_title} (ปี {o.year})
-                  </option>
-                ))
+                allOkrs.map((o) => {
+                  const label = o.key_result
+                    ? `[${o.okr_type}] ${o.key_result}`
+                    : `[${o.okr_type}] ${o.okr_title}`
+                  return (
+                    <option key={o.okr_id} value={o.okr_id}>
+                      {label} (ปี {o.year})
+                    </option>
+                  )
+                })
               )}
             </select>
+
+            {(() => {
+              const selectedOkr = allOkrs.find(o => o.okr_id === okrId)
+              if (!selectedOkr) return null
+              return (
+                <div className="mt-2 p-3 bg-sky-50/70 border border-sky-200/70 rounded-xl space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#003B71] text-white">
+                      {selectedOkr.okr_type}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-semibold">
+                      ปี {selectedOkr.year} {selectedOkr.quarter ? `(${selectedOkr.quarter})` : ''}
+                    </span>
+                  </div>
+                  {selectedOkr.object && (
+                    <div className="text-[11px] text-slate-700">
+                      <span className="font-bold text-[#003B71]">เป้าหมาย (Objective):</span> {selectedOkr.object}
+                    </div>
+                  )}
+                  <div className="text-[11px] text-slate-900 font-medium">
+                    <span className="font-bold text-sky-800">ผลลัพธ์หลัก (Key Result):</span> {selectedOkr.key_result || selectedOkr.okr_title}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -138,3 +138,32 @@ test('okrs route POST: unknown action returns 400', async t => {
   const res = await route.POST(jsonRequest('/api/okrs', 'POST', { action: 'teleport' }))
   assert.equal(res.status, 400)
 })
+
+test('okrs route POST create: persists object and key_result fields', async t => {
+  const env = createApiTestEnv({ fixtureName: 'okrs-kr' })
+  t.after(() => env.restore())
+  env.seed('persisted-okrs.json', { okrs: [] })
+
+  const route = await env.importRoute('app/api/okrs/route.ts')
+  const res = await route.POST(jsonRequest('/api/okrs', 'POST', {
+    okr: {
+      object: 'พัฒนาผู้เรียนให้มีทักษะที่จำเป็นแห่งโลกอนาคต',
+      key_result: 'ร้อยละของนักศึกษาที่ผ่านการทดสอบสมรรถนะ',
+      okr_type: 'R - Recognition: พลังแห่งผู้เรียนและศิษย์เก่า',
+      year: 2568
+    }
+  }))
+  const body = await res.json()
+
+  assert.equal(res.status, 200)
+  assert.equal(body.success, true)
+  assert.equal(body.okr.object, 'พัฒนาผู้เรียนให้มีทักษะที่จำเป็นแห่งโลกอนาคต')
+  assert.equal(body.okr.key_result, 'ร้อยละของนักศึกษาที่ผ่านการทดสอบสมรรถนะ')
+  assert.ok(body.okr.okr_title.includes('ร้อยละของนักศึกษาที่ผ่านการทดสอบสมรรถนะ'))
+
+  const stored = env.read('persisted-okrs.json').okrs
+  assert.equal(stored.length, 1)
+  assert.equal(stored[0].object, 'พัฒนาผู้เรียนให้มีทักษะที่จำเป็นแห่งโลกอนาคต')
+  assert.equal(stored[0].key_result, 'ร้อยละของนักศึกษาที่ผ่านการทดสอบสมรรถนะ')
+})
+

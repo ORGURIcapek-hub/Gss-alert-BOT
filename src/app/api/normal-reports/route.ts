@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
             target = dbItem
             storage.reports.push(dbItem)
           }
-        } catch {}
+        } catch { }
       }
       if (!target) {
         return NextResponse.json({ success: false, error: 'ไม่พบรายงานที่ระบุ' }, { status: 404 })
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
           evalData.evaluations = evalData.evaluations.filter(e => e.report_id !== report_id)
           await writeJsonAtomic(evalPath, evalData)
         }
-      } catch {}
+      } catch { }
 
       if (supabase) {
         try {

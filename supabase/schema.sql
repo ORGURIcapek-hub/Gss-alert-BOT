@@ -72,6 +72,8 @@ CREATE TABLE public.users (
 CREATE TABLE public.okrs (
     okr_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     okr_title VARCHAR(255) NOT NULL,
+    object TEXT,
+    key_result TEXT,
     okr_type VARCHAR(50) NOT NULL,
     year INT NOT NULL,
     quarter VARCHAR(2) CHECK (quarter IN ('Q1', 'Q2', 'Q3', 'Q4')),
