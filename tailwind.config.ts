@@ -30,7 +30,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Prompt', 'Sarabun', 'Kanit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['Google Sans', 'Noto Sans Thai', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       boxShadow: {
         'card': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
