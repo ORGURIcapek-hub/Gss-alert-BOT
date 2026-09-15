@@ -314,7 +314,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     if (!password) {
       return { success: false, error: 'กรุณาระบุรหัสผ่าน' }
     }
-    if (foundUser.password && password !== foundUser.password) {
+    if (!foundUser.password || password !== foundUser.password) {
       return { success: false, error: 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านของคุณ' }
     }
 
@@ -441,6 +441,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setCurrentUser(null)
     setIsAuthenticated(false)
+    setIsProfileModalOpen(false)
+    setIsChangePasswordOpen(false)
     clearAuthStorage()
   }
 
