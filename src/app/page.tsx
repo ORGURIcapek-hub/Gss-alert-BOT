@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
-import { DashboardMetrics } from '@/components/DashboardMetrics'
 import { ProjectTable } from '@/components/ProjectTable'
 import { ProjectDetailModal } from '@/components/ProjectDetailModal'
 import { CreateProjectModal } from '@/components/CreateProjectModal'
@@ -105,6 +104,16 @@ export default function HomePage() {
       loadData(true)
     }
   }, [selectedYear, isAuthenticated, mounted, currentUser?.user_id])
+
+  useEffect(() => {
+    setActiveTab('workspace')
+    setSelectedQuarter('ALL')
+    setSelectedProject(null)
+    setIsCreateModalOpen(false)
+    setIsMobileMenuOpen(false)
+    setOkrs([])
+    setProjects([])
+  }, [currentUser?.user_id])
 
   useEffect(() => {
     if (!mounted || !isAuthenticated) return
