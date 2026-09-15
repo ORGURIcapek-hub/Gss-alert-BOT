@@ -60,6 +60,8 @@ export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): 
   let daysOverdue = 0
   let daysRemaining = 0
   let effectiveStatus: ProjectStatus = project.status || 'In Progress'
+  const progressNum = Number(project.progress_percentage)
+  const safeProgress = Number.isFinite(progressNum) ? progressNum : 0
 
   if (project.end_date) {
     const today = new Date()
@@ -71,7 +73,7 @@ export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): 
       const diffMs = dueDate.getTime() - today.getTime()
       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
-      if (diffDays < 0 && project.progress_percentage < 100) {
+      if (diffDays < 0 && safeProgress < 100) {
         isOverdue = true
         daysOverdue = Math.abs(diffDays)
         effectiveStatus = 'Delayed'
@@ -81,8 +83,10 @@ export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): 
     }
   }
 
-  if (project.progress_percentage === 100) {
+  if (safeProgress >= 100 || project.status === 'Completed') {
     effectiveStatus = 'Completed'
+    isOverdue = false
+    daysOverdue = 0
   }
 
   return {
@@ -91,8 +95,8 @@ export function enrichProjectWithOverdue(project: ProjectWithHeadAndAssignees): 
     daysOverdue,
     daysRemaining,
     status: effectiveStatus,
-    year: project.okr?.year || null,
-    quarter: project.okr?.quarter || null
+    year: project.okr?.year || project.year || (project.start_date ? new Date(project.start_date).getFullYear() + 543 : null),
+    quarter: project.okr?.quarter || project.quarter || null
   }
 }
 
@@ -228,8 +232,8 @@ export async function fetchProjects(
         }
         if (filters?.year) {
           list = list.filter((p: ProjectWithHeadAndAssignees) => {
-            const pYear = p.year || p.okr?.year
-            return pYear ? Number(pYear) === Number(filters.year) : true
+            const pYear = p.year || p.okr?.year || (p.start_date ? new Date(p.start_date).getFullYear() + 543 : null)
+            return pYear ? Number(pYear) === Number(filters.year) : false
           })
         }
         if (filters?.quarter && filters.quarter !== 'ALL') {
@@ -255,8 +259,8 @@ export async function fetchProjects(
   }
   if (filters?.year) {
     memList = memList.filter(p => {
-      const pYear = p.year || p.okr?.year
-      return pYear ? Number(pYear) === Number(filters.year) : true
+      const pYear = p.year || p.okr?.year || (p.start_date ? new Date(p.start_date).getFullYear() + 543 : null)
+      return pYear ? Number(pYear) === Number(filters.year) : false
     })
   }
   if (filters?.quarter && filters.quarter !== 'ALL') {
