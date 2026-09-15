@@ -15,8 +15,6 @@ DROP FUNCTION IF EXISTS public.handle_updated_at CASCADE;
 DROP VIEW IF EXISTS public."Evaluations" CASCADE;
 DROP VIEW IF EXISTS public."Evidence_Submissions" CASCADE;
 DROP VIEW IF EXISTS public."Project_Assignments" CASCADE;
-DROP VIEW IF EXISTS public."Reports" CASCADE;
-DROP VIEW IF EXISTS public."Audit_Logs" CASCADE;
 DROP VIEW IF EXISTS public."Projects" CASCADE;
 DROP VIEW IF EXISTS public."OKRs" CASCADE;
 DROP VIEW IF EXISTS public."Users" CASCADE;
@@ -28,8 +26,6 @@ DROP TABLE IF EXISTS public.evidence_submissions CASCADE;
 DROP TABLE IF EXISTS public.evidences CASCADE;
 DROP TABLE IF EXISTS public.project_assignments CASCADE;
 DROP TABLE IF EXISTS public.project_assignees CASCADE;
-DROP TABLE IF EXISTS public.audit_logs CASCADE;
-DROP TABLE IF EXISTS public.reports CASCADE;
 DROP TABLE IF EXISTS public.projects CASCADE;
 DROP TABLE IF EXISTS public.okrs CASCADE;
 DROP TABLE IF EXISTS public.users CASCADE;
@@ -67,6 +63,7 @@ CREATE TABLE public.users (
     management_order INT DEFAULT 1,
     avatar_url TEXT,
     status VARCHAR(20) DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
+    yearly_roles JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -106,16 +103,7 @@ CREATE TABLE public.projects (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 4: Project Assignees (Legacy assignees join table)
-CREATE TABLE public.project_assignees (
-    project_id UUID REFERENCES public.projects(project_id) ON DELETE CASCADE,
-    user_id UUID REFERENCES public.users(user_id) ON DELETE CASCADE,
-    assigned_role VARCHAR(100) DEFAULT 'Co-Investigator',
-    assigned_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (project_id, user_id)
-);
-
--- Table 5: Project Assignments (Hierarchical roles: Head / Member)
+-- Table 4: Project Assignments (Hierarchical roles: Head / Member)
 CREATE TABLE public.project_assignments (
     assignment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     project_id UUID REFERENCES public.projects(project_id) ON DELETE CASCADE,
@@ -131,7 +119,7 @@ CREATE TABLE public.evidences (
     project_id UUID REFERENCES public.projects(project_id) ON DELETE CASCADE,
     uploaded_by UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
     file_name VARCHAR(255) NOT NULL,
-    file_path VARCHAR(500) NOT NULL,
+    file_path TEXT NOT NULL,
     file_size INT,
     description TEXT,
     upload_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -145,6 +133,7 @@ CREATE TABLE public.evidence_submissions (
     file_name VARCHAR(255) NOT NULL,
     file_path TEXT NOT NULL,
     file_type VARCHAR(100) NOT NULL,
+    description TEXT,
     submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -182,50 +171,17 @@ CREATE TABLE public.evaluations (
     eval_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     report_id UUID REFERENCES public.normal_reports(report_id) ON DELETE CASCADE,
     dashboard_id UUID REFERENCES public.dashboard(dashboard_id) ON DELETE CASCADE,
+    project_id UUID REFERENCES public.projects(project_id) ON DELETE CASCADE,
     evaluator_id UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
     head_score INT NOT NULL CHECK (head_score BETWEEN 1 AND 5),
     team_score INT CHECK (team_score BETWEEN 1 AND 5),
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
--- Table 11: Reports (Export / Snapshot archive)
-CREATE TABLE public.reports (
-    report_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    report_type VARCHAR(100) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    year INT NOT NULL,
-    quarter VARCHAR(2),
-    department VARCHAR(100),
-    generated_for UUID REFERENCES public.users(user_id) ON DELETE CASCADE,
-    report_data JSONB,
-    generated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
--- Table 12: Audit Logs
-CREATE TABLE public.audit_logs (
-    log_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    actor_id UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
-    action VARCHAR(100) NOT NULL,
-    entity_type VARCHAR(50) NOT NULL,
-    entity_id VARCHAR(100),
-    metadata JSONB,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    executive_score INT CHECK (executive_score BETWEEN 1 AND 5),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- -----------------------------------------------------------------------------
--- 4. COMPATIBILITY VIEWS (Clean PascalCase synonyms)
--- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW public."Project_Assignments" AS SELECT * FROM public.project_assignments;
-CREATE OR REPLACE VIEW public."Evidence_Submissions" AS SELECT * FROM public.evidence_submissions;
-CREATE OR REPLACE VIEW public."Evaluations" AS SELECT * FROM public.evaluations;
-CREATE OR REPLACE VIEW public."Projects" AS SELECT * FROM public.projects;
-CREATE OR REPLACE VIEW public."OKRs" AS SELECT * FROM public.okrs;
-CREATE OR REPLACE VIEW public."Users" AS SELECT * FROM public.users;
-CREATE OR REPLACE VIEW public."Reports" AS SELECT * FROM public.reports;
-CREATE OR REPLACE VIEW public."Audit_Logs" AS SELECT * FROM public.audit_logs;
-
--- -----------------------------------------------------------------------------
--- 5. PERFORMANCE INDEXES
+-- 4. PERFORMANCE INDEXES
 -- -----------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
@@ -236,7 +192,6 @@ CREATE INDEX IF NOT EXISTS idx_projects_okr_id ON public.projects(okr_id);
 CREATE INDEX IF NOT EXISTS idx_projects_head ON public.projects(head_of_project);
 CREATE INDEX IF NOT EXISTS idx_projects_dept ON public.projects(department);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON public.projects(status);
-CREATE INDEX IF NOT EXISTS idx_project_assignees_user ON public.project_assignees(user_id);
 CREATE INDEX IF NOT EXISTS idx_project_assignments_proj_user ON public.project_assignments(project_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_evidences_project ON public.evidences(project_id);
 CREATE INDEX IF NOT EXISTS idx_evidence_submissions_proj ON public.evidence_submissions(project_id);
@@ -244,6 +199,7 @@ CREATE INDEX IF NOT EXISTS idx_dashboard_year ON public.dashboard(academic_year)
 CREATE INDEX IF NOT EXISTS idx_normal_reports_proj ON public.normal_reports(project_id);
 CREATE INDEX IF NOT EXISTS idx_evaluations_rep ON public.evaluations(report_id);
 CREATE INDEX IF NOT EXISTS idx_evaluations_dash ON public.evaluations(dashboard_id);
+CREATE INDEX IF NOT EXISTS idx_evaluations_project ON public.evaluations(project_id);
 
 -- -----------------------------------------------------------------------------
 -- 6. AUTO-UPDATED-AT TRIGGERS
@@ -316,15 +272,12 @@ FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.okrs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.project_assignees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evidences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evidence_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dashboard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.normal_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Users Policies
 DROP POLICY IF EXISTS "Users can read profiles" ON public.users;
@@ -415,10 +368,6 @@ USING (
         WHERE project_id = projects.project_id AND user_id = auth.uid()
     )
     OR EXISTS (
-        SELECT 1 FROM public.project_assignees
-        WHERE project_id = projects.project_id AND user_id = auth.uid()
-    )
-    OR EXISTS (
         SELECT 1 FROM public.users
         WHERE user_id = auth.uid() AND role = 'admin'
     )
@@ -439,28 +388,6 @@ USING (
     EXISTS (
         SELECT 1 FROM public.projects
         WHERE project_id = project_assignments.project_id AND head_of_project = auth.uid()
-    )
-    OR EXISTS (
-        SELECT 1 FROM public.users
-        WHERE user_id = auth.uid() AND role = 'admin'
-    )
-);
-
--- Project Assignees Policies
-DROP POLICY IF EXISTS "Authenticated users can read assignees" ON public.project_assignees;
-CREATE POLICY "Authenticated users can read assignees"
-ON public.project_assignees FOR SELECT
-TO authenticated, anon
-USING (true);
-
-DROP POLICY IF EXISTS "Head and Admin can manage assignees" ON public.project_assignees;
-CREATE POLICY "Head and Admin can manage assignees"
-ON public.project_assignees FOR ALL
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1 FROM public.projects
-        WHERE project_id = project_assignees.project_id AND head_of_project = auth.uid()
     )
     OR EXISTS (
         SELECT 1 FROM public.users
@@ -602,31 +529,6 @@ USING (
     )
 );
 
--- Reports Policies
-DROP POLICY IF EXISTS "Reports readable by receiver or admin" ON public.reports;
-CREATE POLICY "Reports readable by receiver or admin"
-ON public.reports FOR SELECT
-TO authenticated
-USING (
-    generated_for = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.users
-        WHERE user_id = auth.uid() AND role IN ('admin', 'executive')
-    )
-);
-
--- Audit Logs Policies
-DROP POLICY IF EXISTS "Admin read audit logs" ON public.audit_logs;
-CREATE POLICY "Admin read audit logs"
-ON public.audit_logs FOR SELECT
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1 FROM public.users
-        WHERE user_id = auth.uid() AND role = 'admin'
-    )
-);
-
 -- -----------------------------------------------------------------------------
 -- 9. SEED DATA (Consistent IDs across system)
 -- -----------------------------------------------------------------------------
@@ -662,14 +564,6 @@ VALUES
     ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'โครงการจัดตั้งศูนย์ความเป็นเลิศด้าน Cloud & Quantum Computing', 'พัฒนาโครงสร้างพื้นฐาน', 'สร้างห้องปฏิบัติการและหลักสูตรฝึกอบรมสมรรถนะสูง', 'นิสิตผ่านการอบรม 200 คน และได้รับมาตรฐานอุตสาหกรรม', 'ติดตั้งเครื่องมือแม่ข่าย', 'ภาควิชาวิทยาการคอมพิวเตอร์', '2024-03-01', '2024-10-31', '00000000-0000-0000-0000-000000000006', 95.00, 650000.00, 620000.00, 'In Progress', NULL),
     ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000003', 'โครงการตรวจวัดคุณภาพน้ำและสิ่งแวดล้อมชุมชนลุ่มน้ำภาคกลาง', 'บริการวิชาการเพื่อสังคม', 'ถ่ายทอดเทคโนโลยีการตรวจวัดสารเคมีในแหล่งน้ำชุมชน', 'ชุมชนเป้าหมาย 5 แห่งสามารถตรวจวิเคราะห์เบื้องต้นได้เอง', 'จัดทำคู่มือและชุดทดสอบภาคสนาม', 'ภาควิชาเคมี', '2024-01-15', '2024-09-30', '00000000-0000-0000-0000-000000000007', 100.00, 350000.00, 350000.00, 'Completed', NULL)
 ON CONFLICT (project_id) DO NOTHING;
-
--- Project Assignees (Legacy)
-INSERT INTO public.project_assignees (project_id, user_id, assigned_role)
-VALUES
-    ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006', 'หัวหน้าทีมวิจัยอัลกอริทึม'),
-    ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000007', 'นักวิจัยหลักด้านการทดสอบแล็บ'),
-    ('20000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000007', 'ผู้ประสานงานภาคสนามและวิทยากร')
-ON CONFLICT (project_id, user_id) DO NOTHING;
 
 -- Project Assignments (Role-based)
 INSERT INTO public.project_assignments (assignment_id, project_id, user_id, role_type, assigned_by)
@@ -716,3 +610,56 @@ VALUES
     ('70000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000002', NULL, '00000000-0000-0000-0000-000000000005', 5, 5),
     ('70000000-0000-0000-0000-000000000003', NULL, '40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 5, NULL)
 ON CONFLICT (eval_id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'OKR-files',
+    'OKR-files',
+    true,
+    52428800,
+    ARRAY[
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/svg+xml',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'text/csv'
+    ]
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = true,
+    file_size_limit = 52428800,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "Public Access OKR-files" ON storage.objects;
+CREATE POLICY "Public Access OKR-files" ON storage.objects
+    FOR SELECT
+    USING (bucket_id = 'OKR-files');
+
+DROP POLICY IF EXISTS "Allow Upload OKR-files" ON storage.objects;
+CREATE POLICY "Allow Upload OKR-files" ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (bucket_id = 'OKR-files');
+
+DROP POLICY IF EXISTS "Allow Update OKR-files" ON storage.objects;
+CREATE POLICY "Allow Update OKR-files" ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (bucket_id = 'OKR-files')
+    WITH CHECK (bucket_id = 'OKR-files');
+
+DROP POLICY IF EXISTS "Allow Delete OKR-files" ON storage.objects;
+CREATE POLICY "Allow Delete OKR-files" ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (bucket_id = 'OKR-files');
+
