@@ -1,5 +1,5 @@
 import { mockOKRs, mockProjects } from '@/lib/mock-data'
-import { OKR, ProjectWithHeadAndAssignees, ProjectStatus } from '@/types/database.types'
+import { OKR, OKRQuarter, ProjectWithHeadAndAssignees, ProjectStatus } from '@/types/database.types'
 import { getSafeSupabaseClient, dbCall, getCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 import { getInMemoryUsers } from './user-service'
 import { removeProjectReportsInMemory, clearAllReportsInMemory, notifyEvaluationsChannel } from './report-service'
@@ -122,17 +122,21 @@ export async function createOKR(data: {
   okr_title: string
   okr_type: string
   year: number
-  quarter?: string
+  quarter?: string | null
   created_by?: string
 }): Promise<OKR> {
   const newId = crypto.randomUUID()
   const now = new Date().toISOString()
+  const validQuarters: OKRQuarter[] = ['Q1', 'Q2', 'Q3', 'Q4']
+  const normalizedQuarter: OKRQuarter | null = data.quarter && (validQuarters as string[]).includes(data.quarter)
+    ? (data.quarter as OKRQuarter)
+    : null
   const newOKR: OKR = {
     okr_id: newId,
     okr_title: data.okr_title,
     okr_type: data.okr_type || 'ยุทธศาสตร์คณะ',
     year: data.year || 2567,
-    quarter: data.quarter || 'ALL',
+    quarter: normalizedQuarter,
     status: 'In Progress',
     created_by: data.created_by || null,
     created_at: now,
@@ -149,15 +153,6 @@ export async function createOKR(data: {
       })
     } catch (e) {
       console.warn('[createOKR] POST /api/okrs failed', e)
-    }
-  }
-
-  const supabase = getSafeSupabaseClient()
-  if (supabase) {
-    try {
-      await (supabase.from('okrs') as any).insert(newOKR)
-    } catch (e) {
-      console.warn('[createOKR] Supabase insert failed', e)
     }
   }
 
@@ -391,6 +386,7 @@ export async function updateProjectProgressRecord(
   status: ProjectStatus,
   spent?: number
 ): Promise<void> {
+  const clampedProgress = Math.min(100, Math.max(0, Math.round(progress)))
   invalidateApiCache('/api/projects')
   if (typeof window !== 'undefined') {
     try {
@@ -400,7 +396,7 @@ export async function updateProjectProgressRecord(
         body: JSON.stringify({
           action: 'update_progress',
           project_id: projectId,
-          progress,
+          progress: clampedProgress,
           bottleneck,
           status,
           spent
@@ -413,7 +409,7 @@ export async function updateProjectProgressRecord(
   if (index !== -1) {
     inMemoryProjects[index] = {
       ...inMemoryProjects[index],
-      progress_percentage: progress,
+      progress_percentage: clampedProgress,
       bottleneck: bottleneck,
       status: status,
       spent_amount: spent !== undefined ? spent : inMemoryProjects[index].spent_amount,
