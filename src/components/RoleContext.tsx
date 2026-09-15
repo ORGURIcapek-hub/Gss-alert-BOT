@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
 import { mockUsers } from '@/lib/mock-data'
 import {
@@ -10,10 +10,12 @@ import {
   rejectUserRecord,
   updateUserPasswordRecord,
   updateUserProfileRecord,
-  deleteUserRecord
+  deleteUserRecord,
+  updateUserYearlyRoleRecord,
+  getCachedProjects
 } from '@/lib/services'
 import { validatePassword, validateEmail } from '@/lib/password-utils'
-import { isUserIdentical } from '@/lib/user-constants'
+import { isUserIdentical, getUserRoleForYear } from '@/lib/user-constants'
 import {
   getStoredUserId,
   getStoredCachedUser,
@@ -55,7 +57,10 @@ interface RoleContextType {
   allUsers: UserProfile[]
   pendingUsers: UserProfile[]
   pendingCount: number
+  selectedYear: number
+  setSelectedYear: (year: number) => void
   currentRole: UserRole | null
+  updateUserYearlyRole: (userId: string, year: number, role: UserRole) => Promise<{ success: boolean; error?: string }>
   isAuthenticated: boolean
   isAuthLoading: boolean
   login: (identifier: string, password?: string) => Promise<LoginResult>
@@ -99,6 +104,50 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true)
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+
+  const [selectedYear, setSelectedYearState] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem('sdu_okr_selected_year')
+        if (saved) return Number(saved)
+      } catch {}
+    }
+    return 2567
+  })
+
+  const setSelectedYear = useCallback((year: number) => {
+    setSelectedYearState(year)
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('sdu_okr_selected_year', String(year))
+      } catch {}
+    }
+  }, [])
+
+  const [projectsVersion, setProjectsVersion] = useState<number>(0)
+
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        channel = new BroadcastChannel('sdu_okr_sync_channel')
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'PROJECTS_UPDATED') {
+            setProjectsVersion(v => v + 1)
+          }
+        }
+      }
+    } catch {}
+    return () => {
+      channel?.close()
+    }
+  }, [])
+
+  const currentRole = useMemo(() => {
+    if (!currentUser) return null
+    const cachedProjects = getCachedProjects()
+    return getUserRoleForYear(currentUser, selectedYear, cachedProjects)
+  }, [currentUser, selectedYear, projectsVersion, allUsers])
 
   const currentUserRef = useRef<UserProfile | null>(currentUser)
   useEffect(() => {
@@ -468,6 +517,42 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateUserYearlyRole = async (userId: string, year: number, role: UserRole): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const yearKey = String(year)
+      setAllUsers(prev =>
+        prev.map(u => {
+          if (u.user_id === userId) {
+            return {
+              ...u,
+              yearly_roles: {
+                ...(u.yearly_roles || {}),
+                [yearKey]: role
+              }
+            }
+          }
+          return u
+        })
+      )
+      if (currentUser && currentUser.user_id === userId) {
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          yearly_roles: {
+            ...(prev.yearly_roles || {}),
+            [yearKey]: role
+          }
+        } : null)
+      }
+      await updateUserYearlyRoleRecord(userId, year, role)
+      broadcastSync()
+      await refreshUsers(true)
+      return { success: true }
+    } catch (err: any) {
+      await refreshUsers(true)
+      return { success: false, error: err?.message || 'เกิดข้อผิดพลาดในการปรับเปลี่ยนสิทธิ์รายปี' }
+    }
+  }
+
   const pendingUsers = allUsers.filter(u => u.status === 'pending')
 
   return (
@@ -477,7 +562,10 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         allUsers,
         pendingUsers,
         pendingCount: pendingUsers.length,
-        currentRole: currentUser ? currentUser.role : null,
+        selectedYear,
+        setSelectedYear,
+        currentRole,
+        updateUserYearlyRole,
         isAuthenticated,
         isAuthLoading,
         login,

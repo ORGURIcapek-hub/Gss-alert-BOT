@@ -24,7 +24,7 @@ export function AssignHeadModal({
   okrs = [],
   onSuccess
 }: AssignHeadModalProps) {
-  const { currentUser } = useRole()
+  const { currentUser, updateUserYearlyRole } = useRole()
   const [assignProjectId, setAssignProjectId] = useState<string>(projects[0]?.project_id || '')
   const [assignUserId, setAssignUserId] = useState<string>('')
   const [assignOkrId, setAssignOkrId] = useState<string>('')
@@ -70,6 +70,12 @@ export function AssignHeadModal({
         await updateProjectOKR(assignProjectId, assignOkrId)
       }
 
+      const targetProj = projects.find(p => p.project_id === assignProjectId)
+      const projectYear = targetProj?.okr?.year || targetProj?.year
+      if (projectYear && updateUserYearlyRole) {
+        await updateUserYearlyRole(assignUserId, projectYear, 'head_okr')
+      }
+
       await onSuccess()
       setIsAssigning(false)
       setAssignSuccess(true)
@@ -82,7 +88,7 @@ export function AssignHeadModal({
     }
   }
 
-  const eligibleUsers = allUsers.filter(u => u.role === 'head_okr' && (u.status === 'approved' || !u.status))
+  const eligibleUsers = allUsers.filter(u => (u.role === 'head_okr' || u.role === 'teacher') && (u.status === 'approved' || !u.status))
 
   return (
     <div

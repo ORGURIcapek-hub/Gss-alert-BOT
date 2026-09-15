@@ -2,15 +2,14 @@
 
 import React, { useState } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
-import { Shield, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Clock } from 'lucide-react'
-import { updateUserRoleRecord } from '@/lib/services/okr-service'
+import { Shield, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Clock, Calendar } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
 import { PasswordCell } from '@/components/ui/PasswordCell'
-import { ROLE_OPTIONS, filterUsersBySearchQuery, getUserFullName } from '@/lib/user-constants'
+import { ROLE_OPTIONS, filterUsersBySearchQuery, getUserFullName, getUserRoleForYear } from '@/lib/user-constants'
 
 export function AdminUserManagement() {
-  const { currentUser, allUsers, pendingUsers, deleteUser, refreshUsers } = useRole()
+  const { currentUser, allUsers, pendingUsers, deleteUser, refreshUsers, selectedYear, setSelectedYear, updateUserYearlyRole } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -29,8 +28,7 @@ export function AdminUserManagement() {
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUpdatingId(userId)
-    await updateUserRoleRecord(userId, newRole)
-    await refreshUsers()
+    await updateUserYearlyRole(userId, selectedYear, newRole)
     setUpdatingId(null)
   }
 
@@ -68,6 +66,20 @@ export function AdminUserManagement() {
         </div>
 
         <div className="flex items-center flex-wrap gap-2.5">
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold">
+            <Calendar className="w-3.5 h-3.5 text-[#003B71]" />
+            <span className="text-slate-600">จัดการสิทธิ์ประจำปี:</span>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="bg-transparent text-slate-900 font-bold focus:outline-none cursor-pointer"
+            >
+              <option value={2568}>2568</option>
+              <option value={2567}>2567</option>
+              <option value={2566}>2566</option>
+            </select>
+          </div>
+
           <button
             onClick={() => setShowAllPasswords(!showAllPasswords)}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
@@ -168,18 +180,28 @@ export function AdminUserManagement() {
                     {u.position || '-'}
                   </td>
                   <td className="py-4 px-4">
-                    <select
-                      value={u.role}
-                      disabled={updatingId === u.user_id}
-                      onChange={(e) => handleRoleChange(u.user_id, e.target.value as UserRole)}
-                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
-                    >
-                      {ROLE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const effectiveRole = getUserRoleForYear(u, selectedYear) || u.role
+                      return (
+                        <div>
+                          <select
+                            value={effectiveRole}
+                            disabled={updatingId === u.user_id}
+                            onChange={(e) => handleRoleChange(u.user_id, e.target.value as UserRole)}
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
+                          >
+                            {ROLE_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-[10px] text-slate-500 font-semibold block mt-1">
+                            ปี {selectedYear}
+                          </span>
+                        </div>
+                      )
+                    })()}
                   </td>
 
                   <td className="py-4 px-4">

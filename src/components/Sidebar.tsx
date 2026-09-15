@@ -36,7 +36,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
-  const { currentUser, currentRole, logout, pendingCount, openChangePasswordModal, openProfileModal } = useRole()
+  const { currentUser, currentRole, selectedYear, logout, pendingCount, openChangePasswordModal, openProfileModal } = useRole()
 
   if (!currentUser) return null
 
@@ -155,8 +155,9 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarPro
                   {getUserFullName(currentUser)}
                 </h2>
               </div>
-              <div className={`mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${roleInfo.color}`}>
-                {roleInfo.label}
+              <div className={`mt-1 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${roleInfo.color}`}>
+                <span>{roleInfo.label}</span>
+                <span className="text-[10px] opacity-75 font-mono">({selectedYear})</span>
               </div>
             </div>
           </div>

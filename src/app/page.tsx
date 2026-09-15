@@ -30,11 +30,10 @@ import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { SDULogo } from '@/components/SDULogo'
 
 export default function HomePage() {
-  const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers } = useRole()
+  const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers, selectedYear, setSelectedYear } = useRole()
 
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('workspace')
-  const [selectedYear, setSelectedYear] = useState(2567)
   const [selectedQuarter, setSelectedQuarter] = useState('ALL')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -145,12 +144,25 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!mounted) return
-    if (currentRole === 'admin' && activeTab === 'workspace') {
+    const headOnlyTabs = ['create_dashboard', 'create_normal_report', 'team_evidences', 'executive_scores']
+    const teacherOnlyTabs = ['teacher_evaluations']
+    const adminOnlyTabs = ['pending_users', 'users']
+    const execOnlyTabs = ['executive_summaries']
+
+    if (currentRole === 'teacher' && headOnlyTabs.includes(activeTab)) {
+      handleTabChange('workspace')
+    } else if (currentRole === 'head_okr' && teacherOnlyTabs.includes(activeTab)) {
+      handleTabChange('workspace')
+    } else if (currentRole !== 'admin' && adminOnlyTabs.includes(activeTab)) {
+      handleTabChange('workspace')
+    } else if (currentRole !== 'executive' && execOnlyTabs.includes(activeTab)) {
+      handleTabChange('workspace')
+    } else if (currentRole === 'admin' && activeTab === 'workspace') {
       handleTabChange('pending_users')
     } else if (currentRole === 'staff' && activeTab === 'workspace') {
       handleTabChange('normal_reports')
     }
-  }, [currentRole, mounted])
+  }, [currentRole, activeTab, mounted])
 
   if (!mounted || (isAuthLoading && !currentUser)) {
     return (

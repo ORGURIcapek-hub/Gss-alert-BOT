@@ -73,6 +73,7 @@ export const mockUsers: UserProfile[] = [
     executive_level: null,
     management_order: 3,
     employment_status: 'Full-Time',
+    yearly_roles: { '2567': 'head_okr', '2566': 'teacher' },
     avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
@@ -92,6 +93,7 @@ export const mockUsers: UserProfile[] = [
     executive_level: null,
     management_order: 3,
     employment_status: 'Full-Time',
+    yearly_roles: { '2567': 'head_okr', '2566': 'teacher' },
     avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
@@ -111,6 +113,7 @@ export const mockUsers: UserProfile[] = [
     executive_level: null,
     management_order: 4,
     employment_status: 'Full-Time',
+    yearly_roles: { '2567': 'teacher', '2566': 'head_okr' },
     avatar_url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
@@ -226,6 +229,17 @@ export const mockOKRs: OKR[] = [
     created_by: '00000000-0000-0000-0000-000000000002',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
+  },
+  {
+    okr_id: '10000000-0000-0000-0000-000000000004',
+    okr_title: 'พัฒนาความเป็นเลิศทางวิชาการและงานวิจัยระดับสากล (ปี 2566)',
+    okr_type: 'ด้านการศึกษาและวิชาการ',
+    year: 2566,
+    quarter: 'ALL',
+    status: 'Completed',
+    created_by: '00000000-0000-0000-0000-000000000002',
+    created_at: '2023-01-01T00:00:00Z',
+    updated_at: '2023-12-31T00:00:00Z'
   }
 ]
 

@@ -232,7 +232,10 @@ export async function fetchProjects(
           list = list.filter((p: ProjectWithHeadAndAssignees) => p.status === filters.status)
         }
         if (filters?.year) {
-          list = list.filter((p: ProjectWithHeadAndAssignees) => (p.okr ? p.okr.year === filters.year : true))
+          list = list.filter((p: ProjectWithHeadAndAssignees) => {
+            const pYear = p.year || p.okr?.year
+            return pYear ? Number(pYear) === Number(filters.year) : true
+          })
         }
         if (filters?.quarter && filters.quarter !== 'ALL') {
           list = list.filter((p: ProjectWithHeadAndAssignees) => (p.okr ? p.okr.quarter === filters.quarter : true))
@@ -256,7 +259,10 @@ export async function fetchProjects(
     memList = memList.filter(p => p.status === filters.status)
   }
   if (filters?.year) {
-    memList = memList.filter(p => (p.okr ? p.okr.year === filters.year : true))
+    memList = memList.filter(p => {
+      const pYear = p.year || p.okr?.year
+      return pYear ? Number(pYear) === Number(filters.year) : true
+    })
   }
   if (filters?.quarter && filters.quarter !== 'ALL') {
     memList = memList.filter(p => (p.okr ? p.okr.quarter === filters.quarter : true))

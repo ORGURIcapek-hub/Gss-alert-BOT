@@ -14,6 +14,7 @@ const EVIDENCES_FILE_PATH = path.join(DATA_DIR, 'persisted-evidences.json')
 const NORMAL_REPORTS_FILE_PATH = path.join(DATA_DIR, 'persisted-normal-reports.json')
 const EVALUATIONS_FILE_PATH = path.join(DATA_DIR, 'persisted-evaluations.json')
 const DASHBOARD_REPORTS_FILE_PATH = path.join(DATA_DIR, 'persisted-dashboard-reports.json')
+const OKRS_FILE_PATH = path.join(DATA_DIR, 'persisted-okrs.json')
 
 function getSafeSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -55,6 +56,19 @@ async function getStoredEvidences(): Promise<any[]> {
       const parsed = JSON.parse(content)
       if (parsed && Array.isArray(parsed.evidences)) {
         return parsed.evidences
+      }
+    }
+  } catch {}
+  return []
+}
+
+async function getStoredOKRs(): Promise<any[]> {
+  try {
+    if (fs.existsSync(OKRS_FILE_PATH)) {
+      const content = await fs.promises.readFile(OKRS_FILE_PATH, 'utf-8')
+      const parsed = JSON.parse(content)
+      if (parsed && Array.isArray(parsed.okrs)) {
+        return parsed.okrs
       }
     }
   } catch {}
@@ -109,6 +123,7 @@ export async function GET(req: NextRequest) {
     const supabase = getSafeSupabaseClient()
     const allUsers = await getStoredUsers()
     const storedEvidences = await getStoredEvidences()
+    const storedOkrs = await getStoredOKRs()
     const shouldSyncSupabase = supabase && (Date.now() - lastSupabaseProjectsSync > SUPABASE_SYNC_INTERVAL)
 
     if (shouldSyncSupabase) {
@@ -148,8 +163,11 @@ export async function GET(req: NextRequest) {
               for (const se of spEvs) evMap.set(se.evidence_id, se)
               for (const fe of fileEvs) evMap.set(fe.evidence_id, fe)
 
+              const projectYear = sp.okr?.year || sp.year || 2567
+
               return {
                 ...sp,
+                year: projectYear,
                 evidences: Array.from(evMap.values())
               }
             }),
@@ -191,8 +209,13 @@ export async function GET(req: NextRequest) {
         for (const ev of projectEvidences) evMap.set(ev.evidence_id, ev)
         for (const ev of matchedEvs) evMap.set(ev.evidence_id, ev)
 
+        const okr = storedOkrs.find(o => o.okr_id === p.okr_id) || p.okr || null
+        const projectYear = okr?.year || p.year || (p.start_date ? new Date(p.start_date).getFullYear() + 543 : 2567)
+
         return {
           ...p,
+          okr,
+          year: projectYear,
           head,
           assignees,
           evidences: Array.from(evMap.values())

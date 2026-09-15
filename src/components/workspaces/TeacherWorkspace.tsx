@@ -22,7 +22,7 @@ export function TeacherWorkspace({
   initialTab = 'projects',
   onProjectsRefresh
 }: TeacherWorkspaceProps) {
-  const { currentUser, allUsers } = useRole()
+  const { currentUser, allUsers, selectedYear } = useRole()
   const [currentTab, setCurrentTab] = useState<'projects' | 'evaluations'>(initialTab)
   const [evaluations, setEvaluations] = useState<Evaluation[]>([])
   const [normalReports, setNormalReports] = useState<NormalReport[]>([])
@@ -103,10 +103,13 @@ export function TeacherWorkspace({
     <div className="space-y-6">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-2.5">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             พื้นที่ทำงานอาจารย์ผู้รับผิดชอบโครงการ OKR
           </h2>
+          <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-extrabold shadow-xs">
+            ปี {selectedYear}
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

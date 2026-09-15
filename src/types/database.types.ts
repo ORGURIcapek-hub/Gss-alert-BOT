@@ -33,6 +33,7 @@ export interface Database {
           management_order: number
           avatar_url: string | null
           status?: 'pending' | 'approved' | 'rejected'
+          yearly_roles?: Record<string, UserRole> | null
           created_at: string
           updated_at: string
         }
@@ -53,6 +54,7 @@ export interface Database {
           management_order?: number
           avatar_url?: string | null
           status?: 'pending' | 'approved' | 'rejected'
+          yearly_roles?: Record<string, UserRole> | null
           created_at?: string
           updated_at?: string
         }
@@ -73,6 +75,7 @@ export interface Database {
           management_order?: number
           avatar_url?: string | null
           status?: 'pending' | 'approved' | 'rejected'
+          yearly_roles?: Record<string, UserRole> | null
           created_at?: string
           updated_at?: string
         }

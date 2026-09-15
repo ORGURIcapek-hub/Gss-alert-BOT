@@ -338,8 +338,22 @@ export async function PUT(req: NextRequest) {
 
       case 'update_role': {
         if (body.role) {
-          user.role = body.role
-          user.management_order = getManagementOrder(body.role)
+          if (body.year) {
+            const yearKey = String(body.year)
+            user.yearly_roles = {
+              ...(user.yearly_roles || {}),
+              [yearKey]: body.role
+            }
+          } else {
+            user.role = body.role
+            user.management_order = getManagementOrder(body.role)
+          }
+          if (body.yearly_roles) {
+            user.yearly_roles = {
+              ...(user.yearly_roles || {}),
+              ...body.yearly_roles
+            }
+          }
           user.updated_at = now
         }
         break
@@ -393,6 +407,7 @@ export async function PUT(req: NextRequest) {
         if (user.department) updatePayload.department = user.department
         if (user.position) updatePayload.position = user.position
         if (user.avatar_url) updatePayload.avatar_url = user.avatar_url
+        if (user.yearly_roles) updatePayload.yearly_roles = user.yearly_roles
 
         const { error: sbError } = await supabase
           .from('users')

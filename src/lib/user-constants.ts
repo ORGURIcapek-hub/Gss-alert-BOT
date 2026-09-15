@@ -1,4 +1,4 @@
-import { UserRole, UserProfile } from '@/types/database.types'
+import { UserRole, UserProfile, ProjectWithHeadAndAssignees } from '@/types/database.types'
 import {
   Crown,
   Layers,
@@ -220,4 +220,41 @@ export function isUserIdentical(u1: UserProfile, u2: UserProfile): boolean {
     u1.email === u2.email &&
     u1.password === u2.password
   )
+}
+
+export function getUserRoleForYear(
+  user: UserProfile | null | undefined,
+  year: number,
+  projects?: ProjectWithHeadAndAssignees[]
+): UserRole | null {
+  if (!user) return null
+
+  if (user.role === 'admin') return 'admin'
+  if (user.role === 'executive') return 'executive'
+
+  const yearStr = String(year)
+  if (user.yearly_roles && user.yearly_roles[yearStr]) {
+    return user.yearly_roles[yearStr]
+  }
+
+  if (projects && projects.length > 0) {
+    const yearProjects = projects.filter(p => {
+      const pYear = p.okr?.year || p.year
+      return pYear ? Number(pYear) === Number(year) : false
+    })
+
+    const isHeadInYear = yearProjects.some(p => {
+      if (p.head_of_project === user.user_id) return true
+      if (p.head?.user_id === user.user_id) return true
+      return false
+    })
+    if (isHeadInYear) return 'head_okr'
+
+    const isMemberInYear = yearProjects.some(p => {
+      return (p.assignees || []).some(a => a.user_id === user.user_id)
+    })
+    if (isMemberInYear) return 'teacher'
+  }
+
+  return user.role
 }

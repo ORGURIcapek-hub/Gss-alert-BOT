@@ -35,10 +35,14 @@
       "executive_level": null,
       "employment_status": "Full-Time",
       "management_order": 4,
+      "yearly_roles": {
+        "2566": "head_okr",
+        "2567": "teacher"
+      },
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-09T15:36:25.059Z",
-      "updated_at": "2026-09-09T16:04:09.882Z"
+      "updated_at": "2026-09-15T04:39:02.667Z"
     },
     {
       "user_id": "df89070e-23fb-4211-a391-0fce520acf23",
@@ -55,6 +59,10 @@
       "executive_level": null,
       "employment_status": "Full-Time",
       "management_order": 3,
+      "yearly_roles": {
+        "2566": "teacher",
+        "2567": "head_okr"
+      },
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-09T16:37:43.415Z",

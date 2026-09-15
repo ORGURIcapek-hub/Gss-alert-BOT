@@ -37,7 +37,7 @@ export function HeadOKRWorkspace({
   onOpenCreateModal,
   onProjectsRefresh
 }: HeadOKRWorkspaceProps) {
-  const { currentUser, allUsers, refreshUsers } = useRole()
+  const { currentUser, allUsers, refreshUsers, selectedYear, updateUserYearlyRole } = useRole()
 
   const [isAssignMemberOpen, setIsAssignMemberOpen] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
@@ -94,7 +94,7 @@ export function HeadOKRWorkspace({
   const availableTeachers = useMemo(() => {
     return allUsers.filter(
       u =>
-        u.role === 'teacher' &&
+        (u.role === 'teacher' || u.role === 'head_okr') &&
         u.status !== 'pending' &&
         u.status !== 'rejected' &&
         !existingUserIdsInProject.has(u.user_id)
@@ -132,6 +132,15 @@ export function HeadOKRWorkspace({
       assigned_by: currentUser.user_id
     })
 
+    const currentProj = myDeptProjects.find(p => p.project_id === selectedProjectId)
+    const projectYear = currentProj?.okr?.year || currentProj?.year || selectedYear || 2567
+    for (const uId of selectedUserIds) {
+      const u = allUsers.find(user => user.user_id === uId)
+      if (u && (!u.yearly_roles || !u.yearly_roles[String(projectYear)])) {
+        await updateUserYearlyRole(uId, projectYear, 'teacher')
+      }
+    }
+
     await refreshUsers()
     if (onProjectsRefresh) onProjectsRefresh()
     if (selectedProjectId) {
@@ -150,10 +159,13 @@ export function HeadOKRWorkspace({
     <div className="space-y-6">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-2.5">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             พื้นที่บริหารและขับเคลื่อนโครงการ OKR
           </h2>
+          <span className="px-2.5 py-1 rounded-xl bg-[#003B71]/10 text-[#003B71] border border-[#003B71]/20 text-xs font-extrabold shadow-xs">
+            ปี {selectedYear}
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto flex-shrink-0">

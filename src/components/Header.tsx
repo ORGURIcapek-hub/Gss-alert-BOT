@@ -4,6 +4,7 @@ import React from 'react'
 import { Calendar, Filter, Menu, UserCheck, Bell } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { SDULogo } from '@/components/SDULogo'
+import { getRoleBadge } from '@/lib/user-constants'
 
 interface HeaderProps {
   selectedYear: number
@@ -28,6 +29,7 @@ export function Header({
 }: HeaderProps) {
   const { currentRole, pendingCount } = useRole()
   const isAdmin = currentRole === 'admin'
+  const roleInfo = getRoleBadge(currentRole)
 
   return (
     <header className="bg-white sticky top-0 z-20 px-4 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 shadow-sm">
@@ -79,6 +81,12 @@ export function Header({
             <option value={2567}>2567</option>
             <option value={2566}>2566</option>
           </select>
+        </div>
+
+        <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs transition-all ${roleInfo.color}`}>
+          <span>{roleInfo.emoji}</span>
+          <span className="opacity-80">สิทธิ์ปี {selectedYear}:</span>
+          <span className="font-extrabold">{roleInfo.shortLabel}</span>
         </div>
 
         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs flex-1 sm:flex-none justify-between sm:justify-start">

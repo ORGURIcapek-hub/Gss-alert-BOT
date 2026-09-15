@@ -38,19 +38,59 @@ export async function fetchUsers(force: boolean = false): Promise<UserProfile[]>
   return inMemoryUsers
 }
 
-export async function updateUserRoleRecord(userId: string, role: UserRole): Promise<void> {
+export async function updateUserRoleRecord(userId: string, role: UserRole, year?: number): Promise<void> {
   invalidateApiCache('/api/users')
   if (typeof window !== 'undefined') {
     try {
       await fetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_role', userId, role })
+        body: JSON.stringify({ action: 'update_role', userId, role, year })
       })
     } catch {}
   }
 
-  inMemoryUsers = inMemoryUsers.map(u => (u.user_id === userId ? { ...u, role, management_order: getManagementOrder(role) } : u))
+  inMemoryUsers = inMemoryUsers.map(u => {
+    if (u.user_id === userId) {
+      const updated = { ...u, role, management_order: getManagementOrder(role) }
+      if (year) {
+        updated.yearly_roles = {
+          ...(u.yearly_roles || {}),
+          [String(year)]: role
+        }
+      }
+      return updated
+    }
+    return u
+  })
+  setCachedUsers(inMemoryUsers)
+}
+
+export async function updateUserYearlyRoleRecord(userId: string, year: number, role: UserRole): Promise<void> {
+  invalidateApiCache('/api/users')
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_role', userId, role, year })
+      })
+    } catch {}
+  }
+
+  const yearKey = String(year)
+  inMemoryUsers = inMemoryUsers.map(u => {
+    if (u.user_id === userId) {
+      return {
+        ...u,
+        yearly_roles: {
+          ...(u.yearly_roles || {}),
+          [yearKey]: role
+        }
+      }
+    }
+    return u
+  })
   setCachedUsers(inMemoryUsers)
 }
 

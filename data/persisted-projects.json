@@ -1,6 +1,57 @@
 {
   "projects": [
     {
+      "project_id": "25660000-0000-0000-0000-000000000001",
+      "okr_id": "10000000-0000-0000-0000-000000000004",
+      "project_name": "โครงการวิจัยและพัฒนานวัตกรรมการเรียนรู้ดิจิทัล (ปี 2566)",
+      "project_type": "งานวิจัยขั้นแนวหน้า",
+      "description": "โครงการวิจัยร่วมระหว่างคณาจารย์ประจำภาควิชา ประจำปีงบประมาณ 2566",
+      "main_objective": "สร้างสรรค์นวัตกรรมการเรียนรู้ดิจิทัลสำหรับนิสิต",
+      "sub_objective": "เผยแพร่ผลงานวิจัยระดับชาติ",
+      "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
+      "start_date": "2023-01-01",
+      "end_date": "2023-12-31",
+      "head_of_project": "0abe6f85-27ff-4052-a122-250b37d0408e",
+      "progress_percentage": 100,
+      "budget": 300000,
+      "spent_amount": 295000,
+      "status": "Completed",
+      "bottleneck": null,
+      "created_at": "2023-01-01T00:00:00.000Z",
+      "updated_at": "2023-12-31T00:00:00.000Z",
+      "head": {
+        "user_id": "0abe6f85-27ff-4052-a122-250b37d0408e",
+        "username": "tao",
+        "name": "นาย กวิน โตเจริญ",
+        "email": "taokosit@gmail.com",
+        "first_name": "นาย กวิน",
+        "last_name": "โตเจริญ",
+        "position": "อาจารย์ประจำภาควิชา",
+        "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
+        "role": "head_okr"
+      },
+      "assignees": [
+        {
+          "project_id": "25660000-0000-0000-0000-000000000001",
+          "user_id": "df89070e-23fb-4211-a391-0fce520acf23",
+          "assigned_role": "ผู้ร่วมรับผิดชอบโครงการ (Member)",
+          "assigned_date": "2023-01-05T00:00:00.000Z",
+          "user": {
+            "user_id": "df89070e-23fb-4211-a391-0fce520acf23",
+            "username": "prem",
+            "name": "นาย เปรมศักดิ์ บรรจงชาติ",
+            "email": "premm1175@gmail.com",
+            "first_name": "นาย",
+            "last_name": "เปรมศักดิ์ บรรจงชาติ",
+            "position": "อาจารย์ประจำภาควิชา",
+            "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
+            "role": "teacher"
+          }
+        }
+      ],
+      "evidences": []
+    },
+    {
       "project_id": "d3a81dfb-4f96-4ac5-8470-0a6748925de2",
       "okr_id": "10000000-0000-0000-0000-000000000001",
       "project_name": "พัมนาAI",
