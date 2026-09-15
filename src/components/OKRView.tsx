@@ -224,7 +224,7 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
                         {okr.okr_type}
                       </span>
                       <span className="text-xs text-slate-500 font-semibold">
-                        ปี {okr.year} {okr.quarter && `(${okr.quarter})`}
+                        ปี {okr.year} {okr.quarter ? `(${okr.quarter})` : '(ทั้งปี)'}
                       </span>
                     </div>
                     <h3 className="text-base font-bold text-slate-900 leading-snug">
