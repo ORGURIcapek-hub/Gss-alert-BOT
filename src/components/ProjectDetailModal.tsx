@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { ProjectWithHeadAndAssignees, ProjectStatus, ProjectAssignment, Evidence } from '@/types/database.types'
 import { X, Upload, UserCheck, Trash2, Download, FileUp, AlertCircle, Calendar, DollarSign, FileText, CheckCircle, FileImage, User, Clock } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
-import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments, deleteProjectRecord } from '@/lib/services/okr-service'
+import { updateProjectProgressRecord, submitEvidenceSubmission, deleteEvidenceSubmission, fetchProjectAssignments, deleteProjectRecord, uploadFileToStorage, deleteFileFromStorage } from '@/lib/services/okr-service'
 import { getUserFullName, formatDepartmentShort, formatThaiDate, formatThaiDateTime } from '@/lib/user-constants'
 import confetti from 'canvas-confetti'
 
@@ -128,7 +128,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
     setUploadError('')
 
     if (!selectedFile) {
-      setUploadError('กรุณาเลือกไฟล์หลักฐาน (PDF หรือ JPG/PNG) จากเครื่องของคุณ')
+      setUploadError('กรุณาเลือกไฟล์หลักฐาน (PDF, Word, Excel หรือรูปภาพ) จากเครื่องของคุณ')
       return
     }
     if (!currentUser) return
@@ -136,22 +136,18 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
     setIsUploading(true)
 
     try {
+      const uploadRes = await uploadFileToStorage(selectedFile, {
+        folder: 'evidences',
+        subfolder: project.project_id,
+        fileName: selectedFile.name
+      })
 
-      let fileUrl = URL.createObjectURL(selectedFile)
-      try {
-        if (selectedFile.size < 4 * 1024 * 1024) {
-          fileUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = reject
-            reader.readAsDataURL(selectedFile)
-          })
-        }
-      } catch (e) {
-        console.warn('Could not read as data url, fallback to blob url', e)
+      if (!uploadRes.success || !uploadRes.url) {
+        throw new Error(uploadRes.error || 'ไม่สามารถอัปโหลดไฟล์หลักฐานไปยังที่เก็บไฟล์ได้')
       }
 
-      const mimeType = selectedFile.type || (selectedFile.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
+      const fileUrl = uploadRes.url
+      const mimeType = uploadRes.fileType || selectedFile.type || (selectedFile.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
       const desc = uploadDescription.trim() || `แนบหลักฐานไฟล์ ${selectedFile.name}`
 
       const newSubmission = await submitEvidenceSubmission({
@@ -160,6 +156,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
         file_name: selectedFile.name,
         file_path: fileUrl,
         file_type: mimeType,
+        file_size: selectedFile.size || uploadRes.fileSize || null,
         description: desc
       })
 
@@ -169,7 +166,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
         uploaded_by: currentUser.user_id,
         file_name: selectedFile.name,
         file_path: fileUrl,
-        file_size: selectedFile.size || 1024 * 1024 * 2,
+        file_size: selectedFile.size || uploadRes.fileSize || 1024 * 1024 * 2,
         description: desc,
         upload_date: new Date().toISOString()
       }
@@ -192,6 +189,10 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   const handleDeleteEvidence = async (evidenceId: string) => {
     if (!confirm('คุณต้องการลบไฟล์แนบนี้ใช่หรือไม่?')) return
     setDeletingId(evidenceId)
+    const targetEv = evidences.find(e => e.evidence_id === evidenceId)
+    if (targetEv?.file_path) {
+      await deleteFileFromStorage(targetEv.file_path)
+    }
     await deleteEvidenceSubmission(evidenceId, project.project_id)
     setEvidences(prev => prev.filter(e => e.evidence_id !== evidenceId))
     if (project) {
@@ -206,11 +207,11 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar relative"
+        className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 max-h-[92dvh] overflow-y-auto custom-scrollbar relative mobile-modal-sheet animate-slide-up"
       >
 
         <div className="absolute top-5 right-5 flex items-center gap-2">
@@ -415,7 +416,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                 หลักฐานและเอกสารแนบ ({evidences.length})
               </h3>
               <span className="text-[10px] text-slate-500 font-semibold">
-                รองรับเฉพาะ PDF, JPG, JPEG, PNG
+                รองรับ PDF, Word, Excel, รูปภาพ (สูงสุด 50MB)
               </span>
             </div>
 
@@ -507,7 +508,7 @@ export function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetai
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf, .jpg, .jpeg, .png"
+                    accept=".pdf, .jpg, .jpeg, .png, .webp, .doc, .docx, .xls, .xlsx"
                     onChange={handleFileChange}
                     className="hidden"
                     id="evidence-native-file-picker"
