@@ -31,3 +31,7 @@ yarn-error.log*
 
 *.tsbuildinfo
 next-env.d.ts
+
+# Local tooling state (never commit)
+.freebuff/
+supabase/.temp/
