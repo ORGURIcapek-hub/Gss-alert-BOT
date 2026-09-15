@@ -42,17 +42,23 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
 
   const handleRate = async (dashboardId: string, score: number) => {
     if (!currentUser) return
+    const target = reports.find(r => r.dashboard_id === dashboardId)
+    if (target && target.head_id && target.head_id === currentUser.user_id) {
+      alert('ไม่สามารถประเมินรายงานของตนเองได้')
+      return
+    }
     setRatingLoadingId(dashboardId)
     try {
+      const headScore = Math.min(5, Math.max(1, Math.round(Number(target?.okr_head_evaluation_score || 0) / 20)))
       const newEval = await saveEvaluationRecord({
         dashboard_id: dashboardId,
         evaluator_id: currentUser.user_id,
-        head_score: 0, // Executive isn't rating head's self-score, but we must pass it, wait, head_score is required in the type. We can fetch existing head_score or pass 0.
+        head_score: headScore,
         executive_score: score
       })
       // Update local state
       setEvaluations(prev => {
-        const idx = prev.findIndex(e => e.dashboard_id === dashboardId)
+        const idx = prev.findIndex(e => e.dashboard_id === dashboardId && e.evaluator_id === currentUser.user_id)
         if (idx !== -1) {
           const arr = [...prev]
           arr[idx] = newEval
@@ -435,7 +441,7 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                       </div>
                       <div className="flex items-center gap-2">
                         {[1, 2, 3, 4, 5].map((star) => {
-                          const existingScore = evaluations.find(e => e.dashboard_id === report.dashboard_id)?.executive_score || 0
+                          const existingScore = evaluations.find(e => e.dashboard_id === report.dashboard_id && e.evaluator_id === currentUser?.user_id)?.executive_score || 0
                           const isFilled = star <= existingScore
                           return (
                             <button
