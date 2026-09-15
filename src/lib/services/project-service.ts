@@ -139,7 +139,7 @@ export async function createOKR(data: {
     okr_id: newId,
     okr_title: data.okr_title,
     okr_type: data.okr_type || 'ยุทธศาสตร์คณะ',
-    year: data.year || 2567,
+    year: data.year || 2568,
     quarter: normalizedQuarter,
     status: 'In Progress',
     created_by: data.created_by || null,
@@ -351,6 +351,7 @@ export async function deleteProjectRecord(projectId: string): Promise<void> {
   setCachedProjects(inMemoryProjects)
   removeProjectReportsInMemory(projectId)
   invalidateApiCache('/api/projects')
+  invalidateApiCache('/api/evidences')
   invalidateApiCache('/api/normal-reports')
   invalidateApiCache('/api/evaluations')
   invalidateApiCache('/api/dashboard-reports')
@@ -367,6 +368,7 @@ export async function deleteProjectRecord(projectId: string): Promise<void> {
 
 export async function clearAllProjectsRecord(): Promise<void> {
   invalidateApiCache('/api/projects')
+  invalidateApiCache('/api/evidences')
   invalidateApiCache('/api/normal-reports')
   invalidateApiCache('/api/evaluations')
   invalidateApiCache('/api/dashboard-reports')

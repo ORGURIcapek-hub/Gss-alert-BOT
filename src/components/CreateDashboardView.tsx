@@ -50,7 +50,8 @@ export function CreateDashboardView({ okrs, projects, onSuccess }: CreateDashboa
       return `• [${formatDepartmentShort(p.department)}] ${p.project_name} (ความคืบหน้า ${p.progress_percentage}%, งบประมาณ ${budgetK}k บาท, ใช้จริง ${spentK}k บาท) ${p.bottleneck ? `⚠️ ปัญหา: ${p.bottleneck}` : '✅ ตามแผนงาน'}`
     }).join('\n')
 
-    const summaryText = `รายงานสรุปผลการดำเนินงานโครงการ OKR ประจำปีงบประมาณ 2567 (ส่งมอบให้ผู้บริหารพิจารณา)
+    const targetYear = okrs[0]?.year || 2568
+    const summaryText = `รายงานสรุปผลการดำเนินงานโครงการ OKR ประจำปีงบประมาณ ${targetYear} (ส่งมอบให้ผู้บริหารพิจารณา)
 จำนวนโครงการที่รายงาน: ${chosen.length} โครงการ | ความคืบหน้าเฉลี่ย: ${avgProgress}%
 งบประมาณรวมที่ได้รับจัดสรร: ${(totalChosenBudget).toLocaleString()} บาท | เบิกจ่ายแล้ว: ${(totalChosenSpent).toLocaleString()} บาท (${totalChosenBudget > 0 ? ((totalChosenSpent / totalChosenBudget) * 100).toFixed(1) : 0}%)
 
@@ -89,7 +90,7 @@ ${delayed.length > 0 ? `ประเด็นเร่งด่วนและ�
       okr_head_evaluation_score: 80,
       head_id: currentUser.user_id,
       head_name: getUserFullName(currentUser),
-      academic_year: 2567,
+      academic_year: okrs[0]?.year || 2568,
       project_ids: selectedProjectIds,
       project_snapshots: projectSnapshots
     })

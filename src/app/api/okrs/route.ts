@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
         okr_id: okrData.okr_id || crypto.randomUUID(),
         okr_title: okrData.okr_title,
         okr_type: okrData.okr_type || 'ยุทธศาสตร์คณะ',
-        year: Number(okrData.year) || 2567,
+        year: Number(okrData.year) || 2568,
         quarter: normalizedQuarter,
         status: okrData.status || 'In Progress',
         created_by: okrData.created_by || null,

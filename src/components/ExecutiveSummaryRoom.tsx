@@ -176,8 +176,10 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
             className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#003B71]"
           >
             <option value="ALL">ทุกปีงบประมาณ</option>
-            <option value="2567">ปีงบประมาณ 2567</option>
-            <option value="2566">ปีงบประมาณ 2566</option>
+            <option value="2568">ปีงบประมาณ 2568</option>
+            <option value="2569">ปีงบประมาณ 2569</option>
+            <option value="2570">ปีงบประมาณ 2570</option>
+            <option value="2571">ปีงบประมาณ 2571</option>
           </select>
         </div>
       </div>
@@ -223,7 +225,7 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                       </div>
                       <span className="text-xs text-white/80 flex items-center gap-1.5 mt-0.5">
                         <Calendar className="w-3.5 h-3.5 text-[#00A8B5]" />
-                        <span>ปีงบประมาณ {report.academic_year || 2567}</span>
+                        <span>ปีงบประมาณ {report.academic_year || 2568}</span>
                         <span>•</span>
                         <span>{formatThaiDate(report.created_at, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                       </span>

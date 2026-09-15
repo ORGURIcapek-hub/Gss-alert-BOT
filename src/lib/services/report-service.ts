@@ -49,7 +49,7 @@ export async function createDashboardReport(reportData: {
     okr_head_evaluation_score: reportData.okr_head_evaluation_score,
     head_id: reportData.head_id,
     head_name: reportData.head_name || 'หัวหน้าโครงการ OKR',
-    academic_year: reportData.academic_year || 2567,
+    academic_year: reportData.academic_year || 2568,
     project_ids: reportData.project_ids || [],
     project_snapshots: reportData.project_snapshots || [],
     created_at: new Date().toISOString(),

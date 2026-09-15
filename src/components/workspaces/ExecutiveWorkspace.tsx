@@ -269,7 +269,7 @@ export function ExecutiveWorkspace({
                         </h4>
                         <span className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 font-medium">
                           <Calendar className="w-3.5 h-3.5 text-[#00A8B5]" />
-                          ปีงบประมาณ {report.academic_year || 2567} • {formatThaiDate(report.created_at, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          ปีงบประมาณ {report.academic_year || 2568} • {formatThaiDate(report.created_at, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                     </div>

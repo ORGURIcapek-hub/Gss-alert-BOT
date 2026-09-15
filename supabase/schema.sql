@@ -152,7 +152,7 @@ CREATE TABLE public.dashboard (
 -- Table 9: Normal Reports (Project operational reports)
 CREATE TABLE public.normal_reports (
     report_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID REFERENCES public.projects(project_id) ON DELETE SET NULL,
+    project_id UUID REFERENCES public.projects(project_id) ON DELETE CASCADE,
     project_name VARCHAR(255) NOT NULL,
     project_details TEXT,
     responsible_person_name VARCHAR(255),

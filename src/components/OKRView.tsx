@@ -22,7 +22,7 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newType, setNewType] = useState('ยุทธศาสตร์ที่ 1: การพัฒนาคุณภาพบัณฑิต')
-  const [newYear, setNewYear] = useState(2567)
+  const [newYear, setNewYear] = useState(2568)
   const [newQuarter, setNewQuarter] = useState('ALL')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -145,9 +145,10 @@ export function OKRView({ okrs, projects, onSelectProject, onOpenCreateProject, 
                     onChange={(e) => setNewYear(Number(e.target.value))}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#003B71]/20 focus:border-[#003B71] bg-white"
                   >
-                    <option value={2567}>2567</option>
                     <option value={2568}>2568</option>
                     <option value={2569}>2569</option>
+                    <option value={2570}>2570</option>
+                    <option value={2571}>2571</option>
                   </select>
                 </div>
                 <div>

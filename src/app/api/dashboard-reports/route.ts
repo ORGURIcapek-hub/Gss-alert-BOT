@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         okr_head_evaluation_score: body.okr_head_evaluation_score ?? 80,
         head_id: body.head_id || null,
         head_name: body.head_name || 'หัวหน้าโครงการ OKR',
-        academic_year: body.academic_year || 2567,
+        academic_year: body.academic_year || 2568,
         project_ids: Array.isArray(body.project_ids) ? body.project_ids : [],
         project_snapshots: Array.isArray(body.project_snapshots) ? body.project_snapshots : [],
         created_at: body.created_at || new Date().toISOString(),
