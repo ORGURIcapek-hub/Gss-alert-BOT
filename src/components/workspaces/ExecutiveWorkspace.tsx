@@ -71,10 +71,10 @@ export function ExecutiveWorkspace({
     : projects.filter(p => p.project_id === selectedProjectId)
 
   const totalProjects = projects.length
-  const totalBudget = projects.reduce((acc, p) => acc + Number(p.budget), 0)
-  const totalSpent = projects.reduce((acc, p) => acc + Number(p.spent_amount), 0)
+  const totalBudget = projects.reduce((acc, p) => acc + (Number(p.budget) || 0), 0)
+  const totalSpent = projects.reduce((acc, p) => acc + (Number(p.spent_amount) || 0), 0)
   const avgProgress = totalProjects > 0
-    ? (projects.reduce((acc, p) => acc + Number(p.progress_percentage), 0) / totalProjects).toFixed(1)
+    ? (projects.reduce((acc, p) => acc + (Number(p.progress_percentage) || 0), 0) / totalProjects).toFixed(1)
     : '0.0'
 
   const delayedProjects = projects.filter(p => p.status === 'Delayed' || (p.bottleneck && p.bottleneck.length > 0))
