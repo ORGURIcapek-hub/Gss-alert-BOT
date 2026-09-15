@@ -6,6 +6,7 @@ import { fetchNormalReports, fetchEvaluations, saveEvaluationRecord, fetchProjec
 import { useRole } from '@/components/RoleContext'
 import { FileText, Search, Star, User, Users, Target, Calendar, CheckCircle2, Award, Printer, ShieldAlert, Check } from 'lucide-react'
 import { formatThaiDate } from '@/lib/user-constants'
+import { ReportCardSkeleton } from '@/components/ui/Skeleton'
 
 export function NormalReportView() {
   const { currentUser } = useRole()
@@ -181,9 +182,11 @@ export function NormalReportView() {
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-slate-400">
-          <div className="w-8 h-8 border-3 border-[#003B71] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm font-semibold">กำลังโหลดข้อมูลรายงาน OKR...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ReportCardSkeleton />
+          <ReportCardSkeleton />
+          <ReportCardSkeleton />
+          <ReportCardSkeleton />
         </div>
       ) : filteredReports.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 text-slate-400 shadow-sm">

@@ -24,6 +24,8 @@ import {
 import { fetchDashboardReports, fetchEvaluations, saveEvaluationRecord } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { formatDepartmentShort, formatThaiDate, removeTitlesAndRoles } from '@/lib/user-constants'
+import { ReportCardSkeleton } from '@/components/ui/Skeleton'
+import { getProjectProgress, isProjectCompleted, isProjectDelayed } from '@/lib/project-status'
 
 interface ExecutiveSummaryRoomProps {
   projects: ProjectWithHeadAndAssignees[]
@@ -182,8 +184,9 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
 
       {/* Submissions Feed */}
       {isLoading ? (
-        <div className="py-20 text-center text-slate-400 text-sm">
-          กำลังโหลดรายงานสรุปสำหรับผู้บริหาร...
+        <div className="space-y-8">
+          <ReportCardSkeleton />
+          <ReportCardSkeleton />
         </div>
       ) : filteredReports.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center space-y-3">
@@ -271,8 +274,8 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {snapshots.map((ps) => {
-                          const isComplete = ps.progress_percentage === 100
-                          const isDelayed = ps.status === 'Delayed' || (ps.bottleneck && ps.bottleneck.trim().length > 0)
+                          const isComplete = isProjectCompleted(ps)
+                          const isDelayed = isProjectDelayed(ps)
                           const budgetNum = Number(ps.budget) || 0
                           const spentNum = Number(ps.spent_amount) || 0
                           const spentRate = budgetNum > 0 ? ((spentNum / budgetNum) * 100).toFixed(1) : '0'
@@ -283,7 +286,7 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                           // SVG circular gauge calculations
                           const radius = 38
                           const circumference = 2 * Math.PI * radius
-                          const strokeDashoffset = circumference - (ps.progress_percentage / 100) * circumference
+                          const strokeDashoffset = circumference - (getProjectProgress(ps) / 100) * circumference
 
                           const gaugeColor = isComplete
                             ? '#10B981' // emerald

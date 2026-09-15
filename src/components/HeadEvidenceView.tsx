@@ -5,6 +5,7 @@ import { EvidenceSubmission, ProjectWithHeadAndAssignees, UserProfile } from '@/
 import { fetchEvidenceSubmissions, deleteEvidenceSubmission } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { getUserFullName, formatDepartmentShort, formatThaiDate, formatThaiDateTime } from '@/lib/user-constants'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 import {
   FileCheck2,
   Search,
@@ -146,10 +147,7 @@ export function HeadEvidenceView({ projects }: HeadEvidenceViewProps) {
         </div>
 
         {loading ? (
-          <div className="py-16 text-center text-slate-400">
-            <div className="w-8 h-8 border-3 border-[#003B71] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm font-semibold">กำลังโหลดข้อมูลหลักฐาน...</p>
-          </div>
+          <TableSkeleton rows={5} />
         ) : filteredEvidences.length === 0 ? (
           <div className="py-16 text-center text-slate-400">
             <FileCheck2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />

@@ -5,6 +5,7 @@ import { Evaluation, DashboardReportWithDetails } from '@/types/database.types'
 import { fetchEvaluations, fetchDashboardReports } from '@/lib/services/okr-service'
 import { useRole } from '@/components/RoleContext'
 import { Award, Star, Sparkles, TrendingUp, Inbox } from 'lucide-react'
+import { EvaluationCardSkeleton } from '@/components/ui/Skeleton'
 
 export function ExecutiveEvaluationsView() {
   const { currentUser } = useRole()
@@ -76,9 +77,37 @@ export function ExecutiveEvaluationsView() {
 
   if (isLoading) {
     return (
-      <div className="py-20 flex flex-col items-center justify-center text-slate-400">
-        <div className="w-8 h-8 border-3 border-[#003B71] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-sm font-semibold">กำลังโหลดคะแนนประเมิน...</p>
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+              <Award className="w-7 h-7 text-[#003B71]" />
+              <span>คะแนนจากผู้บริหาร (Executive Evaluations)</span>
+            </h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
+            <div className="relative z-10">
+              <span className="text-white/80 font-semibold text-sm">คะแนนเฉลี่ยรวม</span>
+              <div className="flex items-baseline gap-2 mt-2">
+                <h3 className="text-4xl font-black">--</h3>
+                <span className="text-lg font-medium text-white/80">/ 5.0</span>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-center">
+            <span className="text-slate-500 font-semibold text-sm">จำนวนการประเมินทั้งหมด</span>
+            <div className="flex items-baseline gap-2 mt-2">
+              <h3 className="text-4xl font-black text-slate-900">--</h3>
+              <span className="text-lg font-medium text-slate-500">ครั้ง</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <EvaluationCardSkeleton />
+          <EvaluationCardSkeleton />
+        </div>
       </div>
     )
   }
