@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { RoleProvider } from '@/components/RoleContext'
 
@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#003B71',
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -18,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th">
-      <body className="antialiased bg-white text-slate-900 selection:bg-[#003B71] selection:text-white">
+      <body className="antialiased bg-white text-slate-900 font-sans selection:bg-[#003B71] selection:text-white">
         <RoleProvider>
           {children}
         </RoleProvider>
