@@ -27,6 +27,7 @@ import { fetchOKRs, fetchProjects } from '@/lib/services/okr-service'
 import { invalidateApiCache } from '@/lib/services/service-helpers'
 import { OKR, ProjectWithHeadAndAssignees } from '@/types/database.types'
 import { SDULogo } from '@/components/SDULogo'
+import { DashboardSkeleton } from '@/components/ui/Skeleton'
 
 export default function HomePage() {
   const { currentUser, currentRole, isAuthenticated, isAuthLoading, allUsers, selectedYear, setSelectedYear } = useRole()
@@ -213,7 +214,9 @@ export default function HomePage() {
         />
 
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1680px] mx-auto w-full">
-          {activeTab === 'workspace' && (
+          {isRefreshing ? (
+            <DashboardSkeleton />
+          ) : activeTab === 'workspace' && (
             <>
               {currentRole === 'executive' && (
                 <ExecutiveWorkspace
