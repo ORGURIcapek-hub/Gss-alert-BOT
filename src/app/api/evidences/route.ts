@@ -4,6 +4,9 @@ import path from 'path'
 import { EvidenceSubmission } from '@/types/database.types'
 import { writeJsonAtomic, readJsonSafe } from '@/lib/atomic-storage'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const DATA_DIR = path.join(process.cwd(), 'data')
 const FILE_PATH = path.join(DATA_DIR, 'persisted-evidences.json')
 
@@ -111,6 +114,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'delete') {
       const { evidence_id } = body
+      const targetEv = storage.evidences.find(e => e.evidence_id === evidence_id)
       storage.evidences = storage.evidences.filter(e => e.evidence_id !== evidence_id)
       await saveEvidencesFile(storage)
 
@@ -118,6 +122,12 @@ export async function POST(req: NextRequest) {
       if (supabase) {
         try {
           await supabase.from('evidence_submissions').delete().eq('evidence_id', evidence_id)
+          await supabase.from('evidences').delete().eq('evidence_id', evidence_id)
+          if (targetEv?.file_path && targetEv.file_path.includes('/OKR-files/')) {
+            const marker = '/OKR-files/'
+            const storagePath = targetEv.file_path.substring(targetEv.file_path.indexOf(marker) + marker.length).split('?')[0]
+            await supabase.storage.from('OKR-files').remove([storagePath])
+          }
         } catch (e) {
           console.warn('[api/evidences] Supabase delete failed', e)
         }
@@ -126,8 +136,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 })
+    return NextResponse.json({ success: false, error: err.message || 'Internal error' }, { status: 500 })
   }
 }
