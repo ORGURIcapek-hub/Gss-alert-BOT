@@ -25,6 +25,7 @@ import {
   getRoleBadge,
   splitFullName
 } from '@/lib/user-constants'
+import { uploadFileToStorage, deleteFileFromStorage } from '@/lib/services/okr-service'
 
 export function UserProfileModal() {
   const {
@@ -71,22 +72,37 @@ export function UserProfileModal() {
 
   if (!isProfileModalOpen || !currentUser) return null
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 2 * 1024 * 1024) {
-      setErrorMsg('ขนาดรูปภาพต้องไม่เกิน 2MB')
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('ขนาดรูปภาพต้องไม่เกิน 5MB')
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      setAvatarUrl(base64)
-      setErrorMsg('')
+    setLoading(true)
+    setErrorMsg('')
+    try {
+      const uploadRes = await uploadFileToStorage(file, {
+        folder: 'avatars',
+        subfolder: currentUser.user_id,
+        fileName: file.name
+      })
+
+      if (uploadRes.success && uploadRes.url) {
+        if (avatarUrl && avatarUrl.includes('/OKR-files/')) {
+          deleteFileFromStorage(avatarUrl)
+        }
+        setAvatarUrl(uploadRes.url)
+      } else {
+        throw new Error(uploadRes.error || 'ไม่สามารถอัปโหลดรูปภาพได้')
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')
+    } finally {
+      setLoading(false)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,11 +142,11 @@ export function UserProfileModal() {
   return (
     <div
       onClick={closeProfileModal}
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden relative my-8"
+        className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 relative my-8 mobile-modal-sheet animate-slide-up max-h-[92dvh]"
       >
 
         <div className="bg-gradient-to-r from-[#00264D] via-[#003B71] to-[#005B94] p-6 sm:p-7 text-white relative">
