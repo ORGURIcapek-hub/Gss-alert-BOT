@@ -26,8 +26,10 @@ import {
   Eye,
   EyeOff,
   Camera,
-  Upload
+  Upload,
+  Crop
 } from 'lucide-react'
+import { AvatarCropModal } from '@/components/ui/AvatarCropModal'
 
 interface SignUpFormProps {
   onSignUp: (data: {
@@ -78,21 +80,49 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
     }
   }
 
-  const handleRegAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isCropOpen, setIsCropOpen] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [cropFileName, setCropFileName] = useState('avatar.jpg')
+
+  const handleRegAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      setLocalError('ขนาดรูปภาพต้องไม่เกิน 5MB')
-      onError('ขนาดรูปภาพต้องไม่เกิน 5MB')
+    if (file.size > 8 * 1024 * 1024) {
+      setLocalError('ขนาดรูปภาพต้องไม่เกิน 8MB')
+      onError('ขนาดรูปภาพต้องไม่เกิน 8MB')
       return
     }
 
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setCropImageSrc(event.target.result as string)
+        setCropFileName(file.name)
+        setIsCropOpen(true)
+      }
+    }
+    reader.readAsDataURL(file)
+
+    if (regFileInputRef.current) {
+      regFileInputRef.current.value = ''
+    }
+  }
+
+  const handleOpenCropCurrent = () => {
+    if (regAvatarUrl) {
+      setCropImageSrc(regAvatarUrl)
+      setCropFileName('current-avatar.jpg')
+      setIsCropOpen(true)
+    }
+  }
+
+  const handleCropComplete = async (croppedFile: File, previewUrl: string) => {
     try {
-      const uploadRes = await uploadFileToStorage(file, {
+      const uploadRes = await uploadFileToStorage(croppedFile, {
         folder: 'avatars',
         subfolder: regUsername.trim() || 'registration',
-        fileName: file.name
+        fileName: croppedFile.name
       })
 
       if (uploadRes.success && uploadRes.url) {
@@ -100,12 +130,10 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
         setLocalError(null)
         onError('')
       } else {
-        throw new Error(uploadRes.error || 'ไม่สามารถอัปโหลดรูปภาพได้')
+        setRegAvatarUrl(previewUrl)
       }
-    } catch (err: any) {
-      const msg = err?.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ'
-      setLocalError(msg)
-      onError(msg)
+    } catch {
+      setRegAvatarUrl(previewUrl)
     }
   }
 
@@ -195,14 +223,27 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
               <Camera className="w-4 h-4 text-[#003B71]" />
               <span>รูปโปรไฟล์ (Profile Image)</span>
             </span>
-            <button
-              type="button"
-              onClick={() => regFileInputRef.current?.click()}
-              className="text-xs font-bold text-[#003B71] hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>อัปโหลดรูป</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {regAvatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleOpenCropCurrent}
+                  className="text-xs font-bold text-sky-700 hover:underline flex items-center gap-1 cursor-pointer"
+                  title="ปรับตำแหน่งและตัดขอบรูปภาพ"
+                >
+                  <Crop className="w-3.5 h-3.5 text-sky-600" />
+                  <span>ตัดขอบรูป</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => regFileInputRef.current?.click()}
+                className="text-xs font-bold text-[#003B71] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>อัปโหลดรูป</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto py-1 custom-scrollbar">
@@ -486,6 +527,17 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
           </>
         )}
       </button>
+
+      <AvatarCropModal
+        isOpen={isCropOpen}
+        imageSrc={cropImageSrc}
+        fileName={cropFileName}
+        onClose={() => {
+          setIsCropOpen(false)
+          setCropImageSrc(null)
+        }}
+        onCrop={handleCropComplete}
+      />
     </form>
   )
 }

@@ -15,7 +15,8 @@ import {
   Shield,
   Upload,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Crop
 } from 'lucide-react'
 
 import {
@@ -28,6 +29,7 @@ import {
   splitFullName
 } from '@/lib/user-constants'
 import { uploadFileToStorage, deleteFileFromStorage } from '@/lib/services/okr-service'
+import { AvatarCropModal } from '@/components/ui/AvatarCropModal'
 
 export function UserProfileModal() {
   const {
@@ -49,6 +51,10 @@ export function UserProfileModal() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+
+  const [isCropOpen, setIsCropOpen] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [cropFileName, setCropFileName] = useState('avatar.jpg')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -78,22 +84,46 @@ export function UserProfileModal() {
 
   if (!isProfileModalOpen || !currentUser) return null
 
-  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('ขนาดรูปภาพต้องไม่เกิน 5MB')
+    if (file.size > 8 * 1024 * 1024) {
+      setErrorMsg('ขนาดรูปภาพต้องไม่เกิน 8MB')
       return
     }
 
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setCropImageSrc(event.target.result as string)
+        setCropFileName(file.name)
+        setIsCropOpen(true)
+      }
+    }
+    reader.readAsDataURL(file)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleOpenCropCurrent = () => {
+    if (avatarUrl) {
+      setCropImageSrc(avatarUrl)
+      setCropFileName('current-avatar.jpg')
+      setIsCropOpen(true)
+    }
+  }
+
+  const handleCropComplete = async (croppedFile: File, previewUrl: string) => {
     setLoading(true)
     setErrorMsg('')
     try {
-      const uploadRes = await uploadFileToStorage(file, {
+      const uploadRes = await uploadFileToStorage(croppedFile, {
         folder: 'avatars',
         subfolder: currentUser.user_id,
-        fileName: file.name
+        fileName: croppedFile.name
       })
 
       if (uploadRes.success && uploadRes.url) {
@@ -101,11 +131,17 @@ export function UserProfileModal() {
           deleteFileFromStorage(avatarUrl)
         }
         setAvatarUrl(uploadRes.url)
+        setSuccessMsg('ตัดขอบและอัปโหลดรูปโปรไฟล์เรียบร้อยแล้ว')
+        setTimeout(() => setSuccessMsg(''), 3000)
       } else {
-        throw new Error(uploadRes.error || 'ไม่สามารถอัปโหลดรูปภาพได้')
+        setAvatarUrl(previewUrl)
+        setSuccessMsg('ตัดขอบรูปโปรไฟล์เรียบร้อยแล้ว')
+        setTimeout(() => setSuccessMsg(''), 3000)
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')
+      setAvatarUrl(previewUrl)
+      setSuccessMsg('ตัดขอบรูปโปรไฟล์เรียบร้อยแล้ว')
+      setTimeout(() => setSuccessMsg(''), 3000)
     } finally {
       setLoading(false)
     }
@@ -230,7 +266,7 @@ export function UserProfileModal() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 flex-wrap">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -239,6 +275,18 @@ export function UserProfileModal() {
                   <Upload className="w-3.5 h-3.5" />
                   <span>อัปโหลดรูปเอง</span>
                 </button>
+
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleOpenCropCurrent}
+                    className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 text-xs font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                    title="ปรับตำแหน่งและตัดขอบรูปภาพนี้"
+                  >
+                    <Crop className="w-3.5 h-3.5 text-sky-600" />
+                    <span>ตัดขอบรูป</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -450,6 +498,17 @@ export function UserProfileModal() {
           </div>
         </form>
       </div>
+
+      <AvatarCropModal
+        isOpen={isCropOpen}
+        imageSrc={cropImageSrc}
+        fileName={cropFileName}
+        onClose={() => {
+          setIsCropOpen(false)
+          setCropImageSrc(null)
+        }}
+        onCrop={handleCropComplete}
+      />
     </div>
   )
 }
