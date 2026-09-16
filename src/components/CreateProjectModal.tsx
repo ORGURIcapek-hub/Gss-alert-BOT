@@ -19,7 +19,7 @@ export function CreateProjectModal({ okrs = [], users, onClose, onCreated }: Cre
   const { currentRole, currentUser } = useRole()
   const isTeacher = currentRole === 'teacher'
 
-  const eligibleHeads = users.filter(u => u.role !== 'admin' && u.role !== 'executive')
+  const eligibleHeads = users.filter(u => u.role !== 'admin' && u.role !== 'executive' && u.status !== 'rejected' && u.status !== 'pending')
 
   const [allOkrs, setAllOkrs] = useState<OKR[]>(okrs)
   const [okrId, setOkrId] = useState(okrs[0]?.okr_id || '')

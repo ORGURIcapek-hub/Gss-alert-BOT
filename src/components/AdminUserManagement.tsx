@@ -15,7 +15,7 @@ interface AdminUserManagementProps {
 export function AdminUserManagement({ onNavigateToPending }: AdminUserManagementProps = {}) {
   const { currentUser, allUsers, pendingUsers, deleteUser, approveUser, rejectUser, refreshUsers, selectedYear, setSelectedYear, updateUserYearlyRole } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending'>('all')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionPendingId, setActionPendingId] = useState<string | null>(null)
@@ -117,14 +117,13 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
   const isRejected = (status?: string | null) => String(status || '').toLowerCase().trim() === 'rejected'
   const isApproved = (status?: string | null) => !isPending(status) && !isRejected(status)
 
-  const approvedUsersCount = allUsers.filter(u => isApproved(u.status)).length
-  const rejectedUsersCount = allUsers.filter(u => isRejected(u.status)).length
+  const activeUsers = allUsers.filter(u => !isRejected(u.status))
+  const approvedUsersCount = activeUsers.filter(u => isApproved(u.status)).length
   const pendingUsersCount = pendingUsers.length
 
-  const usersByStatus = allUsers.filter(u => {
+  const usersByStatus = activeUsers.filter(u => {
     if (statusFilter === 'approved') return isApproved(u.status)
     if (statusFilter === 'pending') return isPending(u.status)
-    if (statusFilter === 'rejected') return isRejected(u.status)
     return true
   })
   const filteredUsers = filterUsersBySearchQuery(usersByStatus, searchTerm)
@@ -202,7 +201,7 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
                 : 'text-slate-600 hover:text-slate-900'
               }`}
           >
-            ทั้งหมด ({allUsers.length})
+            ทั้งหมด ({activeUsers.length})
           </button>
           <button
             type="button"
@@ -215,28 +214,19 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>อนุมัติแล้ว ({approvedUsersCount})</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('pending')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${statusFilter === 'pending'
-                ? 'bg-white text-amber-700 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-              }`}
-          >
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
-            <span>รออนุมัติ ({pendingUsersCount})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('rejected')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${statusFilter === 'rejected'
-                ? 'bg-white text-rose-700 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-              }`}
-          >
-            <UserX className="w-3.5 h-3.5 text-rose-600" />
-            <span>ปฏิเสธคำขอ ({rejectedUsersCount})</span>
-          </button>
+          {pendingUsersCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter('pending')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${statusFilter === 'pending'
+                  ? 'bg-white text-amber-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+                }`}
+            >
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+              <span>รออนุมัติ ({pendingUsersCount})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -393,12 +383,6 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
                           รออนุมัติ
                         </span>
                       )}
-                      {u.status === 'rejected' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
-                          <UserX className="w-2.5 h-2.5 text-rose-600" />
-                          ปฏิเสธคำขอแล้ว
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="py-4 px-4 text-slate-700 font-medium text-sm">
@@ -411,40 +395,28 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
                     {u.position || '-'}
                   </td>
                   <td className="py-4 px-4">
-                    {u.status === 'rejected' ? (
-                      <div>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
-                          <UserX className="w-3 h-3 text-rose-600" />
-                          <span>ปฏิเสธ (ไม่มีสิทธิ์)</span>
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-semibold block mt-1">
-                          ไม่อนุญาตให้เข้าสู่ระบบ
-                        </span>
-                      </div>
-                    ) : (
-                      (() => {
-                        const effectiveRole = getUserRoleForYear(u, selectedYear) || u.role
-                        return (
-                          <div>
-                            <select
-                              value={effectiveRole}
-                              disabled={updatingId === u.user_id}
-                              onChange={(e) => handleRoleChange(u.user_id, e.target.value as UserRole)}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
-                            >
-                              {ROLE_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="text-[10px] text-slate-500 font-semibold block mt-1">
-                              ปี {selectedYear}
-                            </span>
-                          </div>
-                        )
-                      })()
-                    )}
+                    {(() => {
+                      const effectiveRole = getUserRoleForYear(u, selectedYear) || u.role
+                      return (
+                        <div>
+                          <select
+                            value={effectiveRole}
+                            disabled={updatingId === u.user_id}
+                            onChange={(e) => handleRoleChange(u.user_id, e.target.value as UserRole)}
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
+                          >
+                            {ROLE_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-[10px] text-slate-500 font-semibold block mt-1">
+                            ปี {selectedYear}
+                          </span>
+                        </div>
+                      )
+                    })()}
                   </td>
 
                   <td className="py-4 px-4">
@@ -479,28 +451,6 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
                           title="ปฏิเสธคำขอ"
                         >
                           <UserX className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : u.status === 'rejected' ? (
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleInlineApprove(u)}
-                          disabled={actionPendingId === u.user_id}
-                          className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                          title="อนุมัติสิทธิ์เข้าสู่ระบบใหม่"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>อนุมัติใหม่</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUserToDelete(u)}
-                          disabled={deletingId === u.user_id}
-                          className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-200 transition-all cursor-pointer disabled:opacity-50"
-                          title="ลบข้อมูลคำขอถาวร"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ) : isCurrentUser ? (
