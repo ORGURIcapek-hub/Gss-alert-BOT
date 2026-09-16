@@ -267,3 +267,36 @@ test('users route PUT update_profile: updates title and gender alongside persona
   assert.equal(stored.gender, 'female')
   assert.equal(stored.name, 'ผศ.ดร. สมหญิง วิชาการ')
 })
+
+test('users route PUT reject: flips status to rejected and persists', async t => {
+  const env = createApiTestEnv({ fixtureName: 'users-reject' })
+  t.after(() => env.restore())
+  env.seed('persisted-users.json', { users: [USER({ user_id: 'u-rej', status: 'pending' })], deletedUserIds: [] })
+
+  const route = await env.importRoute('app/api/users/route.ts')
+  const res = await route.PUT(jsonRequest('/api/users', 'PUT', { userId: 'u-rej', action: 'reject' }))
+  const body = await res.json()
+
+  assert.equal(body.success, true)
+  assert.equal(body.user.status, 'rejected')
+  const stored = env.read('persisted-users.json').users.find(u => u.user_id === 'u-rej')
+  assert.equal(stored.status, 'rejected')
+})
+
+test('users route POST: allows rejected user to re-register by resetting status to pending', async t => {
+  const env = createApiTestEnv({ fixtureName: 'users-reregister-rejected' })
+  t.after(() => env.restore())
+  env.seed('persisted-users.json', { users: [USER({ email: 'rej@sdu.ac.th', status: 'rejected', name: 'คนเคยโดนปฏิเสธ' })], deletedUserIds: [] })
+
+  const route = await env.importRoute('app/api/users/route.ts')
+  const res = await route.POST(jsonRequest('/api/users', 'POST', { email: 'rej@sdu.ac.th', name: 'ขอสมัครใหม่ แก้ไขข้อมูลแล้ว', role: 'teacher' }))
+  const body = await res.json()
+
+  assert.equal(body.success, true)
+  assert.equal(body.isPendingUpdated, true)
+  assert.equal(body.user.status, 'pending')
+  assert.equal(body.user.name, 'ขอสมัครใหม่ แก้ไขข้อมูลแล้ว')
+  const stored = env.read('persisted-users.json').users.find(u => u.email === 'rej@sdu.ac.th')
+  assert.equal(stored.status, 'pending')
+})
+

@@ -16,7 +16,8 @@ import {
   User,
   Eye,
   EyeOff,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react'
 import { PasswordCell } from '@/components/ui/PasswordCell'
 import {
@@ -29,9 +30,9 @@ import {
 } from '@/lib/user-constants'
 
 export function AdminPendingApprovals() {
-  const { allUsers, pendingUsers, approveUser, rejectUser, refreshUsers } = useRole()
+  const { allUsers, pendingUsers, approveUser, rejectUser, deleteUser, refreshUsers } = useRole()
   const [searchQuery, setSearchQuery] = useState('')
-  const [viewMode, setViewMode] = useState<'pending' | 'approved'>('pending')
+  const [viewMode, setViewMode] = useState<'pending' | 'approved' | 'rejected'>('pending')
   const [selectedRoleOverrides, setSelectedRoleOverrides] = useState<Record<string, UserRole>>({})
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -67,7 +68,7 @@ export function AdminPendingApprovals() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean
-    action: 'approve' | 'reject'
+    action: 'approve' | 'reject' | 'delete'
     user: UserProfile | null
   }>({
     isOpen: false,
@@ -86,12 +87,13 @@ export function AdminPendingApprovals() {
 
   const filteredPending = filterUsersBySearchQuery(pendingUsers, searchQuery)
   const filteredApproved = filterUsersBySearchQuery(approvedUsers, searchQuery)
+  const filteredRejected = filterUsersBySearchQuery(rejectedUsers, searchQuery)
 
   const handleRoleChange = (userId: string, newRole: UserRole) => {
     setSelectedRoleOverrides(prev => ({ ...prev, [userId]: newRole }))
   }
 
-  const handleOpenConfirm = (user: UserProfile, action: 'approve' | 'reject') => {
+  const handleOpenConfirm = (user: UserProfile, action: 'approve' | 'reject' | 'delete') => {
     setConfirmModal({
       isOpen: true,
       action,
@@ -121,12 +123,25 @@ export function AdminPendingApprovals() {
             message: res.error || 'เกิดข้อผิดพลาดในการอนุมัติ'
           })
         }
+      } else if (action === 'delete') {
+        const res = await deleteUser(user.user_id)
+        if (res.success) {
+          setNotification({
+            type: 'success',
+            message: `ลบข้อมูลคำขอของ ${getUserFullName(user)} ออกจากระบบเรียบร้อยแล้ว`
+          })
+        } else {
+          setNotification({
+            type: 'error',
+            message: res.error || 'เกิดข้อผิดพลาดในการลบข้อมูล'
+          })
+        }
       } else {
         const res = await rejectUser(user.user_id)
         if (res.success) {
           setNotification({
             type: 'success',
-            message: `ปฏิเสธคำขอสมัครของ ${getUserFullName(user)} เรียบร้อยแล้ว`
+            message: `ปฏิเสธคำขอสมัครของ ${getUserFullName(user)} เรียบร้อยแล้ว (ย้ายไปแถบ "ปฏิเสธคำขอ")`
           })
         } else {
           setNotification({
@@ -202,11 +217,17 @@ export function AdminPendingApprovals() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div
+          onClick={() => setViewMode('rejected')}
+          className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer shadow-sm flex items-center justify-between ${viewMode === 'rejected'
+              ? 'border-rose-400 ring-2 ring-rose-300 shadow-rose-500/10'
+              : 'border-slate-200 hover:border-slate-300'
+            }`}
+        >
           <div>
             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">ปฏิเสธคำขอ</div>
             <div className="text-2xl sm:text-3xl font-black text-rose-600 mt-1">{rejectedUsersCount} รายการ</div>
-            <div className="text-xs text-slate-500 mt-1">ไม่อนุญาตให้เข้าสู่ระบบ</div>
+            <div className="text-xs text-slate-500 mt-1">ไม่อนุญาตให้เข้าสู่ระบบ (คลิกเพื่อดูรายชื่อ)</div>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
             <UserX className="w-6 h-6" />
@@ -219,7 +240,7 @@ export function AdminPendingApprovals() {
         <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <div className="flex items-center p-1 bg-slate-200/70 rounded-xl border border-slate-200">
+              <div className="flex items-center p-1 bg-slate-200/70 rounded-xl border border-slate-200 flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => setViewMode('pending')}
@@ -249,12 +270,29 @@ export function AdminPendingApprovals() {
                     {approvedUsersCount}
                   </span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('rejected')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${viewMode === 'rejected'
+                      ? 'bg-white text-rose-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                >
+                  <UserX className="w-3.5 h-3.5 text-rose-600" />
+                  <span>ปฏิเสธคำขอ</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-800 text-[10px] font-black">
+                    {rejectedUsersCount}
+                  </span>
+                </button>
               </div>
             </div>
             <p className="text-xs text-slate-500">
               {viewMode === 'pending'
                 ? 'ตรวจสอบข้อมูลและรหัสผ่านของผู้สมัคร แล้วคลิกอนุมัติเพื่อให้ผู้ใช้สามารถล็อกอินเข้าสู่ระบบได้'
-                : 'รายชื่อผู้ใช้งานทั้งหมดที่ได้รับการอนุมัติและสามารถเข้าสู่ระบบเพื่อปฏิบัติงานได้'}
+                : viewMode === 'approved'
+                ? 'รายชื่อผู้ใช้งานทั้งหมดที่ได้รับการอนุมัติและสามารถเข้าสู่ระบบเพื่อปฏิบัติงานได้'
+                : 'รายชื่อคำขอสมัครที่ถูกปฏิเสธและไม่อนุญาตให้เข้าสู่ระบบ คุณสามารถพิจารณาอนุมัติใหม่หรือลบข้อมูลถาวรได้'}
             </p>
           </div>
 
@@ -735,6 +773,281 @@ export function AdminPendingApprovals() {
             </div>
           )
         )}
+
+        {viewMode === 'rejected' && (
+          filteredRejected.length === 0 ? (
+            <div className="py-16 px-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-100 border border-slate-200 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                <UserX className="w-8 h-8" />
+              </div>
+              <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                ไม่มีคำขอสมัครที่ถูกปฏิเสธในขณะนี้
+              </h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                เมื่อมีคำขอสมัครถูกปฏิเสธ รายชื่อจะแสดงที่นี่เพื่อตรวจสอบ สามารถพิจารณาอนุมัติใหม่หรือลบข้อมูลถาวรได้
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="block lg:hidden divide-y divide-slate-100">
+                {filteredRejected.map((user) => {
+                  const reqRoleInfo = getRoleBadge(user.role)
+                  const chosenRole = selectedRoleOverrides[user.user_id] || user.role
+                  const isProcessing = processingId === user.user_id
+                  const isPasswordVisible = showAllPasswords || revealedPasswords[user.user_id]
+                  const userPassword = user.password || 'password123'
+
+                  return (
+                    <div key={user.user_id} className="p-4 sm:p-5 space-y-3.5 hover:bg-slate-50/60 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                            alt={getUserFullName(user)}
+                            className="w-12 h-12 rounded-full object-cover border border-rose-200 shadow-sm flex-shrink-0"
+                          />
+                          <div>
+                            <div className="text-sm font-bold text-slate-900">
+                              {getUserFullName(user)}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-600 text-xs mt-0.5 font-medium">
+                              <Mail className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <span className="break-all">{user.email}</span>
+                            </div>
+                            {user.username && (
+                              <div className="text-xs text-slate-700 font-mono font-semibold mt-0.5">
+                                @{user.username}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex-shrink-0">
+                          <UserX className="w-3.5 h-3.5 text-rose-600" />
+                          <span>ปฏิเสธคำขอ</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-rose-50/40 p-3 rounded-xl border border-rose-100">
+                        <div>
+                          <span className="text-slate-400 font-medium">หน่วยงาน:</span>{' '}
+                          <span className="font-bold text-slate-800">{user.department || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 font-medium">ตำแหน่ง:</span>{' '}
+                          <span className="font-bold text-slate-800">{user.position || 'บุคลากรประจำภาควิชา'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 font-medium">บทบาทที่ขอ:</span>{' '}
+                          <span className="font-bold text-slate-800">{reqRoleInfo.label}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 font-medium">วันที่ปฏิเสธ / อัปเดต:</span>{' '}
+                          <span className="font-medium text-slate-700">
+                            {user.updated_at || user.created_at ? formatThaiDate(user.updated_at || user.created_at, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 sm:col-span-2">
+                          <span className="text-slate-400 font-medium">รหัสผ่าน:</span>
+                          <PasswordCell
+                            userId={user.user_id}
+                            password={userPassword}
+                            isVisible={isPasswordVisible}
+                            isCopied={copiedId === user.user_id}
+                            onToggleReveal={toggleRevealPassword}
+                            onCopy={handleCopyPassword}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          หากต้องการอนุมัติใหม่ กำหนดสิทธิ์ให้ (Role Grant):
+                        </label>
+                        <select
+                          value={chosenRole}
+                          onChange={(e) => handleRoleChange(user.user_id, e.target.value as UserRole)}
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-bold focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71] cursor-pointer"
+                        >
+                          {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenConfirm(user, 'approve')}
+                          disabled={isProcessing}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>อนุมัติใหม่ / กดรับสิทธิ์</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenConfirm(user, 'delete')}
+                          disabled={isProcessing}
+                          className="py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>ลบข้อมูลถาวร</span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="hidden lg:block overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-4 px-4">ข้อมูลผู้สมัคร</th>
+                      <th className="py-4 px-4">หน่วยงาน / ตำแหน่ง</th>
+                      <th className="py-4 px-4">บทบาทที่ขอ</th>
+                      <th className="py-4 px-4">รหัสผ่าน (Password)</th>
+                      <th className="py-4 px-4">วันที่ปฏิเสธ / อัปเดต</th>
+                      <th className="py-4 px-4">สถานะคำขอ</th>
+                      <th className="py-4 px-4 text-right">ดำเนินการ (Actions)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {filteredRejected.map((user) => {
+                      const reqRoleInfo = getRoleBadge(user.role)
+                      const isProcessing = processingId === user.user_id
+                      const isPasswordVisible = showAllPasswords || revealedPasswords[user.user_id]
+                      const userPassword = user.password || 'password123'
+
+                      return (
+                        <tr key={user.user_id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3.5">
+                              <img
+                                src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                alt={getUserFullName(user)}
+                                className="w-11 h-11 rounded-full object-cover border border-rose-200 shadow-sm"
+                              />
+                              <div>
+                                <div className="text-sm font-bold text-slate-900">
+                                  {getUserFullName(user)}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-slate-600 text-xs mt-0.5 font-medium">
+                                  <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>{user.email}</span>
+                                  {user.username && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-slate-700 font-mono font-semibold">@{user.username}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                  {user.gender && (() => {
+                                    const gb = getGenderBadge(user.gender)
+                                    return (
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${gb.badgeClass}`}>
+                                        <span>{gb.icon}</span>
+                                        <span>{gb.label}</span>
+                                      </span>
+                                    )
+                                  })()}
+                                  {user.title && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                      {user.title}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1.5 text-slate-900 font-bold text-sm">
+                              <Building2 className="w-4 h-4 text-slate-500" />
+                              <span>{user.department}</span>
+                            </div>
+                            <div className="text-xs text-slate-600 mt-0.5 font-medium">
+                              {user.position || 'บุคลากรประจำภาควิชา'}
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${reqRoleInfo.color}`}>
+                              <reqRoleInfo.icon className="w-3.5 h-3.5" />
+                              <span>{reqRoleInfo.label}</span>
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <PasswordCell
+                              userId={user.user_id}
+                              password={userPassword}
+                              isVisible={isPasswordVisible}
+                              isCopied={copiedId === user.user_id}
+                              onToggleReveal={toggleRevealPassword}
+                              onCopy={handleCopyPassword}
+                            />
+                          </td>
+
+                          <td className="py-4 px-4 text-slate-600 text-xs font-medium">
+                            {user.updated_at || user.created_at ? formatThaiDate(user.updated_at || user.created_at, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '-'}
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
+                              <UserX className="w-3.5 h-3.5 text-rose-600" />
+                              <span>ปฏิเสธคำขอแล้ว</span>
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleOpenConfirm(user, 'approve')}
+                                disabled={isProcessing}
+                                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                title="อนุมัติสิทธิ์เข้าสู่ระบบใหม่"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>อนุมัติใหม่</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenConfirm(user, 'delete')}
+                                disabled={isProcessing}
+                                className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                title="ลบข้อมูลคำขอถาวร"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>ลบถาวร</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )
+        )}
       </div>
 
       {confirmModal.isOpen && confirmModal.user && (
@@ -746,13 +1059,19 @@ export function AdminPendingApprovals() {
               }`}>
               {confirmModal.action === 'approve' ? (
                 <CheckCircle2 className="w-6 h-6" />
+              ) : confirmModal.action === 'delete' ? (
+                <Trash2 className="w-6 h-6" />
               ) : (
                 <UserX className="w-6 h-6" />
               )}
             </div>
 
             <h3 className="text-lg font-black text-slate-900">
-              {confirmModal.action === 'approve' ? 'ยืนยันการอนุมัติสิทธิ์ผู้ใช้งาน' : 'ยืนยันการปฏิเสธคำขอสมัคร'}
+              {confirmModal.action === 'approve'
+                ? 'ยืนยันการอนุมัติสิทธิ์ผู้ใช้งาน'
+                : confirmModal.action === 'delete'
+                ? 'ยืนยันการลบข้อมูลคำขอสมัคร'
+                : 'ยืนยันการปฏิเสธคำขอสมัคร'}
             </h3>
 
             <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
@@ -768,13 +1087,21 @@ export function AdminPendingApprovals() {
                   </span>{' '}
                   ใช่หรือไม่? ผู้ใช้จะสามารถล็อกอินเข้าสู่ระบบได้ทันที
                 </>
+              ) : confirmModal.action === 'delete' ? (
+                <>
+                  คุณต้องการลบข้อมูลคำขอของ{' '}
+                  <span className="font-bold text-slate-900">
+                    {getUserFullName(confirmModal.user)}
+                  </span>{' '}
+                  ออกจากระบบอย่างถาวรใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้
+                </>
               ) : (
                 <>
                   คุณต้องการปฏิเสธคำขอสมัครของ{' '}
                   <span className="font-bold text-slate-900">
                     {getUserFullName(confirmModal.user)}
                   </span>{' '}
-                  ใช่หรือไม่? ผู้ใช้นี้จะไม่สามารถล็อกอินเข้าสู่ระบบได้
+                  ใช่หรือไม่? ผู้ใช้นี้จะถูกย้ายไปยังแถบ &quot;ปฏิเสธคำขอ&quot; และไม่สามารถล็อกอินเข้าสู่ระบบได้
                 </>
               )}
             </p>
@@ -796,7 +1123,7 @@ export function AdminPendingApprovals() {
                     : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
                   }`}
               >
-                {confirmModal.action === 'approve' ? 'ยืนยันการอนุมัติ' : 'ยืนยันปฏิเสธ'}
+                {confirmModal.action === 'approve' ? 'ยืนยันการอนุมัติ' : confirmModal.action === 'delete' ? 'ยืนยันการลบ' : 'ยืนยันปฏิเสธ'}
               </button>
             </div>
           </div>

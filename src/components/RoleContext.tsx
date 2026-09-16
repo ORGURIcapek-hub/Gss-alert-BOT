@@ -374,7 +374,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
             error: 'บัญชีนี้ (อีเมลหรือชื่อผู้ใช้งานนี้) ได้ทำการส่งคำขอลงทะเบียนแล้ว และอยู่ระหว่างรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ (Admin)'
           }
         }
-        return { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' }
+        if (String(existing.status || '').toLowerCase().trim() !== 'rejected') {
+          return { success: false, error: 'อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว' }
+        }
       }
 
       const { isValid: isPwValid } = validatePassword(userData.password || '')

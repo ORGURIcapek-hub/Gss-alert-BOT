@@ -202,10 +202,10 @@ export async function POST(req: NextRequest) {
 
     if (existingIndex !== -1) {
       const existing = storage.users[existingIndex]
-      if (existing.status === 'pending') {
-
+      if (existing.status === 'pending' || existing.status === 'rejected') {
         const updatedPending: UserProfile = {
           ...existing,
+          status: 'pending',
           title: title || existing.title || null,
           gender: gender || existing.gender || null,
           name: computedName,
