@@ -13,10 +13,10 @@ export function setInMemoryUsers(users: UserProfile[]): void {
   inMemoryUsers = users
 }
 
-export async function fetchUsers(force: boolean = false): Promise<UserProfile[]> {
+export async function fetchUsers(force: boolean = true): Promise<UserProfile[]> {
   if (typeof window !== 'undefined') {
     try {
-      const url = force ? `/api/users?t=${Date.now()}` : '/api/users'
+      const url = force ? `/api/users?force=true&t=${Date.now()}` : '/api/users'
       const data = await fetchWithDeduplication<{ success: boolean; users: UserProfile[] }>(url, {
         forceRefresh: force,
         cache: 'no-store',

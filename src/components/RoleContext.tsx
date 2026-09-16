@@ -218,7 +218,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
     const handleSync = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        refreshUsers(false)
+        refreshUsers(true)
       }
     }
 
@@ -246,7 +246,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         cleanLegacyAuthStorage()
-        const users = await fetchUsers()
+        const users = await fetchUsers(true)
         if (!isMounted) return
         setAllUsers(users)
 

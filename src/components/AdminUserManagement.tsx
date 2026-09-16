@@ -190,27 +190,85 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
       )}
 
       {pendingUsers.length > 0 && (
-        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
-            <div>
-              <span className="font-bold text-amber-950">มีผู้สมัครสมาชิกรอการอนุมัติสิทธิ์ {pendingUsers.length} บัญชี</span>
-              <p className="text-xs text-amber-700 font-medium">กรุณาตรวจสอบและอนุมัติสิทธิ์การเข้าใช้งานที่เมนู &quot;อนุมัติผู้สมัครใหม่&quot;</p>
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 text-xs sm:text-sm font-semibold space-y-3 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 animate-pulse" />
+              <div>
+                <span className="font-bold text-amber-950 text-sm sm:text-base">
+                  มีผู้สมัครสมาชิกรอการอนุมัติสิทธิ์ {pendingUsers.length} บัญชี
+                </span>
+                <p className="text-xs text-amber-800 font-medium">
+                  คุณสามารถกดรับสิทธิ์หรือปฏิเสธคำขอได้ทันทีจากที่นี่ หรือไปที่เมนู &quot;อนุมัติผู้สมัครใหม่&quot;
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold w-fit">
-              {pendingUsers.length} รายการรอพิจารณา
-            </span>
             {onNavigateToPending && (
               <button
                 type="button"
                 onClick={onNavigateToPending}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm"
+                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm w-fit inline-flex items-center gap-1.5"
               >
-                ไปหน้าอนุมัติ &rarr;
+                <span>เปิดหน้าอนุมัติแบบเต็ม</span>
+                <span>&rarr;</span>
               </button>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+            {pendingUsers.map(pUser => (
+              <div key={pUser.user_id} className="bg-white/95 rounded-2xl p-3.5 border border-amber-200 shadow-xs flex flex-col justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <img
+                    src={pUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                    alt=""
+                    className="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-slate-900 truncate">
+                      {getUserFullName(pUser)}
+                    </div>
+                    <div className="text-xs text-slate-600 truncate font-mono">
+                      {pUser.email}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#003B71]/10 text-[#003B71]">
+                        {pUser.role}
+                      </span>
+                      {pUser.gender && (() => {
+                        const gb = getGenderBadge(pUser.gender)
+                        return (
+                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${gb.badgeClass}`}>
+                            <span>{gb.icon}</span>
+                            <span>{gb.label}</span>
+                          </span>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => handleInlineReject(pUser)}
+                    disabled={actionPendingId === pUser.user_id}
+                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 cursor-pointer transition-all disabled:opacity-50"
+                  >
+                    ปฏิเสธ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInlineApprove(pUser)}
+                    disabled={actionPendingId === pUser.user_id}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs cursor-pointer transition-all inline-flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>อนุมัติ / กดรับสิทธิ์</span>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -330,7 +388,7 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
                           title="อนุมัติให้เข้าสู่ระบบทันที"
                         >
                           <UserCheck className="w-3.5 h-3.5" />
-                          <span>อนุมัติ</span>
+                          <span>อนุมัติ / กดรับสิทธิ์</span>
                         </button>
                         <button
                           type="button"

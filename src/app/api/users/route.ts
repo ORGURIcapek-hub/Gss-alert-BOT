@@ -87,11 +87,13 @@ async function saveStorage(data: StorageSchema): Promise<void> {
 
 export async function GET(req: NextRequest) {
   try {
-    const storage = await ensureDataFile()
+    const url = new URL(req.url)
+    const isForce = url.searchParams.get('force') === 'true' || url.searchParams.has('t')
+    const storage = await ensureDataFile(isForce)
     const supabase = getSafeSupabaseClient()
-    const shouldSyncSupabase = supabase && (Date.now() - lastSupabaseSync > SUPABASE_SYNC_INTERVAL)
+    const shouldSyncSupabase = Boolean(supabase)
 
-    if (shouldSyncSupabase) {
+    if (shouldSyncSupabase && supabase) {
       try {
         lastSupabaseSync = Date.now()
         const { data, error } = await supabase
@@ -100,7 +102,6 @@ export async function GET(req: NextRequest) {
           .order('management_order', { ascending: true })
 
         if (!error && data && data.length > 0) {
-
           const validSupabaseUsers = data.filter((u: any) => !storage.deletedUserIds.includes(u.user_id))
 
           const supabaseIds = new Set(validSupabaseUsers.map((u: any) => u.user_id))
@@ -327,22 +328,22 @@ export async function PUT(req: NextRequest) {
     const { action, userId } = body
 
     if (!userId) {
-      return NextResponse.json({ success: false, error: 'Missing userId' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Missing userId' }, { status: 400, headers: NO_CACHE_HEADERS })
     }
 
     const validRoles: UserRole[] = ['admin', 'executive', 'head_okr', 'teacher', 'staff']
     for (const r of [body.role, body.assignedRole]) {
       if (r !== undefined && r !== null && !validRoles.includes(r)) {
-        return NextResponse.json({ success: false, error: 'บทบาทผู้ใช้งานไม่ถูกต้อง' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'บทบาทผู้ใช้งานไม่ถูกต้อง' }, { status: 400, headers: NO_CACHE_HEADERS })
       }
     }
     if (body.year !== undefined && body.year !== null && !/^\d{4}$/.test(String(body.year))) {
-      return NextResponse.json({ success: false, error: 'ปีงบประมาณไม่ถูกต้อง' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'ปีงบประมาณไม่ถูกต้อง' }, { status: 400, headers: NO_CACHE_HEADERS })
     }
     if (body.yearly_roles && typeof body.yearly_roles === 'object') {
       for (const v of Object.values(body.yearly_roles)) {
         if (!validRoles.includes(v as UserRole)) {
-          return NextResponse.json({ success: false, error: 'บทบาทรายปีไม่ถูกต้อง' }, { status: 400 })
+          return NextResponse.json({ success: false, error: 'บทบาทรายปีไม่ถูกต้อง' }, { status: 400, headers: NO_CACHE_HEADERS })
         }
       }
     }
@@ -372,7 +373,7 @@ export async function PUT(req: NextRequest) {
     }
 
     if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404, headers: NO_CACHE_HEADERS })
     }
 
     const now = new Date().toISOString()
@@ -420,7 +421,7 @@ export async function PUT(req: NextRequest) {
 
       case 'update_password': {
         if (!body.password || typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 15) {
-          return NextResponse.json({ success: false, error: 'รหัสผ่านใหม่ต้องมีความยาว 8-15 ตัวอักษร' }, { status: 400 })
+          return NextResponse.json({ success: false, error: 'รหัสผ่านใหม่ต้องมีความยาว 8-15 ตัวอักษร' }, { status: 400, headers: NO_CACHE_HEADERS })
         }
         user.password = body.password
         user.updated_at = now
@@ -446,7 +447,7 @@ export async function PUT(req: NextRequest) {
       }
 
       default: {
-        return NextResponse.json({ success: false, error: `Unknown action "${action}"` }, { status: 400 })
+        return NextResponse.json({ success: false, error: `Unknown action "${action}"` }, { status: 400, headers: NO_CACHE_HEADERS })
       }
     }
 
@@ -501,12 +502,12 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({
       success: true,
       user
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
     console.error('[api/users] Error updating user:', err)
     return NextResponse.json(
       { success: false, error: err?.message || 'Failed to update user' },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     )
   }
 }
@@ -517,7 +518,7 @@ export async function DELETE(req: NextRequest) {
     const userId = searchParams.get('userId')
 
     if (!userId) {
-      return NextResponse.json({ success: false, error: 'Missing userId parameter' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Missing userId parameter' }, { status: 400, headers: NO_CACHE_HEADERS })
     }
 
     const storage = await ensureDataFile()
@@ -544,12 +545,12 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({
       success: true,
       deletedUserId: userId
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
     console.error('[api/users] Error deleting user:', err)
     return NextResponse.json(
       { success: false, error: err?.message || 'Failed to delete user' },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     )
   }
 }

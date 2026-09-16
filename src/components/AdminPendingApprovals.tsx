@@ -448,10 +448,10 @@ export function AdminPendingApprovals() {
                               onClick={() => handleOpenConfirm(user, 'approve')}
                               disabled={isProcessing}
                               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                              title="อนุมัติสิทธิ์ให้เข้าใช้งาน"
+                              title="อนุมัติ / กดรับสิทธิ์การเข้าใช้งาน"
                             >
                               <CheckCircle2 className="w-4 h-4" />
-                              <span>อนุมัติ</span>
+                              <span>อนุมัติ / กดรับสิทธิ์</span>
                             </button>
 
                             <button
