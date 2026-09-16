@@ -175,6 +175,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
       setAllUsers(prev => {
         if (
+          !force &&
           prev.length === users.length &&
           prev.every((u, i) => isUserIdentical(u, users[i]) && u.status === users[i].status)
         ) {
@@ -232,13 +233,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUsers])
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'admin') return
+    if (!currentUser || (currentUser.role !== 'admin' && currentRole !== 'admin')) return
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       refreshUsers(true)
-    }, 5000)
+    }, 4000)
     return () => clearInterval(timer)
-  }, [currentUser?.role, refreshUsers])
+  }, [currentUser?.role, currentRole, refreshUsers])
 
   useEffect(() => {
     let isMounted = true
@@ -340,7 +341,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
       let pool = allUsers
       try {
-        const fresh = await fetchUsers()
+        const fresh = await fetchUsers(true)
         setAllUsers(fresh)
         pool = fresh
       } catch {}

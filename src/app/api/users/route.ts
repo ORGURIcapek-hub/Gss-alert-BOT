@@ -220,6 +220,16 @@ export async function POST(req: NextRequest) {
         }
         storage.users[existingIndex] = updatedPending
         await saveStorage(storage)
+        const supabase = getSafeSupabaseClient()
+        if (supabase) {
+          try {
+            const { title: _t, gender: _g, ...fallbackUser } = updatedPending
+            await supabase.from('users').update(fallbackUser).eq('user_id', updatedPending.user_id)
+          } catch {}
+        }
+        memoryCache = null
+        lastCacheTimestamp = 0
+        lastSupabaseSync = 0
         return NextResponse.json({ success: true, user: updatedPending, isPendingUpdated: true }, { headers: NO_CACHE_HEADERS })
       }
       return NextResponse.json(
@@ -263,15 +273,31 @@ export async function POST(req: NextRequest) {
       }
       return id !== newId
     })
-    await saveStorage(storage)
 
     const supabase = getSafeSupabaseClient()
+    if (supabase) {
+      try {
+        const { data: existingSb } = await supabase
+          .from('users')
+          .select('user_id')
+          .or(`email.eq.${email},username.eq.${username}`)
+        if (existingSb && existingSb.length > 0) {
+          const sbOldIds = new Set(existingSb.map((u: any) => u.user_id))
+          storage.deletedUserIds = storage.deletedUserIds.filter(id => !sbOldIds.has(id))
+        }
+      } catch {}
+    }
+    await saveStorage(storage)
+
     if (supabase) {
       try {
         const { title: _t, gender: _g, ...fallbackUser } = newUser
         const { error: insertErr } = await supabase.from('users').insert(newUser)
         if (insertErr) {
-          await supabase.from('users').insert(fallbackUser)
+          const { error: fbErr } = await supabase.from('users').insert(fallbackUser)
+          if (fbErr && (fbErr.code === '23505' || fbErr.message?.includes('duplicate key') || fbErr.message?.includes('unique constraint'))) {
+            await supabase.from('users').update(fallbackUser).or(`email.eq.${email},username.eq.${username}`)
+          }
         }
       } catch (dbErr) {
         console.warn('[api/users] Supabase insert warning:', dbErr)

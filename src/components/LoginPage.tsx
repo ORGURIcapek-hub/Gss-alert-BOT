@@ -23,6 +23,7 @@ import {
   Clock,
   RefreshCw
 } from 'lucide-react'
+import { validatePassword } from '@/lib/password-utils'
 
 export function LoginPage() {
   const { login, register, refreshUsers } = useRole()
@@ -66,7 +67,8 @@ export function LoginPage() {
     const cleanUsername = isEmail ? id.split('@')[0] : id
     const cleanEmail = isEmail ? id : `${cleanUsername}@sdu.ac.th`
     const cleanName = cleanUsername.replace(/[._-]/g, ' ')
-    const pw = unregisteredCreds.password && unregisteredCreds.password.length >= 6 ? unregisteredCreds.password : 'Password123'
+    const rawPw = unregisteredCreds.password && unregisteredCreds.password.length >= 6 ? unregisteredCreds.password : 'Password@123'
+    const pw = validatePassword(rawPw).isValid ? rawPw : (rawPw.length >= 7 && rawPw.length <= 14 ? `${rawPw}!` : 'Password@123')
 
     const result = await register({
       username: cleanUsername,

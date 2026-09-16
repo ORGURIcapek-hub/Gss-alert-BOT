@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
-import { Shield, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Clock, Calendar, UserCheck, UserX } from 'lucide-react'
+import { Shield, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Clock, Calendar, UserCheck, UserX, RefreshCw } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
 import { PasswordCell } from '@/components/ui/PasswordCell'
@@ -21,6 +21,26 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null)
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await refreshUsers(true)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    refreshUsers(true)
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshUsers(true)
+      }
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [refreshUsers])
 
   const {
     revealedPasswords,
@@ -119,6 +139,17 @@ export function AdminUserManagement({ onNavigateToPending }: AdminUserManagement
               <option value={2571}>2571</option>
             </select>
           </div>
+
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm bg-slate-50 hover:bg-slate-100 text-[#003B71] border-slate-200 disabled:opacity-50"
+            title="ดึงข้อมูลผู้ใช้งานล่าสุดจากเซิร์ฟเวอร์"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-[#003B71] ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'กำลังโหลด...' : 'รีเฟรชข้อมูล'}</span>
+          </button>
 
           <button
             onClick={() => setShowAllPasswords(!showAllPasswords)}
