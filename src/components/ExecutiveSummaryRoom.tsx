@@ -293,8 +293,8 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                           const gaugeColor = isComplete
                             ? '#10B981' // emerald
                             : isDelayed
-                            ? '#E11D48' // rose
-                            : '#003B71' // deep navy
+                              ? '#E11D48' // rose
+                              : '#003B71' // deep navy
 
                           return (
                             <div
@@ -308,13 +308,12 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                                     {formatDepartmentShort(ps.department)}
                                   </span>
                                   <span
-                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                                      isComplete
+                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${isComplete
                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                                         : isDelayed
-                                        ? 'bg-rose-50 text-rose-700 border-rose-300'
-                                        : 'bg-sky-50 text-sky-700 border-sky-300'
-                                    }`}
+                                          ? 'bg-rose-50 text-rose-700 border-rose-300'
+                                          : 'bg-sky-50 text-sky-700 border-sky-300'
+                                      }`}
                                   >
                                     {isComplete ? 'เสร็จสิ้น 100%' : isDelayed ? 'ล่าช้า/ติดปัญหา' : 'กำลังดำเนินการ'}
                                   </span>
@@ -380,9 +379,8 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                                     </div>
                                     <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
                                       <div
-                                        className={`h-2.5 rounded-full transition-all duration-500 ${
-                                          Number(spentRate) > 90 ? 'bg-amber-500' : 'bg-[#003B71]'
-                                        }`}
+                                        className={`h-2.5 rounded-full transition-all duration-500 ${Number(spentRate) > 90 ? 'bg-amber-500' : 'bg-[#003B71]'
+                                          }`}
                                         style={{ width: `${Math.min(100, Number(spentRate))}%` }}
                                       />
                                     </div>
@@ -431,7 +429,7 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Executive Evaluation Section */}
                   <div className="mt-8 pt-6 border-t border-slate-200">
                     <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -453,11 +451,10 @@ export function ExecutiveSummaryRoom({ projects, onSelectProject }: ExecutiveSum
                               key={star}
                               onClick={() => handleRate(report.dashboard_id, star)}
                               disabled={ratingLoadingId === report.dashboard_id}
-                              className={`p-2 rounded-xl border transition-all cursor-pointer hover:scale-110 active:scale-95 ${
-                                isFilled
+                              className={`p-2 rounded-xl border transition-all cursor-pointer hover:scale-110 active:scale-95 ${isFilled
                                   ? 'bg-amber-100 border-amber-300 text-amber-500 shadow-sm'
                                   : 'bg-white border-slate-200 text-slate-300 hover:border-amber-300 hover:text-amber-400'
-                              }`}
+                                }`}
                               title={`ให้ ${star} ดาว`}
                             >
                               <Sparkles className="w-5 h-5 fill-current" />

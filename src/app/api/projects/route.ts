@@ -45,7 +45,7 @@ async function getStoredUsers(): Promise<UserProfile[]> {
         return parsed.users
       }
     }
-  } catch {}
+  } catch { }
   return []
 }
 
@@ -58,7 +58,7 @@ async function getStoredEvidences(): Promise<any[]> {
         return parsed.evidences
       }
     }
-  } catch {}
+  } catch { }
   return []
 }
 
@@ -71,7 +71,7 @@ async function getStoredOKRs(): Promise<any[]> {
         return parsed.okrs
       }
     }
-  } catch {}
+  } catch { }
   return []
 }
 
@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
               for (const se of spEvs) evMap.set(se.evidence_id, se)
               for (const fe of fileEvs) evMap.set(fe.evidence_id, fe)
 
-              const projectYear = sp.okr?.year || sp.year || 2567
+              const projectYear = sp.year || sp.okr?.year || (sp.start_date ? new Date(sp.start_date).getFullYear() + 543 : 2568)
 
               const { assignments: _remoteAssignments, ...spRest } = sp
               return {
@@ -234,7 +234,7 @@ export async function GET(req: NextRequest) {
         for (const ev of matchedEvs) evMap.set(ev.evidence_id, ev)
 
         const okr = storedOkrs.find(o => o.okr_id === p.okr_id) || p.okr || null
-        const projectYear = okr?.year || p.year || (p.start_date ? new Date(p.start_date).getFullYear() + 543 : 2567)
+        const projectYear = p.year || okr?.year || (p.start_date ? new Date(p.start_date).getFullYear() + 543 : 2568)
 
         return {
           ...p,
@@ -603,19 +603,19 @@ export async function DELETE(req: NextRequest) {
         if (fs.existsSync(NORMAL_REPORTS_FILE_PATH)) {
           await writeJsonAtomic(NORMAL_REPORTS_FILE_PATH, { reports: [] })
         }
-      } catch {}
+      } catch { }
 
       try {
         if (fs.existsSync(EVALUATIONS_FILE_PATH)) {
           await writeJsonAtomic(EVALUATIONS_FILE_PATH, { evaluations: [] })
         }
-      } catch {}
+      } catch { }
 
       try {
         if (fs.existsSync(EVIDENCES_FILE_PATH)) {
           await writeJsonAtomic(EVIDENCES_FILE_PATH, { evidences: [] })
         }
-      } catch {}
+      } catch { }
 
       try {
         if (fs.existsSync(DASHBOARD_REPORTS_FILE_PATH)) {
@@ -630,27 +630,27 @@ export async function DELETE(req: NextRequest) {
             await writeJsonAtomic(DASHBOARD_REPORTS_FILE_PATH, dashParsed)
           }
         }
-      } catch {}
+      } catch { }
 
       if (supabase) {
         try {
           await supabase.from('evaluations').delete().neq('eval_id', '00000000-0000-0000-0000-000000000000')
-        } catch {}
+        } catch { }
         try {
           await supabase.from('normal_reports').delete().neq('report_id', '00000000-0000-0000-0000-000000000000')
-        } catch {}
+        } catch { }
         try {
           await supabase.from('evidences').delete().neq('evidence_id', '00000000-0000-0000-0000-000000000000')
-        } catch {}
+        } catch { }
         try {
           await supabase.from('evidence_submissions').delete().neq('evidence_id', '00000000-0000-0000-0000-000000000000')
-        } catch {}
+        } catch { }
         try {
           await supabase.from('project_assignments').delete().neq('assignment_id', '00000000-0000-0000-0000-000000000000')
-        } catch {}
+        } catch { }
         try {
           await supabase.from('projects').delete().neq('project_id', '00000000-0000-0000-0000-000000000000')
-        } catch {}
+        } catch { }
       }
 
       return NextResponse.json({ success: true, message: 'All projects cleared' })
@@ -692,7 +692,7 @@ export async function DELETE(req: NextRequest) {
           await writeJsonAtomic(NORMAL_REPORTS_FILE_PATH, nrParsed)
         }
       }
-    } catch {}
+    } catch { }
 
     try {
       if (fs.existsSync(EVALUATIONS_FILE_PATH)) {
@@ -707,7 +707,7 @@ export async function DELETE(req: NextRequest) {
           await writeJsonAtomic(EVALUATIONS_FILE_PATH, evalParsed)
         }
       }
-    } catch {}
+    } catch { }
 
     try {
       if (fs.existsSync(EVIDENCES_FILE_PATH)) {
@@ -718,7 +718,7 @@ export async function DELETE(req: NextRequest) {
           await writeJsonAtomic(EVIDENCES_FILE_PATH, evParsed)
         }
       }
-    } catch {}
+    } catch { }
 
     try {
       if (fs.existsSync(DASHBOARD_REPORTS_FILE_PATH)) {
@@ -733,37 +733,37 @@ export async function DELETE(req: NextRequest) {
           await writeJsonAtomic(DASHBOARD_REPORTS_FILE_PATH, dashParsed)
         }
       }
-    } catch {}
+    } catch { }
 
     if (supabase) {
       for (const repId of deletedReportIds) {
         try {
           await supabase.from('evaluations').delete().eq('report_id', repId)
-        } catch {}
+        } catch { }
       }
       try {
         await supabase.from('evaluations').delete().eq('project_id', projectId)
-      } catch {}
+      } catch { }
       try {
         await supabase.from('normal_reports').delete().eq('project_id', projectId)
-      } catch {}
+      } catch { }
       if (targetProjectName) {
         try {
           await supabase.from('normal_reports').delete().eq('project_name', targetProjectName)
-        } catch {}
+        } catch { }
       }
       try {
         await supabase.from('evidences').delete().eq('project_id', projectId)
-      } catch {}
+      } catch { }
       try {
         await supabase.from('evidence_submissions').delete().eq('project_id', projectId)
-      } catch {}
+      } catch { }
       try {
         await supabase.from('project_assignments').delete().eq('project_id', projectId)
-      } catch {}
+      } catch { }
       try {
         await supabase.from('projects').delete().eq('project_id', projectId)
-      } catch {}
+      } catch { }
     }
 
     return NextResponse.json({ success: true, message: 'Project and associated reports deleted' })

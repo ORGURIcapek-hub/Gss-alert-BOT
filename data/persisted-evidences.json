@@ -1,26 +1,6 @@
 {
   "evidences": [
     {
-      "evidence_id": "8412af4a-d14f-4fd4-b450-d821dd049196",
-      "project_id": "d3a81dfb-4f96-4ac5-8470-0a6748925de2",
-      "sender_id": "1268158f-ec18-40a0-84a9-eb846be695ca",
-      "file_name": "image0.jpg",
-      "file_path": "https://tlpwmowpozoccdzrvkow.supabase.co/storage/v1/object/public/OKR-files/evidences/d3a81dfb-4f96-4ac5-8470-0a6748925de2/1789459392021_image0.jpg",
-      "file_type": "image/jpeg",
-      "description": "test",
-      "submitted_at": "2026-09-15T08:03:14.407Z"
-    },
-    {
-      "evidence_id": "41f05821-17e9-4236-b8cc-3a7129aac052",
-      "project_id": "d3a81dfb-4f96-4ac5-8470-0a6748925de2",
-      "sender_id": "1268158f-ec18-40a0-84a9-eb846be695ca",
-      "file_name": "n8n_Pair_Assignment_3_Questions 2-09-69.pdf",
-      "file_path": "https://tlpwmowpozoccdzrvkow.supabase.co/storage/v1/object/public/OKR-files/evidences/d3a81dfb-4f96-4ac5-8470-0a6748925de2/1789455832499_n8n_Pair_Assignment_3_Questions_2-09-69.pdf",
-      "file_type": "application/pdf",
-      "description": "test",
-      "submitted_at": "2026-09-15T07:03:54.304Z"
-    },
-    {
       "evidence_id": "fdb4b92f-06e0-4a01-9e3b-03e0dc6b9bbc",
       "project_id": "0eb5af22-6be1-4282-bad4-1634d6a05355",
       "sender_id": "0abe6f85-27ff-4052-a122-250b37d0408e",

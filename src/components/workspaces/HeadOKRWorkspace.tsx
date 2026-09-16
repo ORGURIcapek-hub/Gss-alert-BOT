@@ -135,7 +135,7 @@ export function HeadOKRWorkspace({
       })
 
       const currentProj = myDeptProjects.find(p => p.project_id === selectedProjectId)
-      const projectYear = currentProj?.okr?.year || currentProj?.year || selectedYear || 2567
+      const projectYear = currentProj?.okr?.year || currentProj?.year || selectedYear || 2568
       for (const uId of selectedUserIds) {
         const u = allUsers.find(user => user.user_id === uId)
         if (u && (!u.yearly_roles || !u.yearly_roles[String(projectYear)])) {
