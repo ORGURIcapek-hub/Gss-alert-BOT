@@ -11,7 +11,9 @@ import {
   DEFAULT_DEPARTMENT,
   ROLE_OPTIONS,
   ROLE_CONFIG,
-  DEPARTMENT_OPTIONS
+  DEPARTMENT_OPTIONS,
+  TITLE_OPTIONS,
+  GENDER_OPTIONS
 } from '@/lib/user-constants'
 import {
   Lock,
@@ -30,6 +32,10 @@ import {
 interface SignUpFormProps {
   onSignUp: (data: {
     username: string
+    title: string
+    gender: 'male' | 'female'
+    first_name: string
+    last_name: string
     name: string
     email: string
     password: string
@@ -44,7 +50,12 @@ interface SignUpFormProps {
 
 export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormProps) {
   const [regUsername, setRegUsername] = useState('')
-  const [regFullName, setRegFullName] = useState('')
+  const [regGender, setRegGender] = useState<'male' | 'female'>('male')
+  const [regTitle, setRegTitle] = useState('นาย')
+  const [customTitle, setCustomTitle] = useState('')
+  const [isCustomTitle, setIsCustomTitle] = useState(false)
+  const [regFirstName, setRegFirstName] = useState('')
+  const [regLastName, setRegLastName] = useState('')
   const [regEmail, setRegEmail] = useState('')
   const [regEmailError, setRegEmailError] = useState<string | null>(null)
   const [regPassword, setRegPassword] = useState('')
@@ -55,6 +66,17 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
   const [localError, setLocalError] = useState<string | null>(null)
 
   const regFileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleGenderChange = (newGender: 'male' | 'female') => {
+    setRegGender(newGender)
+    if (!isCustomTitle) {
+      if (newGender === 'female' && regTitle === 'นาย') {
+        setRegTitle('นางสาว')
+      } else if (newGender === 'male' && (regTitle === 'นางสาว' || regTitle === 'นาง')) {
+        setRegTitle('นาย')
+      }
+    }
+  }
 
   const handleRegAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -90,15 +112,19 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
   const isPasswordAllValid = validatePassword(regPassword).isValid
   const strengthMeta = getPasswordStrengthMeta(regPassword)
 
+  const effectiveTitle = isCustomTitle ? customTitle.trim() : regTitle
+  const cleanFirstName = regFirstName.trim()
+  const cleanLastName = regLastName.trim()
+  const cleanFullName = `${effectiveTitle ? effectiveTitle + ' ' : ''}${cleanFirstName} ${cleanLastName}`.trim()
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setLocalError(null)
 
     const cleanUsername = regUsername.trim().toLowerCase().replace(/\s+/g, '')
     const cleanEmail = regEmail.trim().toLowerCase()
-    const cleanName = regFullName.trim()
 
-    if (!cleanUsername || !cleanEmail || !cleanName || !regPassword) {
+    if (!cleanUsername || !cleanEmail || !cleanFirstName || !cleanLastName || !regPassword) {
       const msg = 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง'
       setLocalError(msg)
       onError(msg)
@@ -124,7 +150,11 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
 
     onSignUp({
       username: cleanUsername,
-      name: cleanName,
+      title: effectiveTitle,
+      gender: regGender,
+      first_name: cleanFirstName,
+      last_name: cleanLastName,
+      name: cleanFullName,
       email: cleanEmail,
       password: regPassword,
       role: regRole,
@@ -192,6 +222,108 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
         </div>
       </div>
 
+      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+        <label className="block text-xs sm:text-sm font-bold text-slate-800">
+          ระบุเพศ (Gender) *
+        </label>
+        <div className="grid grid-cols-2 gap-2.5">
+          {GENDER_OPTIONS.map((g) => {
+            const isSelected = regGender === g.value
+            return (
+              <button
+                key={g.value}
+                type="button"
+                onClick={() => handleGenderChange(g.value)}
+                className={`py-2 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? g.value === 'male'
+                      ? 'bg-blue-50 text-[#003B71] border-[#003B71] ring-2 ring-[#003B71]/20 shadow-xs'
+                      : 'bg-pink-50 text-pink-700 border-pink-400 ring-2 ring-pink-300/30 shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-base font-black">{g.symbol}</span>
+                <span>{g.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs sm:text-sm font-bold text-slate-800">
+              ยศ / คำนำหน้า *
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsCustomTitle(!isCustomTitle)}
+              className="text-[11px] text-[#003B71] font-bold hover:underline cursor-pointer"
+            >
+              {isCustomTitle ? 'เลือกจากรายการ' : 'ระบุยศอื่นๆ'}
+            </button>
+          </div>
+          {isCustomTitle ? (
+            <input
+              type="text"
+              required
+              placeholder="เช่น ว่าที่ ร.ต., พ.ต.ท."
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
+            />
+          ) : (
+            <select
+              value={regTitle}
+              onChange={(e) => setRegTitle(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-900 font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
+            >
+              {TITLE_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-xs sm:text-sm font-bold text-slate-800">
+            ชื่อ (First Name) *
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="เช่น สมชาย"
+            value={regFirstName}
+            onChange={(e) => setRegFirstName(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-xs sm:text-sm font-bold text-slate-800">
+            นามสกุล (Last Name) *
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="เช่น ใจดี"
+            value={regLastName}
+            onChange={(e) => setRegLastName(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
+          />
+        </div>
+      </div>
+
+      {(cleanFirstName || cleanLastName) && (
+        <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200 text-xs text-slate-700 font-medium flex items-center gap-2">
+          <span className="text-slate-500 font-bold">ชื่อที่จะแสดง:</span>
+          <span className="font-bold text-[#003B71]">{cleanFullName}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div className="space-y-1.5">
           <label className="block text-xs sm:text-sm font-bold text-slate-800">
@@ -210,22 +342,6 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="block text-xs sm:text-sm font-bold text-slate-800">
-            ชื่อ - นามสกุล (Full Name) *
-          </label>
-          <input
-            type="text"
-            required
-            placeholder="เช่น ผศ.ดร.สมชาย ใจดี"
-            value={regFullName}
-            onChange={(e) => setRegFullName(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-[#003B71]"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div className="space-y-1.5">
           <label className="block text-xs sm:text-sm font-bold text-slate-800">
             อีเมลมหาวิทยาลัย (Email) *
@@ -268,26 +384,26 @@ export function SignUpForm({ onSignUp, loading, onError, errorMsg }: SignUpFormP
             </p>
           ) : null}
         </div>
+      </div>
 
-        <div className="space-y-1.5">
-          <label className="block text-xs sm:text-sm font-bold text-slate-800">
-            บทบาทในระบบ (Role Type) *
-          </label>
-          <select
-            value={regRole}
-            onChange={(e) => setRegRole(e.target.value as UserRole)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
-          >
-            {ROLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {ROLE_CONFIG[opt.value]?.emoji} {opt.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-[11px] text-slate-500 font-medium">
-            * ระบบจะส่งคำขอสิทธิ์ในบทบาทนี้ให้ผู้ดูแลระบบ (Admin) ตรวจสอบและอนุมัติก่อนเข้าใช้งาน
-          </p>
-        </div>
+      <div className="space-y-1.5">
+        <label className="block text-xs sm:text-sm font-bold text-slate-800">
+          บทบาทในระบบที่ขอสมัคร (Role Type) *
+        </label>
+        <select
+          value={regRole}
+          onChange={(e) => setRegRole(e.target.value as UserRole)}
+          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-[#003B71] font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
+        >
+          {ROLE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {ROLE_CONFIG[opt.value]?.emoji} {opt.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-[11px] text-slate-500 font-medium">
+          * ระบบจะส่งคำขอสิทธิ์ในบทบาทนี้ให้ผู้ดูแลระบบ (Admin) ตรวจสอบและอนุมัติก่อนเข้าใช้งาน
+        </p>
       </div>
 
       <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200">

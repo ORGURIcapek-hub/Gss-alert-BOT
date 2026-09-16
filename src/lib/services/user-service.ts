@@ -125,6 +125,8 @@ export async function deleteUserRecord(userId: string): Promise<void> {
 export async function updateUserProfileRecord(
   userId: string,
   updates: {
+    title?: string | null
+    gender?: 'male' | 'female' | null
     name?: string
     first_name?: string
     last_name?: string
@@ -134,12 +136,17 @@ export async function updateUserProfileRecord(
   }
 ): Promise<UserProfile | null> {
   invalidateApiCache('/api/users')
+  const title = updates.title !== undefined ? updates.title : undefined
+  const gender = updates.gender !== undefined ? updates.gender : undefined
   const computedFirstName = updates.first_name || (updates.name ? updates.name.split(' ')[0] : undefined)
   const computedLastName = updates.last_name || (updates.name ? updates.name.split(' ').slice(1).join(' ') : undefined)
-  const computedName = updates.name || (computedFirstName && computedLastName ? `${computedFirstName} ${computedLastName}` : undefined)
+  const prefix = title ? `${title} ` : ''
+  const computedName = updates.name || (computedFirstName && computedLastName ? `${prefix}${computedFirstName} ${computedLastName}`.trim() : undefined)
 
   const sanitizedUpdates: Partial<UserProfile> = {
     ...updates,
+    ...(title !== undefined ? { title } : {}),
+    ...(gender !== undefined ? { gender } : {}),
     ...(computedFirstName ? { first_name: computedFirstName } : {}),
     ...(computedLastName ? { last_name: computedLastName } : {}),
     ...(computedName ? { name: computedName } : {}),
@@ -163,6 +170,8 @@ export async function updateUserProfileRecord(
 
 export async function registerUserRecord(userData: {
   username?: string
+  title?: string | null
+  gender?: 'male' | 'female' | null
   name?: string
   first_name?: string
   last_name?: string
@@ -175,9 +184,11 @@ export async function registerUserRecord(userData: {
   status?: 'pending' | 'approved' | 'rejected'
 }): Promise<UserProfile> {
   const cleanEmail = userData.email.toLowerCase().trim()
+  const title = (userData.title || '').trim()
+  const gender = userData.gender || null
   const computedFirstName = userData.first_name || (userData.name ? userData.name.split(' ')[0] : 'อาจารย์')
   const computedLastName = userData.last_name || (userData.name ? userData.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
-  const computedName = userData.name || `${computedFirstName} ${computedLastName}`
+  const computedName = userData.name || `${title ? title + ' ' : ''}${computedFirstName} ${computedLastName}`.trim()
   const computedUsername = userData.username || cleanEmail.split('@')[0]
   const userRole: UserRole = userData.role || 'teacher'
   const userStatus = userData.status || 'pending'
@@ -197,6 +208,8 @@ export async function registerUserRecord(userData: {
         },
         body: JSON.stringify({
           ...userData,
+          title,
+          gender,
           email: cleanEmail,
           username: computedUsername,
           name: computedName,
@@ -223,6 +236,8 @@ export async function registerUserRecord(userData: {
   const newUser: UserProfile = createdUser || {
     user_id: crypto.randomUUID(),
     username: computedUsername,
+    title: title || null,
+    gender: gender,
     name: computedName,
     email: cleanEmail,
     password: userPassword,

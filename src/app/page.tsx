@@ -97,6 +97,8 @@ export default function HomePage() {
   useEffect(() => {
     if (currentRole === 'staff' && activeTab === 'workspace') {
       handleTabChange('normal_reports')
+    } else if (currentRole === 'admin' && activeTab === 'workspace') {
+      handleTabChange('pending_users')
     }
   }, [currentRole, activeTab])
 
@@ -107,14 +109,15 @@ export default function HomePage() {
   }, [selectedYear, isAuthenticated, mounted, currentUser?.user_id])
 
   useEffect(() => {
-    setActiveTab('workspace')
+    const defaultTab = currentRole === 'admin' ? 'pending_users' : currentRole === 'staff' ? 'normal_reports' : 'workspace'
+    setActiveTab(defaultTab)
     setSelectedQuarter('ALL')
     setSelectedProject(null)
     setIsCreateModalOpen(false)
     setIsMobileMenuOpen(false)
     setOkrs([])
     setProjects([])
-  }, [currentUser?.user_id])
+  }, [currentUser?.user_id, currentRole])
 
   useEffect(() => {
     if (!mounted || !isAuthenticated) return
@@ -327,7 +330,7 @@ export default function HomePage() {
           )}
 
           {activeTab === 'users' && currentRole === 'admin' && (
-            <AdminUserManagement />
+            <AdminUserManagement onNavigateToPending={() => handleTabChange('pending_users')} />
           )}
         </div>
       </main>

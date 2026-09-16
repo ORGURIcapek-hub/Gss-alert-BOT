@@ -113,7 +113,61 @@ export const PRESET_AVATARS: string[] = [
 
 export const DEFAULT_AVATAR = PRESET_AVATARS[0]
 
+export const TITLE_OPTIONS: string[] = [
+  'นาย',
+  'นาง',
+  'นางสาว',
+  'อาจารย์',
+  'ดร.',
+  'ผศ.',
+  'ผศ.ดร.',
+  'รศ.',
+  'รศ.ดร.',
+  'ศ.',
+  'ศ.ดร.'
+]
+
+export const GENDER_OPTIONS: { value: 'male' | 'female'; label: string; symbol: string }[] = [
+  { value: 'male', label: 'ชาย (Male)', symbol: '♂' },
+  { value: 'female', label: 'หญิง (Female)', symbol: '♀' }
+]
+
+export function getGenderBadge(gender?: string | null): {
+  label: string
+  symbol: string
+  color: string
+  badgeClass: string
+  icon: string
+} {
+  if (gender === 'female' || gender === 'หญิง') {
+    return {
+      label: 'หญิง',
+      symbol: '♀',
+      color: 'bg-pink-50 text-pink-700 border-pink-200',
+      badgeClass: 'bg-pink-50 text-pink-700 border-pink-200',
+      icon: '♀'
+    }
+  }
+  if (gender === 'male' || gender === 'ชาย') {
+    return {
+      label: 'ชาย',
+      symbol: '♂',
+      color: 'bg-blue-50 text-blue-700 border-blue-200',
+      badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
+      icon: '♂'
+    }
+  }
+  return {
+    label: 'ไม่ระบุ',
+    symbol: '—',
+    color: 'bg-slate-50 text-slate-600 border-slate-200',
+    badgeClass: 'bg-slate-50 text-slate-600 border-slate-200',
+    icon: '—'
+  }
+}
+
 export function getUserFullName(user?: {
+  title?: string | null
   first_name?: string | null
   last_name?: string | null
   name?: string | null
@@ -121,7 +175,14 @@ export function getUserFullName(user?: {
   if (!user) return 'ไม่ระบุชื่อ'
   const first = user.first_name?.trim() || ''
   const last = user.last_name?.trim() || ''
+  const title = user.title?.trim() || ''
   if (first || last) {
+    if (title) {
+      if (first.startsWith(title)) {
+        return `${first} ${last}`.trim()
+      }
+      return `${title} ${first} ${last}`.trim()
+    }
     return `${first} ${last}`.trim()
   }
   return user.name?.trim() || 'ไม่ระบุชื่อ'
@@ -210,6 +271,8 @@ export function isUserIdentical(u1: UserProfile, u2: UserProfile): boolean {
   return (
     u1.user_id === u2.user_id &&
     u1.name === u2.name &&
+    (u1.title || null) === (u2.title || null) &&
+    (u1.gender || null) === (u2.gender || null) &&
     u1.first_name === u2.first_name &&
     u1.last_name === u2.last_name &&
     u1.role === u2.role &&

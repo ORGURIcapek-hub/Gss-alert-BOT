@@ -21,6 +21,8 @@ export interface Database {
         Row: {
           user_id: string
           username?: string | null
+          title?: string | null
+          gender?: 'male' | 'female' | null
           name?: string | null
           email: string
           password?: string
@@ -42,6 +44,8 @@ export interface Database {
         Insert: {
           user_id?: string
           username?: string | null
+          title?: string | null
+          gender?: 'male' | 'female' | null
           name?: string | null
           email: string
           password?: string
@@ -63,6 +67,8 @@ export interface Database {
         Update: {
           user_id?: string
           username?: string | null
+          title?: string | null
+          gender?: 'male' | 'female' | null
           name?: string | null
           email?: string
           password?: string

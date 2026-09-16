@@ -4,6 +4,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000001',
     username: 'admin',
+    title: 'นาย',
+    gender: 'male',
     name: 'ผู้ดูแลระบบ ส่วนกลาง',
     email: 'admin@science.ac.th',
     password: 'password123',
@@ -24,6 +26,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000002',
     username: 'dean',
+    title: 'ศ.ดร.',
+    gender: 'male',
     name: 'ศ.ดร.ประสิทธิ์ พัฒนาวิทย์',
     email: 'dean@science.ac.th',
     password: 'password123',
@@ -44,6 +48,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000003',
     username: 'vice.dean',
+    title: 'รศ.ดร.',
+    gender: 'male',
     name: 'รศ.ดร.วิชัย เกียรติขจร',
     email: 'vice.dean@science.ac.th',
     password: 'password123',
@@ -64,6 +70,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000004',
     username: 'head.cs',
+    title: 'ผศ.ดร.',
+    gender: 'male',
     name: 'ผศ.ดร.สมชาย ใจดี',
     email: 'head.cs@science.ac.th',
     password: 'password123',
@@ -85,6 +93,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000005',
     username: 'head.chem',
+    title: 'รศ.ดร.',
+    gender: 'female',
     name: 'รศ.ดร.นภา สิริกุล',
     email: 'head.chem@science.ac.th',
     password: 'password123',
@@ -106,6 +116,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000006',
     username: 'teacher.cs1',
+    title: 'อาจารย์',
+    gender: 'female',
     name: 'อ.ดร.กานดา สุขสมบัติ',
     email: 'teacher.cs1@science.ac.th',
     password: 'password123',
@@ -127,6 +139,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000007',
     username: 'teacher.chem1',
+    title: 'ผศ.ดร.',
+    gender: 'male',
     name: 'ผศ.ดร.อนันต์ แสงทอง',
     email: 'teacher.chem1@science.ac.th',
     password: 'password123',
@@ -147,6 +161,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000008',
     username: 'staff.plan',
+    title: 'นางสาว',
+    gender: 'female',
     name: 'น.ส.วิภาดา นโยบายดี',
     email: 'staff.plan@science.ac.th',
     password: 'password123',
@@ -167,6 +183,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000009',
     username: 'staff.general',
+    title: 'นาย',
+    gender: 'male',
     name: 'นายธนภัทร สุขประสิทธิ์',
     email: 'staff.general@science.ac.th',
     password: 'password123',
@@ -187,6 +205,8 @@ export const mockUsers: UserProfile[] = [
   {
     user_id: '00000000-0000-0000-0000-000000000010',
     username: 'staff.finance',
+    title: 'นางสาว',
+    gender: 'female',
     name: 'น.ส.กมลวรรณ ทรัพย์เจริญ',
     email: 'staff.finance@science.ac.th',
     password: 'password123',

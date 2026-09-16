@@ -105,7 +105,14 @@ export async function GET(req: NextRequest) {
 
           const supabaseIds = new Set(validSupabaseUsers.map((u: any) => u.user_id))
           const localOnlyUsers = storage.users.filter(u => !storage.deletedUserIds.includes(u.user_id) && !supabaseIds.has(u.user_id))
-          const mergedUsers = [...validSupabaseUsers, ...localOnlyUsers]
+          const mergedUsers = validSupabaseUsers.map((sbUser: any) => {
+            const localMatch = storage.users.find(u => u.user_id === sbUser.user_id)
+            return {
+              ...sbUser,
+              title: sbUser.title || localMatch?.title || null,
+              gender: sbUser.gender || localMatch?.gender || null
+            }
+          }).concat(localOnlyUsers)
 
           let modified = false
           for (const sbUser of validSupabaseUsers) {
@@ -120,7 +127,12 @@ export async function GET(req: NextRequest) {
                 storage.users[idx].password !== sbUser.password ||
                 storage.users[idx].updated_at !== sbUser.updated_at
               ) {
-                storage.users[idx] = { ...storage.users[idx], ...sbUser }
+                storage.users[idx] = {
+                  ...storage.users[idx],
+                  ...sbUser,
+                  title: sbUser.title || storage.users[idx].title || null,
+                  gender: sbUser.gender || storage.users[idx].gender || null
+                }
                 modified = true
               }
             }
@@ -168,9 +180,11 @@ export async function POST(req: NextRequest) {
     }
 
     const userRole: UserRole = body.role || 'teacher'
+    const title = (body.title || '').trim()
+    const gender = body.gender === 'female' ? 'female' : body.gender === 'male' ? 'male' : null
     const computedFirstName = body.first_name || (body.name ? body.name.split(' ')[0] : 'อาจารย์')
     const computedLastName = body.last_name || (body.name ? body.name.split(' ').slice(1).join(' ') || 'ประจำภาควิชา' : 'ประจำภาควิชา')
-    const computedName = body.name || `${computedFirstName} ${computedLastName}`
+    const computedName = body.name || `${title ? title + ' ' : ''}${computedFirstName} ${computedLastName}`.trim()
     const userPassword = body.password || 'password123'
     if (body.password && (typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 15)) {
       return NextResponse.json(
@@ -191,6 +205,8 @@ export async function POST(req: NextRequest) {
 
         const updatedPending: UserProfile = {
           ...existing,
+          title: title || existing.title || null,
+          gender: gender || existing.gender || null,
           name: computedName,
           first_name: computedFirstName,
           last_name: computedLastName,
@@ -218,6 +234,8 @@ export async function POST(req: NextRequest) {
     const newUser: UserProfile = {
       user_id: newId,
       username: username,
+      title: title || null,
+      gender: gender || null,
       name: computedName,
       email: email,
       password: userPassword,
@@ -238,13 +256,23 @@ export async function POST(req: NextRequest) {
 
     storage.users.push(newUser)
 
-    storage.deletedUserIds = storage.deletedUserIds.filter(id => id !== newId)
+    storage.deletedUserIds = storage.deletedUserIds.filter(id => {
+      const matchDeleted = storage.users.find(u => u.user_id === id)
+      if (matchDeleted && (matchDeleted.email.toLowerCase() === email || (matchDeleted.username && matchDeleted.username.toLowerCase() === username))) {
+        return false
+      }
+      return id !== newId
+    })
     await saveStorage(storage)
 
     const supabase = getSafeSupabaseClient()
     if (supabase) {
       try {
-        await supabase.from('users').insert(newUser)
+        const { error: insertErr } = await supabase.from('users').insert(newUser)
+        if (insertErr && (insertErr.code === 'PGRST204' || insertErr.message?.includes('column') || insertErr.message?.includes('schema cache'))) {
+          const { title: _t, gender: _g, ...fallbackUser } = newUser
+          await supabase.from('users').insert(fallbackUser)
+        }
       } catch (dbErr) {
         console.warn('[api/users] Supabase insert warning:', dbErr)
       }
@@ -370,13 +398,19 @@ export async function PUT(req: NextRequest) {
       }
 
       case 'update_profile': {
-        const updates = body.updates || {}
+        const updates = body.updates || body
         if (updates.name) user.name = updates.name
         if (updates.first_name) user.first_name = updates.first_name
         if (updates.last_name) user.last_name = updates.last_name
+        if (updates.title !== undefined) user.title = updates.title
+        if (updates.gender !== undefined) user.gender = updates.gender
         if (updates.avatar_url) user.avatar_url = updates.avatar_url
         if (updates.department) user.department = updates.department
         if (updates.position) user.position = updates.position
+        if (user.first_name || user.last_name) {
+          const t = user.title ? `${user.title} ` : ''
+          user.name = `${t}${user.first_name || ''} ${user.last_name || ''}`.trim()
+        }
         user.updated_at = now
         break
       }
@@ -408,6 +442,8 @@ export async function PUT(req: NextRequest) {
         if (user.department) updatePayload.department = user.department
         if (user.position) updatePayload.position = user.position
         if (user.avatar_url) updatePayload.avatar_url = user.avatar_url
+        if (user.title) updatePayload.title = user.title
+        if (user.gender) updatePayload.gender = user.gender
 
         const { error: sbError } = await supabase
           .from('users')

@@ -32,6 +32,8 @@ interface LoginResult {
 
 interface RegisterData {
   username: string
+  title?: string
+  gender?: 'male' | 'female'
   password?: string
   name?: string
   first_name?: string
@@ -44,6 +46,8 @@ interface RegisterData {
 }
 
 interface UpdateProfileData {
+  title?: string
+  gender?: 'male' | 'female'
   name?: string
   first_name?: string
   last_name?: string
@@ -231,8 +235,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser || currentUser.role !== 'admin') return
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
-      refreshUsers(false)
-    }, 20000)
+      refreshUsers(true)
+    }, 10000)
     return () => clearInterval(timer)
   }, [currentUser?.role, refreshUsers])
 
@@ -500,6 +504,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const mergedUser: UserProfile = {
         ...currentUser,
         ...(updated || updates),
+        ...(updates.title !== undefined ? { title: updates.title } : {}),
+        ...(updates.gender !== undefined ? { gender: updates.gender } : {}),
         ...(updates.first_name ? { first_name: updates.first_name } : {}),
         ...(updates.last_name ? { last_name: updates.last_name } : {}),
         ...(updates.name ? { name: updates.name } : {}),

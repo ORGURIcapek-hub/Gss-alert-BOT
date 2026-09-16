@@ -108,6 +108,10 @@ export function LoginPage() {
 
   const handleSignUp = async (data: {
     username: string
+    title: string
+    gender: 'male' | 'female'
+    first_name: string
+    last_name: string
     name: string
     email: string
     password: string

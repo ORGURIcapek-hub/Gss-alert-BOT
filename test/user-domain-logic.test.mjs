@@ -3,10 +3,11 @@ import assert from 'node:assert/strict'
 
 function getUserFullName(user) {
   if (!user) return 'ไม่ระบุชื่อ'
+  const title = user.title ? `${user.title} ` : ''
   const first = user.first_name?.trim() || ''
   const last = user.last_name?.trim() || ''
   if (first || last) {
-    return `${first} ${last}`.trim()
+    return `${title}${first} ${last}`.trim()
   }
   return user.name?.trim() || 'ไม่ระบุชื่อ'
 }
@@ -96,6 +97,8 @@ function isUserIdentical(u1, u2) {
     u1.name === u2.name &&
     u1.first_name === u2.first_name &&
     u1.last_name === u2.last_name &&
+    u1.title === u2.title &&
+    u1.gender === u2.gender &&
     u1.role === u2.role &&
     u1.department === u2.department &&
     u1.position === u2.position &&
@@ -145,8 +148,10 @@ test('getUserFullName: handles null, undefined and empty user object', () => {
   assert.equal(getUserFullName({}), 'ไม่ระบุชื่อ')
 })
 
-test('getUserFullName: prefers first_name and last_name with proper trimming', () => {
+test('getUserFullName: prefers first_name and last_name with proper trimming and title', () => {
   assert.equal(getUserFullName({ first_name: 'สมชาย', last_name: 'ใจดี' }), 'สมชาย ใจดี')
+  assert.equal(getUserFullName({ title: 'ผศ.ดร.', first_name: 'สมชาย', last_name: 'ใจดี' }), 'ผศ.ดร. สมชาย ใจดี')
+  assert.equal(getUserFullName({ title: 'นาย', first_name: 'สมชาย', last_name: 'ใจดี' }), 'นาย สมชาย ใจดี')
   assert.equal(getUserFullName({ first_name: '  สมชาย  ', last_name: '  ใจดี  ' }), 'สมชาย ใจดี')
   assert.equal(getUserFullName({ first_name: 'สมชาย', last_name: '' }), 'สมชาย')
   assert.equal(getUserFullName({ first_name: '', last_name: 'ใจดี' }), 'ใจดี')
@@ -252,7 +257,9 @@ test('isUserIdentical: returns true only if all 11 user fields match exactly', (
     avatar_url: 'https://avatar/1.jpg',
     status: 'approved',
     email: 'somchai@dusit.ac.th',
-    password: 'Password#123'
+    password: 'Password#123',
+    title: 'ผศ.ดร.',
+    gender: 'male'
   }
 
   assert.equal(isUserIdentical(base, { ...base }), true)
@@ -261,6 +268,8 @@ test('isUserIdentical: returns true only if all 11 user fields match exactly', (
   assert.equal(isUserIdentical(base, { ...base, password: 'NewPassword#1' }), false)
   assert.equal(isUserIdentical(base, { ...base, email: 'other@dusit.ac.th' }), false)
   assert.equal(isUserIdentical(base, { ...base, department: 'เคมี' }), false)
+  assert.equal(isUserIdentical(base, { ...base, title: 'รศ.ดร.' }), false)
+  assert.equal(isUserIdentical(base, { ...base, gender: 'female' }), false)
 })
 
 test('getUserRoleForYear: admin and executive roles are immutable across years and projects', () => {

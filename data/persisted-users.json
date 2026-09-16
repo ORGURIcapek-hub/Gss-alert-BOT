@@ -18,7 +18,9 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-09T15:27:39.213Z",
-      "updated_at": "2026-09-09T16:03:19.683Z"
+      "updated_at": "2026-09-09T16:03:19.683Z",
+      "title": "นาย",
+      "gender": "male"
     },
     {
       "user_id": "0abe6f85-27ff-4052-a122-250b37d0408e",
@@ -41,7 +43,9 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-09T15:36:25.059Z",
-      "updated_at": "2026-09-16T03:18:52.229Z"
+      "updated_at": "2026-09-16T03:18:52.229Z",
+      "title": "นาย",
+      "gender": "male"
     },
     {
       "user_id": "df89070e-23fb-4211-a391-0fce520acf23",
@@ -64,7 +68,9 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-15T08:26:53.389599+00:00",
-      "updated_at": "2026-09-16T03:09:31.281373+00:00"
+      "updated_at": "2026-09-16T03:09:31.281373+00:00",
+      "title": "นาย",
+      "gender": "male"
     },
     {
       "user_id": "1268158f-ec18-40a0-84a9-eb846be695ca",
@@ -84,7 +90,9 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-10T15:16:23.226Z",
-      "updated_at": "2026-09-15T03:27:34.859Z"
+      "updated_at": "2026-09-15T03:27:34.859Z",
+      "title": "นางสาว",
+      "gender": "female"
     },
     {
       "user_id": "9c9f89f5-7714-4f19-9a74-ccb068a66899",
@@ -104,7 +112,32 @@
       "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "status": "approved",
       "created_at": "2026-09-14T14:33:08.488Z",
-      "updated_at": "2026-09-14T14:34:33.682Z"
+      "updated_at": "2026-09-14T14:34:33.682Z",
+      "title": "นาย",
+      "gender": "male"
+    },
+    {
+      "user_id": "db988614-8ad0-4ac6-a6c3-6448551576fc",
+      "username": "test_student_99",
+      "name": "นาย สมศักดิ์ รักเรียน",
+      "email": "test_student_99@gmail.com",
+      "password": "Password@123",
+      "first_name": "นาย",
+      "last_name": "สมศักดิ์ รักเรียน",
+      "position": "อาจารย์ประจำภาควิชา",
+      "department": "ภาควิชาวิทยาการคอมพิวเตอร์",
+      "role": "teacher",
+      "admin_type": null,
+      "executive_level": null,
+      "employment_status": "Full-Time",
+      "management_order": 4,
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "status": "pending",
+      "created_at": "2026-09-16T03:38:29.197+00:00",
+      "updated_at": "2026-09-16T03:38:29.197+00:00",
+      "yearly_roles": {},
+      "title": "นาย",
+      "gender": "male"
     }
   ],
   "deletedUserIds": [

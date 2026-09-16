@@ -49,6 +49,8 @@ $$ LANGUAGE plpgsql;
 CREATE TABLE public.users (
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(100) UNIQUE,
+    title VARCHAR(50),
+    gender VARCHAR(20) CHECK (gender IN ('male', 'female')),
     name VARCHAR(200),
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL DEFAULT '123456',

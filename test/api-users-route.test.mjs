@@ -211,3 +211,59 @@ test('users route DELETE: removes the user from the array and tombstones the id'
   assert.deepEqual(stored.deletedUserIds, ['u-1'])
   assert.deepEqual(stored.users.map(u => u.user_id), ['u-2'], 'hard-removed from users array')
 })
+
+test('users route POST: persists title and gender fields when registering', async t => {
+  const env = createApiTestEnv({ fixtureName: 'users-post-title-gender' })
+  t.after(() => env.restore())
+  env.seed('persisted-users.json', { users: [], deletedUserIds: [] })
+
+  const route = await env.importRoute('app/api/users/route.ts')
+  const res = await route.POST(jsonRequest('/api/users', 'POST', {
+    email: 'dr.somying@sdu.ac.th',
+    title: 'ดร.',
+    gender: 'female',
+    first_name: 'สมหญิง',
+    last_name: 'รักเรียน',
+    role: 'teacher'
+  }))
+  const body = await res.json()
+
+  assert.equal(res.status, 200)
+  assert.equal(body.success, true)
+  assert.equal(body.user.title, 'ดร.')
+  assert.equal(body.user.gender, 'female')
+  assert.equal(body.user.first_name, 'สมหญิง')
+  assert.equal(body.user.last_name, 'รักเรียน')
+  assert.equal(body.user.name, 'ดร. สมหญิง รักเรียน')
+  const stored = env.read('persisted-users.json')
+  const created = stored.users.find(u => u.email === 'dr.somying@sdu.ac.th')
+  assert.ok(created)
+  assert.equal(created.title, 'ดร.')
+  assert.equal(created.gender, 'female')
+})
+
+test('users route PUT update_profile: updates title and gender alongside personal details', async t => {
+  const env = createApiTestEnv({ fixtureName: 'users-put-title-gender' })
+  t.after(() => env.restore())
+  env.seed('persisted-users.json', { users: [USER({ user_id: 'u-1', title: 'นาย', gender: 'male' })], deletedUserIds: [] })
+
+  const route = await env.importRoute('app/api/users/route.ts')
+  const res = await route.PUT(jsonRequest('/api/users', 'PUT', {
+    userId: 'u-1',
+    action: 'update_profile',
+    title: 'ผศ.ดร.',
+    gender: 'female',
+    first_name: 'สมหญิง',
+    last_name: 'วิชาการ',
+    department: 'วิทยาศาสตร์'
+  }))
+  const body = await res.json()
+
+  assert.equal(body.success, true)
+  assert.equal(body.user.title, 'ผศ.ดร.')
+  assert.equal(body.user.gender, 'female')
+  const stored = env.read('persisted-users.json').users.find(u => u.user_id === 'u-1')
+  assert.equal(stored.title, 'ผศ.ดร.')
+  assert.equal(stored.gender, 'female')
+  assert.equal(stored.name, 'ผศ.ดร. สมหญิง วิชาการ')
+})

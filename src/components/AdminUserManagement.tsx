@@ -2,17 +2,22 @@
 
 import React, { useState } from 'react'
 import { UserProfile, UserRole } from '@/types/database.types'
-import { Shield, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Clock, Calendar } from 'lucide-react'
+import { Shield, Search, Trash2, AlertTriangle, X, Loader2, CheckCircle2, Eye, EyeOff, Clock, Calendar, UserCheck, UserX } from 'lucide-react'
 import { useRole } from '@/components/RoleContext'
 import { usePasswordReveal } from '@/components/ui/usePasswordReveal'
 import { PasswordCell } from '@/components/ui/PasswordCell'
-import { ROLE_OPTIONS, filterUsersBySearchQuery, getUserFullName, getUserRoleForYear } from '@/lib/user-constants'
+import { ROLE_OPTIONS, filterUsersBySearchQuery, getUserFullName, getUserRoleForYear, getGenderBadge } from '@/lib/user-constants'
 
-export function AdminUserManagement() {
-  const { currentUser, allUsers, pendingUsers, deleteUser, refreshUsers, selectedYear, setSelectedYear, updateUserYearlyRole } = useRole()
+interface AdminUserManagementProps {
+  onNavigateToPending?: () => void
+}
+
+export function AdminUserManagement({ onNavigateToPending }: AdminUserManagementProps = {}) {
+  const { currentUser, allUsers, pendingUsers, deleteUser, approveUser, rejectUser, refreshUsers, selectedYear, setSelectedYear, updateUserYearlyRole } = useRole()
   const [searchTerm, setSearchTerm] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [actionPendingId, setActionPendingId] = useState<string | null>(null)
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null)
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -30,6 +35,40 @@ export function AdminUserManagement() {
     setUpdatingId(userId)
     await updateUserYearlyRole(userId, selectedYear, newRole)
     setUpdatingId(null)
+  }
+
+  const handleInlineApprove = async (user: UserProfile) => {
+    setActionPendingId(user.user_id)
+    try {
+      const res = await approveUser(user.user_id, user.role)
+      if (res.success) {
+        setDeleteSuccess(`อนุมัติสิทธิ์สำหรับ ${getUserFullName(user)} เรียบร้อยแล้ว`)
+        setTimeout(() => setDeleteSuccess(null), 3500)
+      } else {
+        setDeleteError(res.error || 'เกิดข้อผิดพลาดในการอนุมัติ')
+      }
+    } catch (err: any) {
+      setDeleteError(err?.message || 'เกิดข้อผิดพลาดในการอนุมัติ')
+    } finally {
+      setActionPendingId(null)
+    }
+  }
+
+  const handleInlineReject = async (user: UserProfile) => {
+    setActionPendingId(user.user_id)
+    try {
+      const res = await rejectUser(user.user_id)
+      if (res.success) {
+        setDeleteSuccess(`ปฏิเสธคำขอของ ${getUserFullName(user)} เรียบร้อยแล้ว`)
+        setTimeout(() => setDeleteSuccess(null), 3500)
+      } else {
+        setDeleteError(res.error || 'เกิดข้อผิดพลาดในการปฏิเสธ')
+      }
+    } catch (err: any) {
+      setDeleteError(err?.message || 'เกิดข้อผิดพลาดในการปฏิเสธ')
+    } finally {
+      setActionPendingId(null)
+    }
   }
 
   const handleConfirmDelete = async () => {
@@ -128,9 +167,20 @@ export function AdminUserManagement() {
               <p className="text-xs text-amber-700 font-medium">กรุณาตรวจสอบและอนุมัติสิทธิ์การเข้าใช้งานที่เมนู &quot;อนุมัติผู้สมัครใหม่&quot;</p>
             </div>
           </div>
-          <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold w-fit">
-            {pendingUsers.length} รายการรอพิจารณา
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold w-fit">
+              {pendingUsers.length} รายการรอพิจารณา
+            </span>
+            {onNavigateToPending && (
+              <button
+                type="button"
+                onClick={onNavigateToPending}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm"
+              >
+                ไปหน้าอนุมัติ &rarr;
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -145,7 +195,7 @@ export function AdminUserManagement() {
               <th className="py-4 px-4">ตำแหน่งงาน</th>
               <th className="py-4 px-4">บทบาทในระบบ (Role)</th>
               <th className="py-4 px-4">รหัสผ่าน (Password)</th>
-              <th className="py-4 px-4 text-center rounded-r-2xl">จัดการ / ลบ</th>
+              <th className="py-4 px-4 text-center rounded-r-2xl">จัดการ / สิทธิ์</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
@@ -169,7 +219,29 @@ export function AdminUserManagement() {
                     </div>
                   </td>
                   <td className="py-4 px-4 font-bold text-slate-900 text-sm sm:text-base">
-                    {getUserFullName(u)}
+                    <div>{getUserFullName(u)}</div>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      {u.gender && (() => {
+                        const gb = getGenderBadge(u.gender)
+                        return (
+                          <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${gb.badgeClass}`}>
+                            <span>{gb.icon}</span>
+                            <span>{gb.label}</span>
+                          </span>
+                        )
+                      })()}
+                      {u.title && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                          {u.title}
+                        </span>
+                      )}
+                      {u.status === 'pending' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                          <Clock className="w-2.5 h-2.5" />
+                          รออนุมัติ
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-4 text-slate-700 font-medium text-sm">
                     {u.email}
@@ -217,7 +289,29 @@ export function AdminUserManagement() {
                   </td>
 
                   <td className="py-4 px-4 text-center">
-                    {isCurrentUser ? (
+                    {u.status === 'pending' ? (
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleInlineApprove(u)}
+                          disabled={actionPendingId === u.user_id}
+                          className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          title="อนุมัติให้เข้าสู่ระบบทันที"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" />
+                          <span>อนุมัติ</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInlineReject(u)}
+                          disabled={actionPendingId === u.user_id}
+                          className="px-2 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          title="ปฏิเสธคำขอ"
+                        >
+                          <UserX className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : isCurrentUser ? (
                       <span className="text-xs text-slate-400 font-semibold px-3 py-1 bg-slate-100 rounded-lg" title="ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่">
                         บัญชีปัจจุบัน
                       </span>

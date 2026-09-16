@@ -22,6 +22,8 @@ import {
   PRESET_AVATARS,
   DEPARTMENT_OPTIONS,
   DEFAULT_DEPARTMENT,
+  TITLE_OPTIONS,
+  GENDER_OPTIONS,
   getRoleBadge,
   splitFullName
 } from '@/lib/user-constants'
@@ -36,6 +38,8 @@ export function UserProfileModal() {
     openChangePasswordModal
   } = useRole()
 
+  const [title, setTitle] = useState('')
+  const [gender, setGender] = useState<'male' | 'female' | ''>('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [department, setDepartment] = useState(DEFAULT_DEPARTMENT)
@@ -56,6 +60,8 @@ export function UserProfileModal() {
       if (!prevOpenRef.current || currentLoadedUserIdRef.current !== currentUser?.user_id) {
         if (currentUser) {
           const split = splitFullName(currentUser.name || '')
+          setTitle(currentUser.title || '')
+          setGender(currentUser.gender || '')
           setFirstName(currentUser.first_name || split.firstName)
           setLastName(currentUser.last_name || split.lastName)
           setDepartment(currentUser.department || DEFAULT_DEPARTMENT)
@@ -117,9 +123,11 @@ export function UserProfileModal() {
 
     setLoading(true)
     const result = await updateProfile({
+      title: title.trim() || undefined,
+      gender: (gender as any) || undefined,
       first_name: firstName.trim(),
       last_name: lastName.trim(),
-      name: `${firstName.trim()} ${lastName.trim()}`,
+      name: `${title ? title.trim() + ' ' : ''}${firstName.trim()} ${lastName.trim()}`.trim(),
       department: department.trim(),
       position: position.trim(),
       avatar_url: avatarUrl
@@ -263,6 +271,51 @@ export function UserProfileModal() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800">
+                เพศ (Gender)
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {GENDER_OPTIONS.map((g) => (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setGender(g.value)}
+                    className={`py-2 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      gender === g.value
+                        ? g.value === 'male'
+                          ? 'bg-blue-50 text-[#003B71] border-[#003B71] ring-2 ring-[#003B71]/20'
+                          : 'bg-pink-50 text-pink-700 border-pink-400 ring-2 ring-pink-300/30'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <span>{g.symbol}</span>
+                    <span>{g.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800">
+                ยศ / คำนำหน้าชื่อ
+              </label>
+              <select
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-bold focus:bg-white focus:outline-none focus:border-[#003B71]"
+              >
+                <option value="">-- ไม่ระบุ --</option>
+                {TITLE_OPTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
