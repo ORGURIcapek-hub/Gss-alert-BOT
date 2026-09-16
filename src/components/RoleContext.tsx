@@ -167,13 +167,19 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const lastFetchTimeRef = useRef<number>(0)
   const isFetchingRef = useRef<boolean>(false)
+  const pendingRefreshRef = useRef<boolean>(false)
 
   const refreshUsers = useCallback(async (force: boolean = false) => {
     const now = Date.now()
     const minGap = force ? 0 : 2000
 
     if (!force && now - lastFetchTimeRef.current < minGap) return
-    if (isFetchingRef.current) return
+    if (isFetchingRef.current) {
+      if (force) {
+        pendingRefreshRef.current = true
+      }
+      return
+    }
     isFetchingRef.current = true
     lastFetchTimeRef.current = now
 
@@ -184,9 +190,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         if (
           !force &&
           prev.length === users.length &&
-          prev.every((u, i) => isUserIdentical(u, users[i]) && u.status === users[i].status)
+          prev.every((u, i) => isUserIdentical(u, users[i]) && String(u.status || '').toLowerCase().trim() === String(users[i].status || '').toLowerCase().trim())
         ) {
-          return prev 
+          return prev
         }
         return users
       })
@@ -194,7 +200,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const current = currentUserRef.current
       if (current) {
         const updated = users.find(u => u.user_id === current.user_id)
-        if (!updated || updated.status === 'rejected' || updated.status === 'pending') {
+        const updatedStatus = String(updated?.status || '').toLowerCase().trim()
+        if (!updated || updatedStatus === 'rejected' || updatedStatus === 'pending') {
           setCurrentUser(null)
           setIsAuthenticated(false)
           clearAuthStorage()
@@ -207,6 +214,10 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to refresh users', e)
     } finally {
       isFetchingRef.current = false
+      if (pendingRefreshRef.current) {
+        pendingRefreshRef.current = false
+        refreshUsers(true)
+      }
     }
   }, [])
 
@@ -309,7 +320,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ กรุณาตรวจสอบอีเมลหรือชื่อผู้ใช้งาน' }
     }
 
-    const userStatus = foundUser.status || 'approved'
+    const userStatus = String(foundUser.status || 'approved').toLowerCase().trim()
     if (userStatus === 'pending') {
       return {
         success: false,
@@ -357,7 +368,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         u => u.email.trim().toLowerCase() === cleanEmail || (u.username && u.username.trim().toLowerCase() === cleanUsername)
       )
       if (existing) {
-        if (existing.status === 'pending') {
+        if (String(existing.status || '').toLowerCase().trim() === 'pending') {
           return {
             success: false,
             error: 'บัญชีนี้ (อีเมลหรือชื่อผู้ใช้งานนี้) ได้ทำการส่งคำขอลงทะเบียนแล้ว และอยู่ระหว่างรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ (Admin)'
@@ -443,7 +454,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const switchUser = (userId: string) => {
     const found = allUsers.find(u => u.user_id === userId)
-    if (found && (found.status === 'approved' || !found.status)) {
+    const st = String(found?.status || '').toLowerCase().trim()
+    if (found && st !== 'pending' && st !== 'rejected') {
       setCurrentUser(found)
       setIsAuthenticated(true)
       setStoredUser(found)
@@ -569,7 +581,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const pendingUsers = allUsers.filter(u => u.status === 'pending')
+  const pendingUsers = allUsers.filter(u => String(u.status || '').toLowerCase().trim() === 'pending')
 
   return (
     <RoleContext.Provider

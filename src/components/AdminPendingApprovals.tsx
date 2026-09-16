@@ -75,8 +75,12 @@ export function AdminPendingApprovals() {
     user: null
   })
 
-  const approvedUsers = allUsers.filter(u => (u.status || 'approved') === 'approved')
-  const rejectedUsers = allUsers.filter(u => u.status === 'rejected')
+  const isPending = (status?: string | null) => String(status || '').toLowerCase().trim() === 'pending'
+  const isRejected = (status?: string | null) => String(status || '').toLowerCase().trim() === 'rejected'
+  const isApproved = (status?: string | null) => !isPending(status) && !isRejected(status)
+
+  const approvedUsers = allUsers.filter(u => isApproved(u.status))
+  const rejectedUsers = allUsers.filter(u => isRejected(u.status))
   const approvedUsersCount = approvedUsers.length
   const rejectedUsersCount = rejectedUsers.length
 
@@ -111,7 +115,6 @@ export function AdminPendingApprovals() {
             type: 'success',
             message: `อนุมัติสิทธิ์สำหรับ ${getUserFullName(user)} เรียบร้อยแล้ว (บทบาท: ${getRoleBadge(assignedRole).label})`
           })
-          setViewMode('approved')
         } else {
           setNotification({
             type: 'error',
@@ -292,6 +295,28 @@ export function AdminPendingApprovals() {
           </div>
         </div>
 
+        {viewMode === 'approved' && pendingUsers.length > 0 && (
+          <div className="m-4 sm:m-5 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-bold">มีผู้สมัครสมาชิกรอการตรวจสอบสิทธิ์ {pendingUsers.length} รายการ</div>
+                <div className="text-xs text-amber-700 mt-0.5">มีผู้ใช้งานลงทะเบียนใหม่ที่ยังรอการอนุมัติสิทธิ์เข้าใช้งานระบบ</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewMode('pending')}
+              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer flex-shrink-0"
+            >
+              <span>ไปที่หน้ารอการตรวจสอบสิทธิ์</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-white text-amber-900 text-[10px] font-black">{pendingUsers.length}</span>
+            </button>
+          </div>
+        )}
+
         {viewMode === 'pending' && (
           filteredPending.length === 0 ? (
             <div className="py-16 px-4 text-center">
@@ -325,89 +350,69 @@ export function AdminPendingApprovals() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
-                  <tr>
-                    <th className="py-4 px-4">ข้อมูลผู้สมัคร</th>
-                    <th className="py-4 px-4">หน่วยงาน / ตำแหน่ง</th>
-                    <th className="py-4 px-4">บทบาทที่ขอสมัคร</th>
-                    <th className="py-4 px-4">รหัสผ่านที่ตั้ง (Password)</th>
-                    <th className="py-4 px-4">กำหนดสิทธิ์ให้ (Role Grant)</th>
-                    <th className="py-4 px-4">วันที่สมัคร</th>
-                    <th className="py-4 px-4 text-right">ดำเนินการ (Actions)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {filteredPending.map((user) => {
-                    const reqRoleInfo = getRoleBadge(user.role)
-                    const chosenRole = selectedRoleOverrides[user.user_id] || user.role
-                    const isProcessing = processingId === user.user_id
-                    const isPasswordVisible = showAllPasswords || revealedPasswords[user.user_id]
-                    const userPassword = user.password || 'password123'
+            <>
+              <div className="block lg:hidden divide-y divide-slate-100">
+                {filteredPending.map((user) => {
+                  const reqRoleInfo = getRoleBadge(user.role)
+                  const chosenRole = selectedRoleOverrides[user.user_id] || user.role
+                  const isProcessing = processingId === user.user_id
+                  const isPasswordVisible = showAllPasswords || revealedPasswords[user.user_id]
+                  const userPassword = user.password || 'password123'
 
-                    return (
-                      <tr key={user.user_id} className="hover:bg-slate-50/80 transition-colors">
-
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3.5">
-                            <img
-                              src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                              alt={getUserFullName(user)}
-                              className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-sm"
-                            />
-                            <div>
-                              <div className="text-sm font-bold text-slate-900">
-                                {getUserFullName(user)}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-slate-600 text-xs mt-0.5 font-medium">
-                                <Mail className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{user.email}</span>
-                                {user.username && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="text-slate-700 font-mono font-semibold">@{user.username}</span>
-                                  </>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                                {user.gender && (() => {
-                                  const gb = getGenderBadge(user.gender)
-                                  return (
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${gb.badgeClass}`}>
-                                      <span>{gb.icon}</span>
-                                      <span>{gb.label}</span>
-                                    </span>
-                                  )
-                                })()}
-                                {user.title && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                                    {user.title}
-                                  </span>
-                                )}
-                              </div>
+                  return (
+                    <div key={user.user_id} className="p-4 sm:p-5 space-y-3.5 hover:bg-slate-50/60 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                            alt={getUserFullName(user)}
+                            className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm flex-shrink-0"
+                          />
+                          <div>
+                            <div className="text-sm font-bold text-slate-900">
+                              {getUserFullName(user)}
                             </div>
+                            <div className="flex items-center gap-1.5 text-slate-600 text-xs mt-0.5 font-medium">
+                              <Mail className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <span className="break-all">{user.email}</span>
+                            </div>
+                            {user.username && (
+                              <div className="text-xs text-slate-700 font-mono font-semibold mt-0.5">
+                                @{user.username}
+                              </div>
+                            )}
                           </div>
-                        </td>
+                        </div>
 
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-1.5 text-slate-900 font-bold text-sm">
-                            <Building2 className="w-4 h-4 text-[#003B71]" />
-                            <span>{user.department}</span>
-                          </div>
-                          <div className="text-xs text-slate-600 mt-0.5 font-medium">
-                            {user.position || 'บุคลากรประจำภาควิชา'}
-                          </div>
-                        </td>
+                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border flex-shrink-0 ${reqRoleInfo.color}`}>
+                          <reqRoleInfo.icon className="w-3.5 h-3.5" />
+                          <span>{reqRoleInfo.label}</span>
+                        </div>
+                      </div>
 
-                        <td className="py-4 px-4">
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${reqRoleInfo.color}`}>
-                            <reqRoleInfo.icon className="w-3.5 h-3.5" />
-                            <span>{reqRoleInfo.label}</span>
-                          </div>
-                        </td>
-
-                        <td className="py-4 px-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50/80 p-3 rounded-xl border border-slate-100">
+                        <div>
+                          <span className="text-slate-400 font-medium">หน่วยงาน:</span>{' '}
+                          <span className="font-bold text-slate-800">{user.department || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 font-medium">ตำแหน่ง:</span>{' '}
+                          <span className="font-bold text-slate-800">{user.position || 'บุคลากรประจำภาควิชา'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 font-medium">วันที่สมัคร:</span>{' '}
+                          <span className="font-medium text-slate-700">
+                            {user.created_at ? formatThaiDate(user.created_at, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : 'เพิ่งสมัคร'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 font-medium">รหัสผ่าน:</span>
                           <PasswordCell
                             userId={user.user_id}
                             password={userPassword}
@@ -416,61 +421,197 @@ export function AdminPendingApprovals() {
                             onToggleReveal={toggleRevealPassword}
                             onCopy={handleCopyPassword}
                           />
-                        </td>
+                        </div>
+                      </div>
 
-                        <td className="py-4 px-4">
-                          <select
-                            value={chosenRole}
-                            onChange={(e) => handleRoleChange(user.user_id, e.target.value as UserRole)}
-                            className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-bold focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71] cursor-pointer"
-                          >
-                            {ROLE_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          กำหนดสิทธิ์ให้ (Role Grant):
+                        </label>
+                        <select
+                          value={chosenRole}
+                          onChange={(e) => handleRoleChange(user.user_id, e.target.value as UserRole)}
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-bold focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71] cursor-pointer"
+                        >
+                          {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                        <td className="py-4 px-4 text-slate-600 text-xs font-medium">
-                          {user.created_at ? formatThaiDate(user.created_at, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }) : 'เพิ่งสมัคร'}
-                        </td>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenConfirm(user, 'approve')}
+                          disabled={isProcessing}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>อนุมัติ / กดรับสิทธิ์</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenConfirm(user, 'reject')}
+                          disabled={isProcessing}
+                          className="py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <UserX className="w-4 h-4" />
+                          <span>ปฏิเสธ</span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
 
-                        <td className="py-4 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenConfirm(user, 'approve')}
-                              disabled={isProcessing}
-                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                              title="อนุมัติ / กดรับสิทธิ์การเข้าใช้งาน"
+              <div className="hidden lg:block overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-4 px-4">ข้อมูลผู้สมัคร</th>
+                      <th className="py-4 px-4">หน่วยงาน / ตำแหน่ง</th>
+                      <th className="py-4 px-4">บทบาทที่ขอสมัคร</th>
+                      <th className="py-4 px-4">รหัสผ่านที่ตั้ง (Password)</th>
+                      <th className="py-4 px-4">กำหนดสิทธิ์ให้ (Role Grant)</th>
+                      <th className="py-4 px-4">วันที่สมัคร</th>
+                      <th className="py-4 px-4 text-right">ดำเนินการ (Actions)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {filteredPending.map((user) => {
+                      const reqRoleInfo = getRoleBadge(user.role)
+                      const chosenRole = selectedRoleOverrides[user.user_id] || user.role
+                      const isProcessing = processingId === user.user_id
+                      const isPasswordVisible = showAllPasswords || revealedPasswords[user.user_id]
+                      const userPassword = user.password || 'password123'
+
+                      return (
+                        <tr key={user.user_id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3.5">
+                              <img
+                                src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                alt={getUserFullName(user)}
+                                className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-sm"
+                              />
+                              <div>
+                                <div className="text-sm font-bold text-slate-900">
+                                  {getUserFullName(user)}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-slate-600 text-xs mt-0.5 font-medium">
+                                  <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>{user.email}</span>
+                                  {user.username && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-slate-700 font-mono font-semibold">@{user.username}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                  {user.gender && (() => {
+                                    const gb = getGenderBadge(user.gender)
+                                    return (
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${gb.badgeClass}`}>
+                                        <span>{gb.icon}</span>
+                                        <span>{gb.label}</span>
+                                      </span>
+                                    )
+                                  })()}
+                                  {user.title && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                      {user.title}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1.5 text-slate-900 font-bold text-sm">
+                              <Building2 className="w-4 h-4 text-[#003B71]" />
+                              <span>{user.department}</span>
+                            </div>
+                            <div className="text-xs text-slate-600 mt-0.5 font-medium">
+                              {user.position || 'บุคลากรประจำภาควิชา'}
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${reqRoleInfo.color}`}>
+                              <reqRoleInfo.icon className="w-3.5 h-3.5" />
+                              <span>{reqRoleInfo.label}</span>
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <PasswordCell
+                              userId={user.user_id}
+                              password={userPassword}
+                              isVisible={isPasswordVisible}
+                              isCopied={copiedId === user.user_id}
+                              onToggleReveal={toggleRevealPassword}
+                              onCopy={handleCopyPassword}
+                            />
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <select
+                              value={chosenRole}
+                              onChange={(e) => handleRoleChange(user.user_id, e.target.value as UserRole)}
+                              className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-bold focus:outline-none focus:border-[#003B71] focus:ring-1 focus:ring-[#003B71] cursor-pointer"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
-                              <span>อนุมัติ / กดรับสิทธิ์</span>
-                            </button>
+                              {ROLE_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
 
-                            <button
-                              onClick={() => handleOpenConfirm(user, 'reject')}
-                              disabled={isProcessing}
-                              className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                              title="ปฏิเสธคำขอสมัคร"
-                            >
-                              <UserX className="w-4 h-4" />
-                              <span>ปฏิเสธ</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          <td className="py-4 px-4 text-slate-600 text-xs font-medium">
+                            {user.created_at ? formatThaiDate(user.created_at, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : 'เพิ่งสมัคร'}
+                          </td>
+
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleOpenConfirm(user, 'approve')}
+                                disabled={isProcessing}
+                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                title="อนุมัติ / กดรับสิทธิ์การเข้าใช้งาน"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>อนุมัติ / กดรับสิทธิ์</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenConfirm(user, 'reject')}
+                                disabled={isProcessing}
+                                className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                title="ปฏิเสธคำขอสมัคร"
+                              >
+                                <UserX className="w-4 h-4" />
+                                <span>ปฏิเสธ</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )
         )}
 
