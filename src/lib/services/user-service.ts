@@ -3,7 +3,7 @@ import { UserProfile, UserRole } from '@/types/database.types'
 import { getManagementOrder } from '@/lib/user-constants'
 import { getCachedUsers, setCachedUsers, fetchWithDeduplication, invalidateApiCache } from './service-helpers'
 
-let inMemoryUsers: UserProfile[] = [...mockUsers]
+let inMemoryUsers: UserProfile[] = []
 
 export function getInMemoryUsers(): UserProfile[] {
   return inMemoryUsers

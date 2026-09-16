@@ -12,7 +12,8 @@ import {
   updateUserProfileRecord,
   deleteUserRecord,
   updateUserYearlyRoleRecord,
-  getCachedProjects
+  getCachedProjects,
+  getCachedUsers
 } from '@/lib/services'
 import { validatePassword, validateEmail } from '@/lib/password-utils'
 import { isUserIdentical, getUserRoleForYear } from '@/lib/user-constants'
@@ -102,7 +103,13 @@ function broadcastSync() {
 const RoleContext = createContext<RoleContextType | undefined>(undefined)
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(mockUsers)
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedUsers()
+      if (cached && cached.length > 0) return cached
+    }
+    return []
+  })
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true)
