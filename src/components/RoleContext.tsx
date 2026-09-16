@@ -163,9 +163,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUsers = useCallback(async (force: boolean = false) => {
     const now = Date.now()
-    const minGap = force ? 1500 : 3000
+    const minGap = force ? 0 : 2000
 
-    if (now - lastFetchTimeRef.current < minGap) return
+    if (!force && now - lastFetchTimeRef.current < minGap) return
     if (isFetchingRef.current) return
     isFetchingRef.current = true
     lastFetchTimeRef.current = now
@@ -236,7 +236,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       refreshUsers(true)
-    }, 10000)
+    }, 5000)
     return () => clearInterval(timer)
   }, [currentUser?.role, refreshUsers])
 
@@ -287,7 +287,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
     let searchPool = allUsers
     try {
-      const freshUsers = await fetchUsers()
+      const freshUsers = await fetchUsers(true)
       setAllUsers(freshUsers)
       searchPool = freshUsers
     } catch {

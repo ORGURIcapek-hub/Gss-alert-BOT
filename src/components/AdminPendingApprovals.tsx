@@ -46,14 +46,8 @@ export function AdminPendingApprovals() {
   }
 
   useEffect(() => {
-    refreshUsers(false)
-    const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        refreshUsers(false)
-      }
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [])
+    refreshUsers(true)
+  }, [refreshUsers])
 
   const {
     revealedPasswords,

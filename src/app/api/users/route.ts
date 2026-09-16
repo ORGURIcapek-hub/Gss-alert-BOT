@@ -268,15 +268,19 @@ export async function POST(req: NextRequest) {
     const supabase = getSafeSupabaseClient()
     if (supabase) {
       try {
+        const { title: _t, gender: _g, ...fallbackUser } = newUser
         const { error: insertErr } = await supabase.from('users').insert(newUser)
-        if (insertErr && (insertErr.code === 'PGRST204' || insertErr.message?.includes('column') || insertErr.message?.includes('schema cache'))) {
-          const { title: _t, gender: _g, ...fallbackUser } = newUser
+        if (insertErr) {
           await supabase.from('users').insert(fallbackUser)
         }
       } catch (dbErr) {
         console.warn('[api/users] Supabase insert warning:', dbErr)
       }
     }
+
+    memoryCache = null
+    lastCacheTimestamp = 0
+    lastSupabaseSync = 0
 
     return NextResponse.json({
       success: true,
@@ -442,8 +446,6 @@ export async function PUT(req: NextRequest) {
         if (user.department) updatePayload.department = user.department
         if (user.position) updatePayload.position = user.position
         if (user.avatar_url) updatePayload.avatar_url = user.avatar_url
-        if (user.title) updatePayload.title = user.title
-        if (user.gender) updatePayload.gender = user.gender
 
         const { error: sbError } = await supabase
           .from('users')
@@ -465,6 +467,10 @@ export async function PUT(req: NextRequest) {
         console.warn('[api/users] Supabase update warning:', dbErr)
       }
     }
+
+    memoryCache = null
+    lastCacheTimestamp = 0
+    lastSupabaseSync = 0
 
     return NextResponse.json({
       success: true,
@@ -504,6 +510,10 @@ export async function DELETE(req: NextRequest) {
         console.warn('[api/users] Supabase delete warning:', dbErr)
       }
     }
+
+    memoryCache = null
+    lastCacheTimestamp = 0
+    lastSupabaseSync = 0
 
     return NextResponse.json({
       success: true,
